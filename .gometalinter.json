@@ -1,0 +1,26 @@
+{
+  "Enable": [
+    "structcheck",
+    "maligned",
+    "nakedret",
+    "deadcode",
+    "gocyclo",
+    "ineffassign",
+    "dupl",
+    "golint",
+    "gotype",
+    "goimports",
+    "varcheck",
+    "interfacer",
+    "goconst",
+    "unparam",
+    "megacheck",
+    "misspell",
+    "lll",
+    "gas",
+    "safesql"
+  ],
+  "Vendor": true,
+  "LineLength": 120,
+  "exclude": ["fake_([a-zA-Z]+)", "mocks", "([a-zA-Z]+)_test.go", "([a-zA-Z]+)_enumer.go"]
+}
