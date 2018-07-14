@@ -58,6 +58,7 @@ type settingsProvider struct {
 	pluginLoader providers.IPluginLoaderProvider
 
 	validator providers.IValidatorProvider
+	secrets   common.ISecretProvider
 
 	wSettings *providers.WorkerSettings
 	mSettings *providers.MasterSettings
@@ -88,11 +89,11 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 		Options: options.Secret,
 		Loader:  settings.pluginLoader,
 	}
-	secretsProvider := secret.NewSecretProvider(secretsConstruct)
+	settings.secrets = secret.NewSecretProvider(secretsConstruct)
 
 	tplCtor := &constructTemplate{
 		Logger:  settings.logger,
-		Secrets: secretsProvider,
+		Secrets: settings.secrets,
 	}
 	templateProvider := newTemplateProvider(tplCtor)
 
@@ -102,6 +103,7 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 		Logger:  settings.logger,
 		Options: options.Config,
 		Loader:  settings.pluginLoader,
+		Secret:  settings.secrets,
 	}
 	configProvider := config.NewConfigProvider(cfgConstruct)
 
@@ -149,12 +151,6 @@ func (s *settingsProvider) validate() {
 			s.wSettings = &providers.WorkerSettings{
 				MaxDevices: 99,
 			}
-		}
-
-		if 0 == s.wSettings.MaxDevices {
-			s.logger.Warn("Worker doesn't specify 'maxDevices', using 99 as a default",
-				common.LogSystemToken, logSystem)
-			s.wSettings.MaxDevices = 99
 		}
 	} else {
 		if nil == s.mSettings {
@@ -253,7 +249,7 @@ func (s *settingsProvider) loadDevicesAndGoHomeDefinitions(provs []*rawProvider)
 // Loads worker or server configuration.
 func (s *settingsProvider) loadGoHomeDefinition(provider *rawProvider) {
 	if s.isWorker && provider.Provider == configGoHomeWorker {
-		set := providers.WorkerSettings{}
+		set := &providers.WorkerSettings{}
 		if err := yaml.Unmarshal(provider.Config, &set); err != nil {
 			panic("Failed to unmarshal worker config")
 		}
@@ -262,11 +258,11 @@ func (s *settingsProvider) loadGoHomeDefinition(provider *rawProvider) {
 			panic("Incorrect worker settings")
 		}
 
-		s.wSettings = &set
+		s.wSettings = set
 		s.nodeID = s.wSettings.Name
 
 	} else if !s.isWorker && provider.Provider == configGoHomeMaster {
-		set := providers.MasterSettings{}
+		set := &providers.MasterSettings{}
 		if err := yaml.Unmarshal(provider.Config, &set); err != nil {
 			panic("Failed to unmarshal server config")
 		}
@@ -275,7 +271,7 @@ func (s *settingsProvider) loadGoHomeDefinition(provider *rawProvider) {
 			panic("Incorrect master settings")
 		}
 
-		s.mSettings = &set
+		s.mSettings = set
 		s.nodeID = "master"
 	}
 }
@@ -346,6 +342,7 @@ func (s *settingsProvider) loadLoggerProvider(provs []*rawProvider) []*rawProvid
 			LoggerType: v.Provider,
 			Loader:     s.pluginLoader,
 			NodeID:     s.nodeID,
+			Secret:     s.secrets,
 		}
 		log, err := logger.NewLoggerProvider(ctor)
 		if err != nil {
@@ -362,6 +359,7 @@ func (s *settingsProvider) loadLoggerProvider(provs []*rawProvider) []*rawProvid
 		}
 
 		s.validator.SetLogger(logger.NewPluginLogger(validatorLogger))
+		s.secrets.(providers.IInternalSecret).UpdateLogger(s.logger)
 	}
 
 	if -1 != index {
@@ -384,6 +382,7 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 			Logger:    s.PluginLogger(systems.SysBus, provider.Provider),
 			Loader:    s.pluginLoader,
 			NodeID:    s.nodeID,
+			Secret:    s.secrets,
 		}
 		s.bus, err = bus.NewServiceBusProvider(ctor)
 		if err != nil {

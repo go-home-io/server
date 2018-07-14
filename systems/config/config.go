@@ -23,6 +23,7 @@ type ConstructConfig struct {
 	Options map[string]string
 	Logger  common.ILoggerProvider
 	Loader  providers.IPluginLoaderProvider
+	Secret  common.ISecretProvider
 }
 
 // NewConfigProvider constructs a new config provider.
@@ -50,6 +51,7 @@ func NewConfigProvider(ctor *ConstructConfig) IConfigProvider {
 		InitData: &config.InitDataConfig{
 			Options: ctor.Options,
 			Logger:  configLogger,
+			Secret:  ctor.Secret,
 		},
 		PluginProvider: requesterProvider,
 		SystemType:     systems.SysConfig,
@@ -94,6 +96,7 @@ func getFsProvider(ctor *ConstructConfig) *fsConfig {
 	data := &config.InitDataConfig{
 		Options: ctor.Options,
 		Logger:  configLogger,
+		Secret:  ctor.Secret,
 	}
 
 	cfg := &fsConfig{}

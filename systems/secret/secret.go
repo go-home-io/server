@@ -18,6 +18,8 @@ type provider struct {
 	Secret secret.ISecret
 
 	logger common.ILoggerProvider
+
+	provider string
 }
 
 // ConstructSecret has data required for a new secrets provider.
@@ -28,7 +30,7 @@ type ConstructSecret struct {
 }
 
 // NewSecretProvider constructs a new secrets store provider.
-func NewSecretProvider(ctor *ConstructSecret) common.ISecretProvider {
+func NewSecretProvider(ctor *ConstructSecret) providers.IInternalSecret {
 	if 0 == len(ctor.Options) {
 		return returnFsProvider(ctor)
 	}
@@ -65,8 +67,9 @@ func NewSecretProvider(ctor *ConstructSecret) common.ISecretProvider {
 	}
 
 	return &provider{
-		Secret: pluginInterface.(secret.ISecret),
-		logger: secretLogger,
+		Secret:   pluginInterface.(secret.ISecret),
+		logger:   secretLogger,
+		provider: requesterProvider,
 	}
 }
 
@@ -97,14 +100,22 @@ func (s *provider) Set(name string, data string) error {
 // UpdateLogger updates a secret's provider logger.
 // Since this component loads before main logger, we need to update it.
 func (s *provider) UpdateLogger(provider common.ILoggerProvider) {
-	s.logger = provider
-	s.Secret.UpdateLogger(provider)
+	secretLoggerCtor := &logger.ConstructPluginLogger{
+		SystemLogger: provider,
+		Provider:     s.provider,
+		System:       systems.SysSecret.String(),
+	}
+	secretLogger := logger.NewPluginLogger(secretLoggerCtor)
+	s.logger = secretLogger
+	s.Secret.UpdateLogger(secretLogger)
 }
 
 // Helper to return default provider.
 func returnFsProvider(ctor *ConstructSecret) *provider {
 	return &provider{
-		Secret: getFsProvider(ctor),
+		Secret:   getFsProvider(ctor),
+		logger:   ctor.Logger,
+		provider: "go-home",
 	}
 }
 

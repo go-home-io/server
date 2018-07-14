@@ -40,6 +40,7 @@ type wrapperConstruct struct {
 	DeviceInterface  interface{}
 	DeviceState      interface{}
 	Logger           common.ILoggerProvider
+	Secret           common.ISecretProvider
 	WorkerID         string
 	Cron             providers.ICronProvider
 	LoadData         *device.InitDataDevice
@@ -93,6 +94,9 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 			ctor.Logger.Warn("Failed to schedule device updates",
 				common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
 		}
+
+		ctor.Logger.Debug(fmt.Sprintf("Polling rate for the device is %d seconds", interval),
+			common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken)
 	}
 
 	w.validateDeviceSpec(ctor)
@@ -401,6 +405,7 @@ func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
 
 	subLoadData := &device.InitDataDevice{
 		Logger:                w.Ctor.Logger,
+		Secret:                w.Ctor.Secret,
 		DeviceDiscoveredChan:  w.Ctor.LoadData.DeviceDiscoveredChan,
 		DeviceStateUpdateChan: make(chan *device.StateUpdateData, 10),
 	}
@@ -428,6 +433,7 @@ func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
 		DeviceState:       d.State,
 		LoadData:          w.Ctor.LoadData,
 		Logger:            w.Ctor.Logger,
+		Secret:            w.Ctor.Secret,
 		WorkerID:          w.Ctor.WorkerID,
 		DiscoveryChan:     w.Ctor.DiscoveryChan,
 		StatusUpdatesChan: w.Ctor.StatusUpdatesChan,

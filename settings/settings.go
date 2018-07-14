@@ -12,6 +12,10 @@ func (s *settingsProvider) SystemLogger() common.ILoggerProvider {
 	return s.logger
 }
 
+func (s *settingsProvider) Secrets() common.ISecretProvider {
+	return s.secrets
+}
+
 // PluginLogger returns logger specifically for plugin provider.
 func (s *settingsProvider) PluginLogger(system systems.SystemType, provider string) common.ILoggerProvider {
 	ctor := &logger.ConstructPluginLogger{

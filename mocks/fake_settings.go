@@ -20,6 +20,10 @@ func (f *fakeSettings) SystemLogger() common.ILoggerProvider {
 	return f.logger
 }
 
+func (f *fakeSettings) Secrets() common.ISecretProvider {
+	return nil
+}
+
 func (f *fakeSettings) PluginLogger(system systems.SystemType, provider string) common.ILoggerProvider {
 	return f.logger
 }

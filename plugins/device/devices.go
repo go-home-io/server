@@ -38,6 +38,7 @@ type DiscoveredDevices struct {
 // InitDataDevice has data required for initializing a new device.
 type InitDataDevice struct {
 	Logger common.ILoggerProvider
+	Secret common.ISecretProvider
 
 	DeviceStateUpdateChan chan *StateUpdateData
 	DeviceDiscoveredChan  chan *DiscoveredDevices

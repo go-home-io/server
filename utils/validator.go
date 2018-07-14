@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/creasty/defaults"
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/providers"
 	"gopkg.in/go-playground/validator.v9"
@@ -42,7 +43,15 @@ func (v *validatorProvider) SetLogger(logger common.ILoggerProvider) {
 func (v *validatorProvider) Validate(object interface{}) bool {
 	v.Lock()
 	defer v.Unlock()
-	err := v.validator.Struct(object)
+
+	err := defaults.Set(object)
+
+	if err != nil {
+		v.logger.Error("Failed to set default field values", err)
+		return false
+	}
+
+	err = v.validator.Struct(object)
 	if err != nil {
 		for _, e := range err.(validator.ValidationErrors) {
 			v.logger.Warn("Validation error", common.LogFieldToken, e.Field())
@@ -96,6 +105,6 @@ func isPort(val int64) bool {
 func loadNewValidator(validator *validator.Validate, logger common.ILoggerProvider,
 	name string, function validator.Func) {
 	if err := validator.RegisterValidation(name, function); err != nil {
-		logger.Error("Failed to registrer validator type", err, "type", name)
+		logger.Error("Failed to register validator type", err, "type", name)
 	}
 }

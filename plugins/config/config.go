@@ -17,6 +17,7 @@ type IConfig interface {
 type InitDataConfig struct {
 	Options map[string]string
 	Logger  common.ILoggerProvider
+	Secret  common.ISecretProvider
 }
 
 // IsValidConfigFileName checks whether config file name (if plugin deals with files) is valid.

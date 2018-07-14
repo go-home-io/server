@@ -16,6 +16,7 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 
 	loadData := &device.InitDataDevice{
 		Logger:                pluginLogger,
+		Secret:                ctor.Settings.Secrets(),
 		DeviceDiscoveredChan:  make(chan *device.DiscoveredDevices, 3),
 		DeviceStateUpdateChan: make(chan *device.StateUpdateData, 10),
 	}
@@ -50,6 +51,7 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 		DeviceState:       hubResults.State,
 		LoadData:          loadData,
 		Logger:            pluginLogger,
+		Secret:            ctor.Settings.Secrets(),
 		WorkerID:          ctor.Settings.NodeID(),
 		Validator:         ctor.Settings.Validator(),
 		DiscoveryChan:     ctor.DiscoveryChan,
@@ -62,6 +64,7 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 	for _, v := range hubResults.Devices {
 		subLoadData := &device.InitDataDevice{
 			Logger:                pluginLogger,
+			Secret:                ctor.Settings.Secrets(),
 			DeviceDiscoveredChan:  loadData.DeviceDiscoveredChan,
 			DeviceStateUpdateChan: make(chan *device.StateUpdateData, 10),
 		}
@@ -84,6 +87,7 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 			DeviceState:       v.State,
 			LoadData:          subLoadData,
 			Logger:            pluginLogger,
+			Secret:            ctor.Settings.Secrets(),
 			WorkerID:          ctor.Settings.NodeID(),
 			Validator:         ctor.Settings.Validator(),
 			DiscoveryChan:     ctor.DiscoveryChan,

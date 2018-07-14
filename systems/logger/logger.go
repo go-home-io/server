@@ -20,6 +20,7 @@ type ConstructLogger struct {
 	Loader     providers.IPluginLoaderProvider
 	RawConfig  []byte
 	NodeID     string
+	Secret     common.ISecretProvider
 }
 
 // NewLoggerProvider constructs a new logger.
@@ -29,7 +30,9 @@ func NewLoggerProvider(ctor *ConstructLogger) (common.ILoggerProvider, error) {
 	}
 
 	pluginLoadRequest := &providers.PluginLoadRequest{
-		InitData:       nil,
+		InitData: &logger.InitDataLogger{
+			Secret: ctor.Secret,
+		},
 		RawConfig:      ctor.RawConfig,
 		PluginProvider: ctor.LoggerType,
 		SystemType:     systems.SysLogger,

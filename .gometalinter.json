@@ -1,4 +1,11 @@
 {
+  "Linters": {
+    "megacheck_provider": {
+      "Command": "megacheck -unused.enabled=false",
+      "Pattern": "PATH:LINE:COL:MESSAGE"
+    }
+  },
+  "DisableAll": true,
   "Enable": [
     "structcheck",
     "maligned",
@@ -14,7 +21,6 @@
     "interfacer",
     "goconst",
     "unparam",
-    "megacheck",
     "misspell",
     "lll",
     "gas",
@@ -22,5 +28,12 @@
   ],
   "Vendor": true,
   "LineLength": 120,
-  "exclude": ["fake_([a-zA-Z]+)", "mocks", "([a-zA-Z]+)_test.go", "([a-zA-Z]+)_enumer.go"]
+  "Exclude": [
+    "fake_([a-zA-Z]+)",
+    "mocks",
+    "([a-zA-Z]+)_test.go",
+    "([a-zA-Z]+)_enumer.go"
+  ],
+  "Deadline": "2m",
+  "Cyclo": 13
 }

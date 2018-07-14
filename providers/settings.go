@@ -19,6 +19,7 @@ type ISettingsProvider interface {
 	MasterSettings() *MasterSettings
 	IsWorker() bool
 	DevicesConfig() []RawDevice
+	Secrets() common.ISecretProvider
 }
 
 // RawDeviceSelector has data required for understanding
@@ -40,7 +41,7 @@ type RawDevice struct {
 
 // MasterSettings has configured data for master node.
 type MasterSettings struct {
-	Port         int `yaml:"port" validate:"required,port"`
+	Port         int `yaml:"port" validate:"required,port" default:"8000"`
 	DelayedStart int `yaml:"delayedStart" validate:"gte=0"`
 }
 
@@ -48,5 +49,5 @@ type MasterSettings struct {
 type WorkerSettings struct {
 	Name       string            `yaml:"name"`
 	Properties map[string]string `yaml:"properties"`
-	MaxDevices int               `yaml:"maxDevices" validate:"gte=0,lte=1000"`
+	MaxDevices int               `yaml:"maxDevices" validate:"gte=0,lte=1000" default:"99"`
 }

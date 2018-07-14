@@ -9,6 +9,7 @@ import (
 	"github.com/go-home-io/server/systems/bus"
 )
 
+// Invokes device command if it's allowed for the user.
 func (s *GoHomeServer) commandInvokeDeviceCommand(deviceID string, opName string, data []byte) error {
 	knownDevice := s.state.GetDevice(deviceID)
 	if nil == knownDevice {

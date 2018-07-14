@@ -19,6 +19,7 @@ type IServiceBus interface {
 type InitDataServiceBus struct {
 	Logger common.ILoggerProvider
 	NodeID string
+	Secret common.ISecretProvider
 }
 
 // RawMessage has un-parsed data from the service bus.

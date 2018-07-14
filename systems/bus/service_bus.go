@@ -22,6 +22,7 @@ type ConstructBus struct {
 	RawConfig []byte
 	Logger    common.ILoggerProvider
 	NodeID    string
+	Secret    common.ISecretProvider
 }
 
 // Service bus provider.
@@ -41,6 +42,7 @@ func NewServiceBusProvider(ctor *ConstructBus) (providers.IBusProvider, error) {
 		InitData: &bus.InitDataServiceBus{
 			NodeID: ctor.NodeID,
 			Logger: ctor.Logger,
+			Secret: ctor.Secret,
 		},
 	}
 

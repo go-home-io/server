@@ -35,6 +35,7 @@ func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 
 	loadData := &device.InitDataDevice{
 		Logger:                pluginLogger,
+		Secret:                ctor.Settings.Secrets(),
 		DeviceDiscoveredChan:  make(chan *device.DiscoveredDevices, 3),
 		DeviceStateUpdateChan: make(chan *device.StateUpdateData, 10),
 	}
@@ -77,6 +78,7 @@ func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 		DeviceState:       deviceState,
 		LoadData:          loadData,
 		Logger:            pluginLogger,
+		Secret:            ctor.Settings.Secrets(),
 		WorkerID:          ctor.Settings.NodeID(),
 		Validator:         ctor.Settings.Validator(),
 		DiscoveryChan:     ctor.DiscoveryChan,

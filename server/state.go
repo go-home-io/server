@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 
+	"reflect"
+
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/providers"
@@ -76,6 +78,7 @@ func newServerState(settings providers.ISettingsProvider) *serverState {
 func (s *serverState) Discovery(msg *bus.DiscoveryMessage) {
 	var wk *knownWorker
 	var reBalanceNeeded bool
+	var newWorkerID string
 	syncProperties := true
 
 	if w, ok := s.KnownWorkers[msg.NodeID]; ok {
@@ -108,6 +111,7 @@ func (s *serverState) Discovery(msg *bus.DiscoveryMessage) {
 
 		s.KnownWorkers[msg.NodeID] = wk
 		reBalanceNeeded = true
+		newWorkerID = wk.ID
 	}
 	wk.LastSeen = utils.TimeNow()
 	wk.MaxDevices = msg.MaxDevices
@@ -121,7 +125,7 @@ func (s *serverState) Discovery(msg *bus.DiscoveryMessage) {
 	}
 
 	if reBalanceNeeded {
-		go s.reBalance()
+		go s.reBalance(newWorkerID)
 	}
 }
 
@@ -160,11 +164,11 @@ func (s *serverState) GetAllDevices() []*knownDevice {
 	s.deviceMutex.Lock()
 	defer s.deviceMutex.Unlock()
 
-	allowedDevices := make([]*knownDevice, 0)
+	devices := make([]*knownDevice, 0)
 	for _, v := range s.KnownDevices {
-		allowedDevices = append(allowedDevices, v)
+		devices = append(devices, v)
 	}
-	return allowedDevices
+	return devices
 }
 
 // GetDevice returns device bu ID.
@@ -175,6 +179,8 @@ func (s *serverState) GetDevice(deviceID string) *knownDevice {
 }
 
 // Compares received properties to already known state.
+// It's enough to check length and iterate through known worker properties
+// since it covers all possible changes.
 func (s *serverState) compareProperties(msg *bus.DiscoveryMessage) bool {
 	if len(s.KnownWorkers[msg.NodeID].WorkerProperties) != len(msg.Properties)+1 {
 		return false
@@ -184,7 +190,6 @@ func (s *serverState) compareProperties(msg *bus.DiscoveryMessage) bool {
 		if k == settings.ConfigSelectorName {
 			continue
 		}
-
 		if w, ok := msg.Properties[k]; !ok || v != w {
 			return false
 		}
@@ -194,7 +199,7 @@ func (s *serverState) compareProperties(msg *bus.DiscoveryMessage) bool {
 }
 
 // Re-balancing devices between workers.
-func (s *serverState) reBalance() {
+func (s *serverState) reBalance(newWorkerID string) {
 	s.Logger.Debug("Starting re-balancing", common.LogSystemToken, logSystem)
 	s.workerMutex.Lock()
 	defer s.workerMutex.Unlock()
@@ -242,12 +247,55 @@ func (s *serverState) reBalance() {
 	}
 
 	for n, d := range distributed {
+		if n != newWorkerID && s.isWorkerHasSameDevicesAlready(n, d) {
+			s.Logger.Debug("Worker already has same set of devices, not sending an update",
+				"worker", n, common.LogSystemToken, logSystem)
+			continue
+		}
+
+		if n == newWorkerID && 0 == len(d) {
+			continue
+		}
+
 		s.Settings.ServiceBus().PublishToWorker(n, bus.NewDeviceAssignmentMessage(d))
 		s.KnownWorkers[n].Devices = make([]*bus.DeviceAssignment, len(d))
 		copy(s.KnownWorkers[n].Devices, d)
 	}
 
 	s.Logger.Debug("Finished re-balancing", common.LogSystemToken, logSystem)
+}
+
+// Validates whether worker has all this devices already, so we don't need
+// to sed devices assignment message. Helps to avoid unnecessary updated.
+func (s *serverState) isWorkerHasSameDevicesAlready(workerID string, proposedDevices []*bus.DeviceAssignment) bool {
+	existing, ok := s.KnownWorkers[workerID]
+	if !ok {
+		return false
+	}
+
+	if len(existing.Devices) != len(proposedDevices) {
+		return false
+	}
+
+	check := func(one []*bus.DeviceAssignment, two []*bus.DeviceAssignment) bool {
+		for _, oneX := range one {
+			isFound := false
+			for _, twoX := range two {
+				isFound = reflect.DeepEqual(oneX, twoX)
+				if isFound {
+					break
+				}
+			}
+
+			if !isFound {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	return check(existing.Devices, proposedDevices) && check(proposedDevices, existing.Devices)
 }
 
 // Selecting workers for a device.
@@ -314,6 +362,6 @@ func (s *serverState) checkStaleWorkers() {
 
 	s.workerMutex.Unlock()
 	if len(toDelete) > 0 {
-		s.reBalance()
+		s.reBalance("")
 	}
 }
