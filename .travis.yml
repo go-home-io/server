@@ -4,7 +4,10 @@ go:
   - "1.11beta1"
 install:
   - make utilities
-  - go get github.com/go-home-io/providers
+  - cd ${GOPATH}
+  - mkdir -p src/github.com/go-home-io
+  - cd src/github.com/go-home-io
+  - git clone https://github.com/go-home-io/providers.git
 jobs:
   include:
     - stage: test
