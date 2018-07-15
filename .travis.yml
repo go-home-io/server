@@ -4,7 +4,9 @@ services:
   - docker
 git:
   depth: 3
-install: true
+install:
+  - sudo apt update -y
+  - sudo apt install --only-upgrade docker-ce -y
 jobs:
   include:
     - stage: ci
