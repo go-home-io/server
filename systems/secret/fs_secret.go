@@ -23,7 +23,7 @@ func (s *fsSecret) Init(data *secret.InitDataSecret) error {
 	s.logger = data.Logger
 	loc, ok := data.Options["location"]
 	if !ok {
-		loc = fmt.Sprintf("%s/configs/_secrets.yaml", utils.GetCurrentWorkingDir())
+		loc = fmt.Sprintf("%s/_secrets.yaml", utils.GetDefaultConfigsDir())
 		s.logger.Info("Using default location", "location", loc)
 	}
 

@@ -14,6 +14,7 @@ import (
 	"github.com/go-home-io/server/systems/config"
 	"github.com/go-home-io/server/systems/logger"
 	"github.com/go-home-io/server/systems/secret"
+	"github.com/go-home-io/server/systems/security"
 	"github.com/go-home-io/server/utils"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -56,16 +57,18 @@ type settingsProvider struct {
 	nodeID       string
 	cron         providers.ICronProvider
 	pluginLoader providers.IPluginLoaderProvider
-
-	validator providers.IValidatorProvider
-	secrets   common.ISecretProvider
+	validator    providers.IValidatorProvider
+	secrets      common.ISecretProvider
 
 	wSettings *providers.WorkerSettings
 	mSettings *providers.MasterSettings
-
-	isWorker bool
+	isWorker  bool
 
 	devicesConfig []providers.RawDevice
+
+	rawRoles         []*providers.SecRole
+	rawUsersProvider *rawProvider
+	securityProvider providers.ISecurityProvider
 }
 
 // Load system configuration.
@@ -74,6 +77,7 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 		isWorker:      options.IsWorker,
 		devicesConfig: make([]providers.RawDevice, 0),
 		logger:        logger.NewConsoleLogger(),
+		rawRoles:      make([]*providers.SecRole, 0),
 	}
 
 	settings.validator = utils.NewValidator(settings.logger)
@@ -124,8 +128,22 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 		settings.parseProvider(v)
 	}
 
-	settings.validate()
+	secConstruct := &security.ConstructSecurityProvider{
+		Roles:        settings.rawRoles,
+		Secret:       settings.secrets,
+		Loader:       settings.pluginLoader,
+		Logger:       settings.logger,
+		UserProvider: "",
+	}
 
+	if nil != settings.rawUsersProvider {
+		secConstruct.UserProvider = settings.rawUsersProvider.Provider
+		secConstruct.UserRawConfig = settings.rawUsersProvider.Config
+	}
+
+	settings.securityProvider = security.NewSecurityProvider(secConstruct)
+
+	settings.validate()
 	return &settings
 }
 
@@ -388,6 +406,8 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 		if err != nil {
 			s.bus = nil
 		}
+	case systems.SysSecurity.String():
+		s.processSecurity(provider)
 	default:
 		s.logger.Warn("Unknown provider", common.LogProviderToken, provider.Provider,
 			common.LogSystemToken, provider.System)
@@ -397,4 +417,45 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 		s.logger.Error("Failed to load plugin", err, common.LogProviderToken, provider.Provider,
 			common.LogSystemToken, provider.System)
 	}
+}
+
+func (s *settingsProvider) processSecurity(provider *rawProvider) {
+	if s.isWorker {
+		return
+	}
+
+	parts := strings.Split(provider.Provider, "/")
+	if 2 == len(parts) && "user" == parts[0] {
+		if nil != s.rawUsersProvider {
+			s.logger.Warn("Duplicated user provider",
+				common.LogProviderToken, provider.Provider, common.LogSystemToken, provider.System)
+			return
+		}
+
+		provider.Provider = parts[1]
+		s.rawUsersProvider = provider
+		return
+	}
+
+	if provider.Provider == "role" {
+		group := &providers.SecRole{}
+		err := yaml.Unmarshal(provider.Config, &group)
+		if err != nil {
+			s.logger.Error("Failed to unmarshal security group", err,
+				common.LogProviderToken, provider.Provider, common.LogSystemToken, provider.System)
+			return
+		}
+
+		if !s.validator.Validate(group) {
+			s.logger.Error("Failed to validate security group", err,
+				common.LogProviderToken, provider.Provider, common.LogSystemToken, provider.System)
+			return
+		}
+
+		s.rawRoles = append(s.rawRoles, group)
+		return
+	}
+
+	s.logger.Warn("Unknown security record",
+		common.LogProviderToken, provider.Provider, common.LogSystemToken, provider.System)
 }

@@ -70,3 +70,7 @@ func (s *settingsProvider) IsWorker() bool {
 func (s *settingsProvider) DevicesConfig() []providers.RawDevice {
 	return s.devicesConfig
 }
+
+func (s *settingsProvider) Security() providers.ISecurityProvider {
+	return s.securityProvider
+}

@@ -1,11 +1,13 @@
 package server
 
-// URLTokens describes enum with known API tokens.
-type URLTokens string
+// muxKeys describes enum with known API tokens.
+type muxKeys string
 
 const (
-	// URLDeviceID describes device ID URL param.
-	URLDeviceID URLTokens = "deviceID"
-	// URLCommandName describes device command name URL param.
-	URLCommandName URLTokens = "commandName"
+	// urlDeviceID describes device ID URL param.
+	urlDeviceID muxKeys = "deviceID"
+	// urlCommandName describes device command name URL param.
+	urlCommandName muxKeys = "commandName"
+	// ctxtUserName describes user in the context.
+	ctxtUserName muxKeys = "user"
 )

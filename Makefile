@@ -9,6 +9,7 @@ GOGENERATE=$(GOCMD) generate
 METALINER=$(GO_BIN_FOLDER)/gometalinter.v2
 DEP=$(GO_BIN_FOLDER)/dep ensure
 GLIDE=$(GO_BIN_FOLDER)/glide install
+GOVERALLS=$(GO_BIN_FOLDER)/goveralls
 
 PLUGINS_LOCATION=$(GOPATH)/src/github.com/go-home-io/providers/
 BIN_FOLDER=${CURDIR}/bin
@@ -95,6 +96,7 @@ utilities-build:
 utilities-ci:
 	$(GOGET) gopkg.in/alecthomas/gometalinter.v2
 	$(METALINER) --install
+	$(GOGET) github.com/mattn/goveralls
 
 utilities: utilities-build utilities-ci
 
@@ -115,7 +117,8 @@ run-worker: build
 	$(BIN_NAME) -c provider:fs -c location:${CURDIR}/configs -p ${CURDIR}/bin/plugins -w
 
 test:
-	$(GOCMD) test --covermode=count -coverprofile=$(BIN_FOLDER)/cover.out.tmp ./...
+	@set -e
+	$(GOCMD) test -failfast --covermode=count -coverprofile=$(BIN_FOLDER)/cover.out.tmp ./...
 	@cat $(BIN_FOLDER)/cover.out.tmp | grep -v "fake_" | grep -v "_enumer" | grep -v "mocks" > $(BIN_FOLDER)/cover.out
 	@rm -f $(BIN_FOLDER)/cover.out.tmp
 

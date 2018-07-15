@@ -18,4 +18,6 @@ const (
 	SysSecret
 	// SysConfig describes config provider system.
 	SysConfig
+	// SysSecurity describes security provider system.
+	SysSecurity
 )

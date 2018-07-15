@@ -85,8 +85,9 @@ func (s *GoHomeServer) registerAPI(router *mux.Router) {
 
 	apiRouter := router.PathPrefix("/api/v1").Subrouter()
 	apiRouter.HandleFunc("/device", s.getDevices).Methods(http.MethodGet)
-	apiRouter.HandleFunc(fmt.Sprintf("/device/{%s}/{%s}", URLDeviceID, URLCommandName),
+	apiRouter.HandleFunc(fmt.Sprintf("/device/{%s}/{%s}", urlDeviceID, urlCommandName),
 		s.deviceCommand).Methods(http.MethodPost)
+	apiRouter.Use(s.authMiddleware)
 	apiRouter.Use(s.logMiddleware)
 }
 

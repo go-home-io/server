@@ -1,10 +1,13 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/go-home-io/server/providers"
 )
 
 // Plain HTTP_200 API response.
@@ -36,6 +39,11 @@ func respondOkError(writer http.ResponseWriter, err error) {
 	}
 }
 
+// Return HTTP_FORBIDDEN status.
+func respondUnAuth(writer http.ResponseWriter) {
+	http.Error(writer, "Forbidden", http.StatusForbidden)
+}
+
 // Plain HTTP_500 API response.
 func respondError(writer http.ResponseWriter, err string) {
 	writer.WriteHeader(http.StatusInternalServerError)
@@ -49,4 +57,25 @@ func (s *GoHomeServer) logMiddleware(next http.Handler) http.Handler {
 		s.Logger.Debug("REST invocation", "url", r.RequestURI)
 		next.ServeHTTP(w, r)
 	})
+}
+
+// Authz middleware.
+func (s *GoHomeServer) authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, err := s.Settings.Security().GetUser(r.Header)
+		if err != nil {
+			s.Logger.Warn("Unauthorized access attempt", "url", r.RequestURI)
+			respondUnAuth(w)
+
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), ctxtUserName, user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// Gets current user out of context.
+func getContextUser(request *http.Request) *providers.AuthenticatedUser {
+	return request.Context().Value(ctxtUserName).(*providers.AuthenticatedUser)
 }

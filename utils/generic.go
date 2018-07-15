@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -61,3 +62,15 @@ func GetCurrentWorkingDir() string {
 
 	return cwd
 }
+
+// GetDefaultConfigsDir returns default config directory which is cwd/configs.
+func GetDefaultConfigsDir() string {
+	if ConfigDir != "" {
+		return ConfigDir
+	}
+
+	return fmt.Sprintf("%s/configs", GetCurrentWorkingDir())
+}
+
+// ConfigDir allows to re-write default config directory.
+var ConfigDir = ""

@@ -19,14 +19,19 @@ RUN /bin/sh -c "${INSTALL_LIBS}" && \
     cd ${HOME_DIR} && \
     make dep
 
-ARG LINT
-RUN if [ "${LINT}" != "false" ]; then \
-        make utilities-ci test && \
-        echo "DONE"; \
-    fi;
-
 RUN mkdir -p /app && \
-    make BIN_FOLDER=/app build && ls -ls /app
+    make BIN_FOLDER=/app build
+
+ARG LINT
+ARG C_TOKEN
+RUN if [ "${LINT}" != "false" ]; then \
+        set -e && \
+        mkdir bin && \
+        make utilities-ci && \
+        make lint && \
+        make test && \
+        ${GOPATH}/bin/goveralls -coverprofile=./bin/cover.out -repotoken $C_TOKEN; \
+    fi;
 
 ##################################################################################################
 

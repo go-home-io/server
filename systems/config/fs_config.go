@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -22,8 +21,10 @@ func (c *fsConfig) Init(data *config.InitDataConfig) error {
 	c.logger = data.Logger
 	loc, ok := data.Options["location"]
 	if !ok {
-		loc = fmt.Sprintf("%s/configs", utils.GetCurrentWorkingDir())
+		loc = utils.GetDefaultConfigsDir()
 		c.logger.Info("Using default location", "location", loc)
+	} else {
+		utils.ConfigDir = loc
 	}
 
 	c.location = loc

@@ -9,7 +9,6 @@ import (
 	"reflect"
 
 	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/settings"
 	"github.com/go-home-io/server/systems/bus"
@@ -31,16 +30,6 @@ type knownWorker struct {
 	WorkerProperties map[string]string
 	Devices          []*bus.DeviceAssignment
 	MaxDevices       int
-}
-
-// Known devices, received from workers.
-type knownDevice struct {
-	ID       string                 `json:"id"`
-	Worker   string                 `json:"worker"`
-	Type     enums.DeviceType       `json:"type"`
-	State    map[string]interface{} `json:"state"`
-	LastSeen int64                  `json:"last_seen"`
-	Commands []string               `json:"commands"`
 }
 
 // Connected workers' state.

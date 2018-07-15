@@ -15,8 +15,12 @@ const (
 	LogDeviceCommandToken = "device_cmd"
 	// LogDevicePropertyToken describes device property log entry.
 	LogDevicePropertyToken = "device_prop"
-	// LogDeviceHostToken describes device host entry.
+	// LogDeviceHostToken describes device host log entry.
 	LogDeviceHostToken = "host_ip"
+	// LogRoleNameToken describes role name log entry.
+	LogRoleNameToken = "role"
+	// LogUserNameToken describes user name log entry.
+	LogUserNameToken = "user"
 )
 
 const (

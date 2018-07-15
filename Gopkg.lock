@@ -61,6 +61,14 @@
   version = "v1.4.0"
 
 [[projects]]
+  digest = "1:808cdddf087fb64baeae67b8dfaee2069034d9704923a3cb8bd96a995421a625"
+  name = "github.com/patrickmn/go-cache"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "a3647f8e31d79543b2d0f0ae2fe5c379d72cedc0"
+  version = "v2.1.0"
+
+[[projects]]
   digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
   name = "github.com/pkg/errors"
   packages = ["."]
@@ -78,9 +86,13 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3f3a05ae0b95893d90b9b3b5afdb79a9b3d96e4e36e099d841ae602e4aca0da8"
+  digest = "1:e34276c4871f0db7578e6f5a77cb55a18120dde707740fe1b256aaac33574df3"
   name = "golang.org/x/crypto"
-  packages = ["ssh/terminal"]
+  packages = [
+    "bcrypt",
+    "blowfish",
+    "ssh/terminal",
+  ]
   pruneopts = "UT"
   revision = "a49355c7e3f8fe157a85be2f77e6e269a0f89602"
 
@@ -127,8 +139,10 @@
     "github.com/fortytw2/leaktest",
     "github.com/gorilla/mux",
     "github.com/jessevdk/go-flags",
+    "github.com/patrickmn/go-cache",
     "github.com/pkg/errors",
     "github.com/sirupsen/logrus",
+    "golang.org/x/crypto/bcrypt",
     "gopkg.in/go-playground/validator.v9",
     "gopkg.in/robfig/cron.v2",
     "gopkg.in/yaml.v2",

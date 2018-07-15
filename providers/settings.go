@@ -20,6 +20,7 @@ type ISettingsProvider interface {
 	IsWorker() bool
 	DevicesConfig() []RawDevice
 	Secrets() common.ISecretProvider
+	Security() ISecurityProvider
 }
 
 // RawDeviceSelector has data required for understanding
