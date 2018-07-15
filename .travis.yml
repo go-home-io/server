@@ -9,6 +9,7 @@ install:
   - cd src/github.com/go-home-io
   - git clone https://github.com/go-home-io/providers.git
   - cd ${TRAVIS_BUILD_DIR}
+  - make dep
 jobs:
   include:
     - stage: test
