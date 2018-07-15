@@ -8,6 +8,7 @@ install:
   - mkdir -p src/github.com/go-home-io
   - cd src/github.com/go-home-io
   - git clone https://github.com/go-home-io/providers.git
+  - cd ${TRAVIS_BUILD_DIR}
 jobs:
   include:
     - stage: test
