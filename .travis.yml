@@ -4,14 +4,12 @@ services:
   - docker
 git:
   depth: 3
-install:
-  - sudo apt update -y
-  - sudo apt install --only-upgrade docker-ce -y
+install: true
 jobs:
   include:
     - stage: ci
       script:
-        - echo INSTALL_LIBS
+        - echo $INSTALL_LIBS
         - ls -la
         - docker -v
         - docker build -t ci --build-arg BUILD_IMAGE=$BUILD_IMAGE --build-arg LINT=$LINT --build-arg RUN_IMAGE=$RUN_IMAGE --build-arg INSTALL_LIBS=$INSTALL_LIBS .
@@ -19,4 +17,4 @@ jobs:
         - BUILD_IMAGE=golang:1.11beta1-alpine3.8
         - RUN_IMAGE=alpine:3.8
         - LINT=true
-        - INSTALL_LIBS="apk update && apk add make git gcc libc-dev"
+        - INSTALL_LIBS='apk update && apk add make git gcc libc-dev'
