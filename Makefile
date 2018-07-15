@@ -1,6 +1,6 @@
 # Go params
 GO_BIN_FOLDER=$(GOPATH)/bin
-GOCMD=go
+GOCMD=PATH=${PATH}:$(GO_BIN_FOLDER) go
 
 GOGET=$(GOCMD) get
 GOBUILD=$(GOCMD) build
@@ -15,7 +15,7 @@ BIN_FOLDER=${CURDIR}/bin
 BIN_NAME=$(BIN_FOLDER)/go-home
 PLUGINS_BINS=$(BIN_FOLDER)/plugins
 
-.PHONY: build dep lint generate build-plugins run-server test-local
+.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test
 
 define build_plugins_task =
 	set -e
@@ -87,14 +87,21 @@ define lint_all =
     	done;
 endef
 
-utilities:
+utilities-build:
 	$(GOGET) github.com/Masterminds/glide
-	$(GOGET) gopkg.in/alecthomas/gometalinter.v2
 	$(GOGET) github.com/golang/dep/cmd/dep
+	$(GOGET) github.com/alvaroloes/enumer
+
+utilities-ci:
+	$(GOGET) gopkg.in/alecthomas/gometalinter.v2
 	$(METALINER) --install
 
-build:
-	$(GOBUILD) -o $(BIN_NAME) -v
+utilities: utilities-build utilities-ci
+
+build-server:
+	$(GOBUILD) -o $(BIN_NAME)
+
+build: build-plugins build-server
 
 generate:
 	$(GOGENERATE) -v ./...
@@ -116,16 +123,16 @@ test-local: test
 	$(GOCMD) tool cover --html=$(BIN_FOLDER)/cover.out
 
 .ONESHELL:
-SHELL = /bin/bash
+SHELL = /bin/sh
 build-plugins:
 	$(build_plugins_task)
 
 .ONESHELL:
-SHELL = /bin/bash
+SHELL = /bin/sh
 dep:
 	$(restore_dependencies)
 
 .ONESHELL:
-SHELL = /bin/bash
+SHELL = /bin/sh
 lint:
 	$(lint_all)

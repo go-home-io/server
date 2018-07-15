@@ -1,19 +1,15 @@
-sudo: false
-language: go
-go:
-  - "1.11beta1"
-install:
-  - /usr/bin/gmake -v
-  - make utilities
-  - cd ${GOPATH}
-  - mkdir -p src/github.com/go-home-io
-  - cd src/github.com/go-home-io
-  - git clone https://github.com/go-home-io/providers.git
-  - cd ${TRAVIS_BUILD_DIR}
-  - make dep
+sudo: required
+services:
+  - docker
+git:
+  depth: 3
+install: true
 jobs:
   include:
-    - stage: test
-      script: make test
-    - stage: build
-      script: make build-plugins build
+    - stage: ci
+      script: docker build -t ci --build-arg BUILD_IMAGE=$BUILD_IMAGE --build-arg LINT=$LINT --build-arg RUN_IMAGE=$RUN_IMAGE --build-arg INSTALL_LIBS=$INSTALL_LIBS .
+      env:
+        - BUILD_IMAGE=golang:1.11beta1-alpine3.8
+        - RUN_IMAGE=alpine:3.8
+        - LINT=true
+        - INSTALL_LIBS="apk update && apk add make git gcc libc-dev"
