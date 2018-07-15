@@ -1,10 +1,11 @@
 # Go params
-GOCMD=PATH=${PATH}:$(GO_BIN_FOLDER) go
+GO_BIN_FOLDER=$(GOPATH)/bin
+GOCMD=go
+
 GOGET=$(GOCMD) get
 GOBUILD=$(GOCMD) build
 GOGENERATE=$(GOCMD) generate
 
-GO_BIN_FOLDER=$(GOPATH)/bin
 METALINER=$(GO_BIN_FOLDER)/gometalinter.v2
 DEP=$(GO_BIN_FOLDER)/dep ensure
 GLIDE=$(GO_BIN_FOLDER)/glide install
@@ -88,7 +89,7 @@ endef
 
 utilities:
 	$(GOGET) github.com/Masterminds/glide
-	$(GOGET) github.com/alecthomas/gometalinter
+	$(GOGET) gopkg.in/alecthomas/gometalinter.v2
 	$(GOGET) github.com/golang/dep/cmd/dep
 	$(METALINER) --install
 
