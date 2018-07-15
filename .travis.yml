@@ -1,0 +1,14 @@
+sudo: false
+language: go
+go:
+  - "1.11beta1"
+before_script:
+  - make utilities
+  - go get github.com/go-home-io/providers
+install: true
+jobs:
+  include:
+    - stage: test
+      script: make test
+    - stage: build
+      script: make build-plugins build
