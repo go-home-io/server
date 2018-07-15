@@ -3,7 +3,7 @@ language: go
 go:
   - "1.11beta1"
 install:
-  - make -v && which make && which gmake && gmake -v
+  - /usr/bin/gmake -v
   - make utilities
   - cd ${GOPATH}
   - mkdir -p src/github.com/go-home-io
