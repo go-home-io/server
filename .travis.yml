@@ -1,4 +1,5 @@
 sudo: required
+language: go
 services:
   - docker
 git:
@@ -7,7 +8,9 @@ install: true
 jobs:
   include:
     - stage: ci
-      script: docker build -t ci --build-arg BUILD_IMAGE=$BUILD_IMAGE --build-arg LINT=$LINT --build-arg RUN_IMAGE=$RUN_IMAGE --build-arg INSTALL_LIBS=$INSTALL_LIBS .
+      script:
+        - echo $BUILD_IMAGE
+        - docker build -t ci --build-arg BUILD_IMAGE=$BUILD_IMAGE --build-arg LINT=$LINT --build-arg RUN_IMAGE=$RUN_IMAGE --build-arg INSTALL_LIBS=$INSTALL_LIBS .
       env:
         - BUILD_IMAGE=golang:1.11beta1-alpine3.8
         - RUN_IMAGE=alpine:3.8
