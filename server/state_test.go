@@ -8,6 +8,8 @@ import (
 	"github.com/go-home-io/server/utils"
 	"testing"
 	"time"
+	"github.com/go-home-io/server/systems/fanout"
+	"github.com/go-home-io/server/plugins/common"
 )
 
 // Settings mock.
@@ -132,7 +134,7 @@ func TestPickWorkerBrokenRegex(t *testing.T) {
 	device := &providers.RawDevice{
 		Selector: &providers.RawDeviceSelector{
 			Selectors: map[string]string{
-				"location": "((",
+				"location": "[!]",
 			},
 		},
 	}
@@ -160,8 +162,8 @@ func TestPickWorkerSingleMatchRegex(t *testing.T) {
 	device := &providers.RawDevice{
 		Selector: &providers.RawDeviceSelector{
 			Selectors: map[string]string{
-				"name":     "worker-\\d",
-				"location": "san.([a-zA-Z]+)",
+				"name":     "worker-[0-9]",
+				"location": "san*",
 			},
 		},
 	}
@@ -197,8 +199,8 @@ func TestPickWorkerSingleMatchFromManyRegex(t *testing.T) {
 	device := &providers.RawDevice{
 		Selector: &providers.RawDeviceSelector{
 			Selectors: map[string]string{
-				"name":     "worker-\\d",
-				"location": "san.([a-zA-Z]+)",
+				"name":     "worker-?",
+				"location": "san*",
 			},
 		},
 	}
@@ -206,7 +208,7 @@ func TestPickWorkerSingleMatchFromManyRegex(t *testing.T) {
 	results := state.pickWorker(device)
 	if 1 != len(results) {
 		t.Errorf("Actual selected %d", len(results))
-		t.Fail()
+		t.FailNow()
 	}
 
 	if results[0] != "1" {
@@ -246,8 +248,8 @@ func TestPickWorkerMultipleMatchFromManyRegex(t *testing.T) {
 	device := &providers.RawDevice{
 		Selector: &providers.RawDeviceSelector{
 			Selectors: map[string]string{
-				"name":     "worker-\\d",
-				"location": "san.([a-zA-Z]+)",
+				"name":     "worker*[0-9]",
+				"location": "san[ -]*",
 			},
 		},
 	}
@@ -562,7 +564,7 @@ func TestWorkerPropertiesChangesReBalance(t *testing.T) {
 	}
 
 	state.Discovery(discovery)
-	time.Sleep(4 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	if 1 != len(published) || 2 != len(published["1"]) {
 		t.Errorf("Bus was not called")
@@ -621,7 +623,7 @@ func TestNewWorkerDiscoveryReBalance(t *testing.T) {
 	}
 
 	state.Discovery(discovery)
-	time.Sleep(4 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	if 2 != len(published) {
 		t.Fail()
@@ -674,7 +676,7 @@ func TestNewWorkerDiscoveryNoReBalanceWithSelectors(t *testing.T) {
 	}
 
 	state.Discovery(discovery)
-	time.Sleep(4 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	if 0 != len(published) {
 		t.Fail()
@@ -952,6 +954,68 @@ func TestQueryUnknownDevice(t *testing.T) {
 			Name:   "d3",
 		},
 	}) {
+		t.Fail()
+	}
+}
+
+// Tests various updates.
+func TestUpdatesFanOut(t *testing.T) {
+	fo := fanout.NewFanOut()
+	s := getFakeSettings(nil, nil, nil)
+	state := newServerState(s)
+	state.fanOut = fo
+	_, updates := fo.SubscribeDeviceUpdates()
+
+	var msg *common.MsgDeviceUpdate
+
+	go func() {
+		for m := range updates {
+			msg = m
+		}
+	}()
+
+	busMsg := &bus.DeviceUpdateMessage{
+		DeviceID: "test",
+		State: map[string]interface{}{
+			"brightness": 50,
+		},
+	}
+
+	state.Update(busMsg)
+	time.Sleep(1 * time.Second)
+	if msg != nil {
+		t.Fail()
+	}
+
+	msg = nil
+	state.Update(busMsg)
+	time.Sleep(1 * time.Second)
+	if msg != nil {
+		t.Fail()
+	}
+
+	msg = nil
+	busMsg.State["brightness"] = 60
+	state.Update(busMsg)
+	time.Sleep(1 * time.Second)
+	if nil == msg {
+		t.Fail()
+	}
+
+	msg = nil
+	busMsg.State["brightness1"] = 60
+	state.Update(busMsg)
+	time.Sleep(1 * time.Second)
+	if nil != msg {
+		t.Fail()
+	}
+
+	msg = nil
+	busMsg.State["brightness"] = 65
+	busMsg.State["on"] = "wrong_bool"
+	state.Update(busMsg)
+	time.Sleep(1 * time.Second)
+	if nil == msg || 1 != len(msg.State){
 		t.Fail()
 	}
 }

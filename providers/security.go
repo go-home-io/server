@@ -3,7 +3,9 @@
 
 package providers
 
-import "regexp"
+import (
+	"github.com/gobwas/glob"
+)
 
 // ISecurityProvider defines secutiry provider.
 type ISecurityProvider interface {
@@ -50,7 +52,7 @@ type SecRole struct {
 
 // BakedRule is a helper type with pre-compiled regexps.
 type BakedRule struct {
-	Resources []*regexp.Regexp
+	Resources []glob.Glob
 	System    SecSystem
 	Get       bool
 	Command   bool

@@ -58,8 +58,13 @@ func (s *fsSecret) Get(name string) (string, error) {
 
 // Set adds a new secret and overwrites existing file.
 func (s *fsSecret) Set(name string, data string) error {
-	s.secrets[name] = data
-	fileData, err := yaml.Marshal(s.secrets)
+	secrets := make(map[string]string, len(s.secrets))
+	for k, v := range s.secrets {
+		secrets[k] = v
+	}
+	secrets[name] = data
+
+	fileData, err := yaml.Marshal(secrets)
 	if err != nil {
 		s.logger.Error("Failed to marshal secrets data", err)
 		return err
@@ -78,6 +83,7 @@ func (s *fsSecret) Set(name string, data string) error {
 		return err
 	}
 
+	s.secrets[name] = data
 	return nil
 }
 

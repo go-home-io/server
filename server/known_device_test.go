@@ -3,11 +3,11 @@ package server
 import (
 	"testing"
 	"github.com/go-home-io/server/providers"
-	"regexp"
+	"github.com/gobwas/glob"
 )
 
-func compileRegexp(r string) *regexp.Regexp {
-	reg, _ := regexp.Compile(r)
+func compileRegexp(r string) glob.Glob {
+	reg, _ := glob.Compile(r)
 	return reg
 }
 
@@ -28,9 +28,9 @@ func TestAllowed(t *testing.T) {
 					Get:     true,
 					History: true,
 					Command: true,
-					Resources: [] *regexp.Regexp{
+					Resources: [] glob.Glob{
 						compileRegexp("static device"),
-						compileRegexp("dev\\S"),
+						compileRegexp("dev*"),
 					},
 				},
 			},
@@ -39,8 +39,8 @@ func TestAllowed(t *testing.T) {
 					Get:     true,
 					History: true,
 					Command: true,
-					Resources: [] *regexp.Regexp{
-						compileRegexp("hub\\S"),
+					Resources: [] glob.Glob{
+						compileRegexp("hub*"),
 					},
 				},
 			},
@@ -82,9 +82,9 @@ func TestForbidden(t *testing.T) {
 					Get:     true,
 					History: false,
 					Command: true,
-					Resources: [] *regexp.Regexp{
-						compileRegexp("static[a-zA-Z]"),
-						compileRegexp("dev\\s"),
+					Resources: [] glob.Glob{
+						compileRegexp("static[! ]*"),
+						compileRegexp("dev?"),
 					},
 				},
 			},
@@ -93,8 +93,8 @@ func TestForbidden(t *testing.T) {
 					Get:     false,
 					History: true,
 					Command: false,
-					Resources: [] *regexp.Regexp{
-						compileRegexp("hub\\S"),
+					Resources: [] glob.Glob{
+						compileRegexp("hub*"),
 					},
 				},
 			},
@@ -134,17 +134,17 @@ func TestInternalAllowed(t *testing.T) {
 			Get:     false,
 			History: true,
 			Command: false,
-			Resources: [] *regexp.Regexp{
+			Resources: [] glob.Glob{
 				compileRegexp("static device"),
-				compileRegexp("dev\\S"),
+				compileRegexp("dev*"),
 			},
 		},
 		{
 			Get:     true,
 			History: false,
 			Command: true,
-			Resources: [] *regexp.Regexp{
-				compileRegexp("hub\\S"),
+			Resources: [] glob.Glob{
+				compileRegexp("hub*"),
 			},
 		},
 	}
@@ -172,7 +172,7 @@ func TestInternalForbidden(t *testing.T) {
 			Get:     false,
 			History: false,
 			Command: false,
-			Resources: [] *regexp.Regexp{
+			Resources: [] glob.Glob{
 				compileRegexp("static device"),
 				compileRegexp("dev\\S"),
 			},
@@ -181,7 +181,7 @@ func TestInternalForbidden(t *testing.T) {
 			Get:     false,
 			History: false,
 			Command: false,
-			Resources: [] *regexp.Regexp{
+			Resources: [] glob.Glob{
 				compileRegexp("hub\\S"),
 			},
 		},

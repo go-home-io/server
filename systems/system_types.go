@@ -20,4 +20,6 @@ const (
 	SysConfig
 	// SysSecurity describes security provider system.
 	SysSecurity
+	// SysTrigger describes event trigger system.
+	SysTrigger
 )

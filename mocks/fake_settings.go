@@ -71,6 +71,14 @@ func (f *fakeSettings) Security() providers.ISecurityProvider {
 	return nil
 }
 
+func (f *fakeSettings) Triggers() []providers.ITriggerProvider {
+	return []providers.ITriggerProvider{}
+}
+
+func (f *fakeSettings) FanOud() providers.IInternalFanOutProvider {
+	return nil
+}
+
 func FakeNewSettings(sbPublish func(string, ...interface{}), isWorker bool,
 	devices []providers.RawDevice, logCallback func(string)) *fakeSettings {
 	return &fakeSettings{

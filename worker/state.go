@@ -29,6 +29,8 @@ type workerState struct {
 
 	statusUpdatesChan chan *device.UpdateEvent
 	discoveryChan     chan *device.NewDeviceDiscoveredEvent
+
+	failedDevices *bus.DeviceAssignmentMessage
 }
 
 // Creating a new worker state object.
@@ -52,6 +54,7 @@ func newWorkerState(settings providers.ISettingsProvider) *workerState {
 // Worker should stop existing device-listening processes and re-load a new set.
 func (w *workerState) DevicesAssignmentMessage(msg *bus.DeviceAssignmentMessage) {
 	w.Logger.Info("Received device assignment message", common.LogSystemToken, logSystem)
+	w.unloadDevices()
 	go w.loadDevices(msg)
 }
 
@@ -73,6 +76,14 @@ func (w *workerState) DevicesCommandMessage(msg *bus.DeviceCommandMessage) {
 
 // Starting worker state internal processes.
 func (w *workerState) start() {
+	// We generally don't want to overlap with discovery messages.
+	// Not that we care much, but discovery can bring a new assignment message
+	// so it doesn't make much sense to re-try at the same time.
+	_, err := w.Settings.Cron().AddFunc("@every 1m13s", w.retryLoad)
+	if err != nil {
+		w.Logger.Error("Failed to register retry cron", err, common.LogSystemToken, logSystem)
+	}
+
 	for {
 		select {
 		case update := <-w.statusUpdatesChan:
@@ -100,13 +111,22 @@ func (w *workerState) start() {
 func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
-
-	w.unloadDevices()
+	if nil == msg {
+		return
+	}
 
 	wg := sync.WaitGroup{}
-	wg.Add(len(msg.Devices))
 
-	for _, a := range msg.Devices {
+	devices := make([]*bus.DeviceAssignment, len(msg.Devices))
+	copy(devices, msg.Devices)
+
+	wg.Add(len(devices))
+
+	failed := &bus.DeviceAssignmentMessage{
+		Devices: make([]*bus.DeviceAssignment, 0),
+	}
+
+	for _, a := range devices {
 		ctor := &device.ConstructDevice{
 			DiscoveryChan:     w.discoveryChan,
 			StatusUpdatesChan: w.statusUpdatesChan,
@@ -117,10 +137,11 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 			DeviceType:        a.Type,
 		}
 
-		go func() {
+		go func(dev *bus.DeviceAssignment) {
 			defer wg.Done()
 			wrappers, err := device.LoadDevice(ctor)
 			if err != nil {
+				failed.Devices = append(failed.Devices, dev)
 				return
 			}
 
@@ -128,18 +149,38 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 				w.devices[v.GetID()] = v
 				go w.Settings.ServiceBus().Publish(busPlugin.ChDeviceUpdates, v.GetUpdateMessage())
 			}
-		}()
+		}(a)
 	}
 
 	wg.Wait()
+	if len(failed.Devices) > 0 {
+		w.failedDevices = failed
+		w.Logger.Warn("Failed to reload some device, will retry later", common.LogSystemToken, logSystem)
+	} else {
+		w.failedDevices = nil
+	}
 
 	w.Logger.Info("Done re-loading devices", common.LogSystemToken, logSystem)
 }
 
+func (w *workerState) retryLoad() {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	if nil != w.failedDevices && len(w.failedDevices.Devices) > 0 {
+		go w.loadDevices(w.failedDevices)
+	}
+}
+
 // Unloading an old set of devices.
 func (w *workerState) unloadDevices() {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
 	w.Logger.Debug("Unloading devices", common.LogSystemToken, logSystem)
-	for _, v := range w.devices {
+	w.failedDevices = nil
+	for k, v := range w.devices {
 		v.Unload()
+		delete(w.devices, k)
 	}
+
+	w.Logger.Debug("Done un-loading", common.LogSystemToken, logSystem)
 }

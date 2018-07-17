@@ -34,22 +34,23 @@ type GoHomeServer struct {
 
 // NewServer constructs a new master server.
 // nolint: dupl
-func NewServer(settings providers.ISettingsProvider) (*GoHomeServer, error) {
+func NewServer(settings providers.ISettingsProvider) (providers.IServerProvider, error) {
 	server := GoHomeServer{
 		Logger:        settings.SystemLogger(),
 		Settings:      settings,
 		MessageParser: bus.NewServerMessageParser(settings.SystemLogger()),
 
 		incomingChan: make(chan busPlugin.RawMessage, 100),
-		state:        newServerState(settings),
 	}
+
+	server.state = newServerState(settings)
 
 	return &server, nil
 }
 
 // Start launches master server.
 func (s *GoHomeServer) Start() {
-
+	s.startTriggers()
 	router := mux.NewRouter()
 	s.registerAPI(router)
 	go func() {
@@ -119,5 +120,11 @@ func (s *GoHomeServer) busCycle() {
 		case dup := <-s.MessageParser.GetDeviceUpdateMessageChan():
 			s.state.Update(dup)
 		}
+	}
+}
+
+func (s *GoHomeServer) startTriggers() {
+	for _, v := range s.Settings.Triggers() {
+		v.Start(s)
 	}
 }

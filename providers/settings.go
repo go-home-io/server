@@ -21,6 +21,8 @@ type ISettingsProvider interface {
 	DevicesConfig() []RawDevice
 	Secrets() common.ISecretProvider
 	Security() ISecurityProvider
+	Triggers() []ITriggerProvider
+	FanOud() IInternalFanOutProvider
 }
 
 // RawDeviceSelector has data required for understanding

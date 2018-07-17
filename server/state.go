@@ -1,18 +1,19 @@
 package server
 
 import (
-	"regexp"
+	"reflect"
 	"sort"
 	"strings"
 	"sync"
 
-	"reflect"
-
 	"github.com/go-home-io/server/plugins/common"
+	"github.com/go-home-io/server/plugins/device/enums"
+	"github.com/go-home-io/server/plugins/helpers"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/settings"
 	"github.com/go-home-io/server/systems/bus"
 	"github.com/go-home-io/server/utils"
+	"github.com/gobwas/glob"
 )
 
 // IServerStateProvider defines server state logic.
@@ -42,6 +43,8 @@ type serverState struct {
 
 	workerMutex *sync.Mutex
 	deviceMutex *sync.Mutex
+
+	fanOut providers.IInternalFanOutProvider
 }
 
 // Constructs a new server state.
@@ -54,6 +57,8 @@ func newServerState(settings providers.ISettingsProvider) *serverState {
 
 		workerMutex: &sync.Mutex{},
 		deviceMutex: &sync.Mutex{},
+
+		fanOut: settings.FanOud(),
 	}
 
 	_, err := settings.Cron().AddFunc("@every 15s", s.checkStaleWorkers)
@@ -122,14 +127,15 @@ func (s *serverState) Discovery(msg *bus.DiscoveryMessage) {
 func (s *serverState) Update(msg *bus.DeviceUpdateMessage) {
 	s.Logger.Debug("Received update for the device", common.LogDeviceTypeToken, msg.DeviceType.String(),
 		common.LogSystemToken, logSystem, common.LogDeviceNameToken, msg.DeviceID)
-
 	s.deviceMutex.Lock()
 	defer s.deviceMutex.Unlock()
+	firstOccurrence := false
 
 	var dv *knownDevice
 	if d, ok := s.KnownDevices[msg.DeviceID]; ok {
 		dv = d
 	} else {
+		firstOccurrence = true
 		dv = &knownDevice{
 			Type:     msg.DeviceType,
 			Commands: make([]string, len(msg.Commands)),
@@ -143,9 +149,7 @@ func (s *serverState) Update(msg *bus.DeviceUpdateMessage) {
 
 	dv.LastSeen = utils.TimeNow()
 	dv.Worker = msg.WorkerID
-	for k, v := range msg.State {
-		dv.State[k] = v
-	}
+	s.processDeviceStateUpdate(dv, msg.State, firstOccurrence)
 }
 
 // GetAllDevices returns list of all known devices.
@@ -165,6 +169,35 @@ func (s *serverState) GetDevice(deviceID string) *knownDevice {
 	s.deviceMutex.Lock()
 	defer s.deviceMutex.Unlock()
 	return s.KnownDevices[deviceID]
+}
+
+func (s *serverState) processDeviceStateUpdate(dv *knownDevice, newState map[string]interface{}, firstOccurrence bool) {
+	msg := &common.MsgDeviceUpdate{
+		ID:    dv.ID,
+		State: make(map[enums.Property]interface{}),
+	}
+	for k, v := range newState {
+		if !firstOccurrence {
+			prev, ok := dv.State[k]
+			prop, err := enums.PropertyString(k)
+			if err != nil {
+				continue
+			}
+			if ok && !helpers.PropertyDeepEqual(prev, v, prop) {
+				t, err := helpers.PropertyFixYaml(v, prop)
+				if nil != err {
+					continue
+				}
+				msg.State[prop] = t
+			}
+		}
+
+		dv.State[k] = v
+	}
+
+	if 0 != len(msg.State) {
+		s.fanOut.ChannelInDeviceUpdates() <- msg
+	}
 }
 
 // Compares received properties to already known state.
@@ -292,7 +325,7 @@ func (s *serverState) pickWorker(device *providers.RawDevice) []string {
 	nonMet := make([]string, 0)
 	for selK, sel := range device.Selector.Selectors {
 		key := strings.ToLower(selK)
-		r, err := regexp.Compile(sel)
+		r, err := glob.Compile(sel)
 		if err != nil {
 			s.Logger.Warn("Device selector misconfiguration",
 				common.LogSystemToken, logSystem, common.LogDeviceTypeToken, device.Plugin, "selector", sel)
@@ -309,7 +342,7 @@ func (s *serverState) pickWorker(device *providers.RawDevice) []string {
 				if key != k {
 					continue
 				}
-				met = r.MatchString(v)
+				met = r.Match(v)
 				break
 			}
 

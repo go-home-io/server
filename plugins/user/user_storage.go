@@ -14,8 +14,9 @@ type IUserStorage interface {
 
 // InitDataUserStorage has data required for initializing a new user storage.
 type InitDataUserStorage struct {
-	Logger common.ILoggerProvider
-	Secret common.ISecretProvider
+	Logger    common.ILoggerProvider
+	Secret    common.ISecretProvider
+	RawConfig []byte
 }
 
 // TypeUserStorage is a syntax sugar around IUserStorage type.

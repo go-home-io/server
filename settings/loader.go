@@ -12,9 +12,11 @@ import (
 	"github.com/go-home-io/server/systems"
 	"github.com/go-home-io/server/systems/bus"
 	"github.com/go-home-io/server/systems/config"
+	"github.com/go-home-io/server/systems/fanout"
 	"github.com/go-home-io/server/systems/logger"
 	"github.com/go-home-io/server/systems/secret"
 	"github.com/go-home-io/server/systems/security"
+	"github.com/go-home-io/server/systems/trigger"
 	"github.com/go-home-io/server/utils"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -69,6 +71,9 @@ type settingsProvider struct {
 	rawRoles         []*providers.SecRole
 	rawUsersProvider *rawProvider
 	securityProvider providers.ISecurityProvider
+
+	fanOut   providers.IInternalFanOutProvider
+	triggers []providers.ITriggerProvider
 }
 
 // Load system configuration.
@@ -78,6 +83,8 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 		devicesConfig: make([]providers.RawDevice, 0),
 		logger:        logger.NewConsoleLogger(),
 		rawRoles:      make([]*providers.SecRole, 0),
+		triggers:      make([]providers.ITriggerProvider, 0),
+		fanOut:        fanout.NewFanOut(),
 	}
 
 	settings.validator = utils.NewValidator(settings.logger)
@@ -408,6 +415,8 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 		}
 	case systems.SysSecurity.String():
 		s.processSecurity(provider)
+	case systems.SysTrigger.String():
+		s.processTriggers(provider)
 	default:
 		s.logger.Warn("Unknown provider", common.LogProviderToken, provider.Provider,
 			common.LogSystemToken, provider.System)
@@ -458,4 +467,27 @@ func (s *settingsProvider) processSecurity(provider *rawProvider) {
 
 	s.logger.Warn("Unknown security record",
 		common.LogProviderToken, provider.Provider, common.LogSystemToken, provider.System)
+}
+
+func (s *settingsProvider) processTriggers(provider *rawProvider) {
+	if s.isWorker {
+		return
+	}
+
+	ctor := &trigger.ConstructTrigger{
+		Logger:    s.PluginLogger(systems.SysTrigger, provider.Provider),
+		Provider:  provider.Provider,
+		RawConfig: provider.Config,
+		Loader:    s.pluginLoader,
+		FanOut:    s.fanOut,
+		Secret:    s.secrets,
+		Validator: s.validator,
+	}
+
+	tr, err := trigger.NewTrigger(ctor)
+	if err != nil {
+		return
+	}
+
+	s.triggers = append(s.triggers, tr)
 }

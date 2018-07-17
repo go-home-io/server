@@ -6,6 +6,7 @@ import (
 	"github.com/go-home-io/server/providers"
 )
 
+// Tests that provider falls back to default FS implementation.
 func TestFallbackToDefaultProvider(t *testing.T) {
 	found := false
 	ctor := &ConstructSecurityProvider{
@@ -38,7 +39,7 @@ func getFakeProvider(usr string) providers.ISecurityProvider {
 						Resources: []string{"res"},
 					},
 				},
-				Users: []string{"usr\\s"},
+				Users: []string{"usr[!0-9]*"},
 			},
 			{
 				Name: "2",
@@ -47,10 +48,10 @@ func getFakeProvider(usr string) providers.ISecurityProvider {
 						System:    providers.SecSystemDevice.String(),
 						Verbs:     []providers.SecVerb{providers.SecVerbCommand,
 							providers.SecVerbHistory, providers.SecVerbGet},
-						Resources: []string{"res\\s"},
+						Resources: []string{"res*"},
 					},
 				},
-				Users: []string{"usr\\d"},
+				Users: []string{"usr?"},
 			},
 			{
 				Name: "3",
@@ -69,6 +70,7 @@ func getFakeProvider(usr string) providers.ISecurityProvider {
 	return NewSecurityProvider(ctor)
 }
 
+// Tests fallback to default FS provider.
 func TestWrongProvider(t *testing.T) {
 	found := false
 	ctor := &ConstructSecurityProvider{
@@ -87,6 +89,7 @@ func TestWrongProvider(t *testing.T) {
 	}
 }
 
+// Tests possible errors with roles.
 func TestWrongRoles(t *testing.T) {
 	wrongResRegex := false
 	emptyResource := false
@@ -117,7 +120,7 @@ func TestWrongRoles(t *testing.T) {
 					{
 						System:    providers.SecSystemAll.String(),
 						Verbs:     []providers.SecVerb{providers.SecVerbAll},
-						Resources: []string{"(("},
+						Resources: []string{"[!]"},
 					},
 				},
 				Users: []string{"usr"},
@@ -139,10 +142,10 @@ func TestWrongRoles(t *testing.T) {
 					{
 						System:    "wrong",
 						Verbs:     []providers.SecVerb{providers.SecVerbAll},
-						Resources: []string{"res\\s"},
+						Resources: []string{"res*"},
 					},
 				},
-				Users: []string{"(("},
+				Users: []string{"[!]"},
 			},
 		},
 	}
@@ -153,6 +156,7 @@ func TestWrongRoles(t *testing.T) {
 	}
 }
 
+// Tests correct user validation.
 func TestCorrectUsers(t *testing.T) {
 	prov := getFakeProvider("usr1")
 	usr, err := prov.GetUser(nil)
@@ -161,6 +165,7 @@ func TestCorrectUsers(t *testing.T) {
 	}
 }
 
+// Tests that incorrect user won't pass validation.
 func TestIncorrectUsers(t *testing.T) {
 	prov := getFakeProvider("user1")
 	usr, err := prov.GetUser(nil)
@@ -169,7 +174,7 @@ func TestIncorrectUsers(t *testing.T) {
 	}
 }
 
-
+// Tests user not found scenario.
 func TestUserNotFound(t *testing.T) {
 	prov := getFakeProvider("")
 	_, err := prov.GetUser(nil)

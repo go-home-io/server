@@ -1,5 +1,7 @@
 package common
 
+import "github.com/go-home-io/server/plugins/device/enums"
+
 // ISecretProvider defines secrets provider which will be passed to every plugin.
 type ISecretProvider interface {
 	Get(string) (string, error)
@@ -20,4 +22,17 @@ type ILoggerProvider interface {
 	Error(msg string, err error, fields ...string)
 	Fatal(msg string, err error, fields ...string)
 	Flush()
+}
+
+// MsgDeviceUpdate contains data with updates device's state.
+type MsgDeviceUpdate struct {
+	ID    string
+	State map[enums.Property]interface{}
+}
+
+// IFanOutProvider defines interface used for distributing
+// device updates even across all system.
+type IFanOutProvider interface {
+	SubscribeDeviceUpdates() (int64, chan *MsgDeviceUpdate)
+	UnSubscribeDeviceUpdates(int64)
 }

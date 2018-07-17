@@ -1,7 +1,6 @@
 package security
 
 import (
-	"regexp"
 	"sync"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
 	"github.com/go-home-io/server/systems/logger"
+	"github.com/gobwas/glob"
 	"github.com/patrickmn/go-cache"
 )
 
@@ -38,7 +38,7 @@ type ConstructSecurityProvider struct {
 type bakedRole struct {
 	Name  string
 	Rules []*providers.BakedRule
-	Users []*regexp.Regexp
+	Users []glob.Glob
 }
 
 // NewSecurityProvider constructs new security provider.
@@ -72,8 +72,9 @@ func loadUserStorage(ctor *ConstructSecurityProvider) (user.IUserStorage, common
 	loggerProvider := logger.NewPluginLogger(loggerCtor)
 
 	initData := &user.InitDataUserStorage{
-		Secret: ctor.Secret,
-		Logger: loggerProvider,
+		Secret:    ctor.Secret,
+		Logger:    loggerProvider,
+		RawConfig: ctor.UserRawConfig,
 	}
 
 	pluginRequest := &providers.PluginLoadRequest{
@@ -138,7 +139,7 @@ func (p *provider) GetUser(headers map[string][]string) (*providers.Authenticate
 	for _, v := range p.roles {
 		found := false
 		for _, u := range v.Users {
-			if u.MatchString(usr) {
+			if u.Match(usr) {
 				found = true
 				break
 			}
@@ -167,12 +168,12 @@ func (p *provider) processRoles(roles []*providers.SecRole) {
 	for _, v := range roles {
 		role := &bakedRole{
 			Name:  v.Name,
-			Users: make([]*regexp.Regexp, 0),
+			Users: make([]glob.Glob, 0),
 			Rules: make([]*providers.BakedRule, 0),
 		}
 
 		for _, o := range v.Users {
-			reg, err := regexp.Compile(o)
+			reg, err := glob.Compile(o)
 			if err != nil {
 				p.logger.Warn("Failed to compile role's user regexp", "regexp", o,
 					common.LogRoleNameToken, v.Name)
@@ -212,7 +213,7 @@ func (p *provider) processRule(rule *providers.SecRoleRule, roleName string) *pr
 		return nil
 	}
 	baked := &providers.BakedRule{
-		Resources: make([]*regexp.Regexp, 0),
+		Resources: make([]glob.Glob, 0),
 		Get:       false,
 		Command:   false,
 		History:   false,
@@ -220,7 +221,7 @@ func (p *provider) processRule(rule *providers.SecRoleRule, roleName string) *pr
 	}
 
 	for _, v := range rule.Resources {
-		reg, err := regexp.Compile(v)
+		reg, err := glob.Compile(v)
 		if err != nil {
 			p.logger.Warn("Failed to compile role's resource regexp", "regexp", v, common.LogRoleNameToken, roleName)
 			continue

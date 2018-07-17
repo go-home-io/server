@@ -3,9 +3,9 @@ package common
 
 // Color defines color parameter type.
 type Color struct {
-	R uint8 `json:"r" validate:"required"`
-	G uint8 `json:"g" validate:"required"`
-	B uint8 `json:"b" validate:"required"`
+	R uint8 `json:"r" validate:"required" yaml:"r"`
+	G uint8 `json:"g" validate:"required" yaml:"g"`
+	B uint8 `json:"b" validate:"required" yaml:"b"`
 }
 
 // Int defines simple integer parameter type.

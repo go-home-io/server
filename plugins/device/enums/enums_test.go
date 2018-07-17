@@ -1,6 +1,8 @@
 package enums
 
-import "testing"
+import (
+	"testing"
+)
 
 // Tests whether commands slice properly handles contains method.
 func TestSliceCommandsContains(t *testing.T) {

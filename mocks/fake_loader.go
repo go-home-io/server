@@ -5,13 +5,22 @@ import (
 	"errors"
 )
 
+type IFakePlugin interface {
+	FakeInit(interface{})
+}
+
 type fakePluginLoader struct {
 	returnObj interface{}
 }
 
-func (f *fakePluginLoader) LoadPlugin(*providers.PluginLoadRequest) (interface{}, error) {
+func (f *fakePluginLoader) LoadPlugin(r *providers.PluginLoadRequest) (interface{}, error) {
 	if nil == f.returnObj {
 		return nil, errors.New("not found")
+	}
+
+	i, ok := f.returnObj.(IFakePlugin)
+	if ok {
+		i.FakeInit(r.InitData)
 	}
 
 	return f.returnObj, nil

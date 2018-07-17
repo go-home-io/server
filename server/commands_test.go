@@ -4,8 +4,8 @@ import (
 	"testing"
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/providers"
-	"regexp"
 	"github.com/go-home-io/server/mocks"
+	"github.com/gobwas/glob"
 )
 
 // Tests correct users' selection.
@@ -34,8 +34,8 @@ func TestDeviceOperation(t *testing.T) {
 				{
 					Get:     true,
 					Command: true,
-					Resources: []*regexp.Regexp{
-						compileRegexp("dev\\d"),
+					Resources: []glob.Glob{
+						compileRegexp("dev?"),
 					},
 				},
 			},
@@ -133,8 +133,8 @@ func TestWrongCommand(t *testing.T) {
 				{
 					Get:     true,
 					Command: true,
-					Resources: []*regexp.Regexp{
-						compileRegexp("dev\\d"),
+					Resources: []glob.Glob{
+						compileRegexp("dev?"),
 					},
 				},
 			},
@@ -173,8 +173,8 @@ func TestGetAllDevices(t *testing.T) {
 				{
 					Get:     true,
 					Command: true,
-					Resources: []*regexp.Regexp{
-						compileRegexp("dev\\d"),
+					Resources: []glob.Glob{
+						compileRegexp("dev?"),
 					},
 				},
 			},
@@ -189,6 +189,30 @@ func TestGetAllDevices(t *testing.T) {
 
 	devices := srv.commandGetAllDevices(user)
 	if 1 != len(devices) || "dev1" != devices[0].ID {
+		t.Fail()
+	}
+}
+
+func TestInternalInvokeCommand(t *testing.T) {
+	numCalled := 0
+	s := getFakeSettings(func(name string, msg ...interface{}) {
+		numCalled ++
+	}, nil, nil)
+	state := newServerState(s)
+	state.KnownDevices = map[string]*knownDevice{
+		"dev1":   {ID: "dev1", Commands: []string{enums.CmdOn.String()}, Worker: "1"},
+		"dev2":   {ID: "dev2", Commands: []string{enums.CmdOff.String()}, Worker: "1"},
+		"device": {ID: "device", Commands: []string{enums.CmdOn.String()}, Worker: "2"},
+	}
+
+	srv := &GoHomeServer{
+		state:    state,
+		Logger:   mocks.FakeNewLogger(nil),
+		Settings: s,
+	}
+
+	srv.InternalCommandInvokeDeviceCommand(glob.MustCompile("dev[1-2]*"), enums.CmdOn, nil)
+	if 1 != numCalled{
 		t.Fail()
 	}
 }

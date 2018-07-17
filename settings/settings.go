@@ -74,3 +74,11 @@ func (s *settingsProvider) DevicesConfig() []providers.RawDevice {
 func (s *settingsProvider) Security() providers.ISecurityProvider {
 	return s.securityProvider
 }
+
+func (s *settingsProvider) Triggers() []providers.ITriggerProvider {
+	return s.triggers
+}
+
+func (s *settingsProvider) FanOud() providers.IInternalFanOutProvider {
+	return s.fanOut
+}

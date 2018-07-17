@@ -1,6 +1,9 @@
 package helpers
 
-import "testing"
+import (
+	"testing"
+	"github.com/go-home-io/server/plugins/device/enums"
+)
 
 func TestEqualSlices(t *testing.T) {
 	if !SliceEqualsString(
@@ -17,7 +20,6 @@ func TestEqualSlices(t *testing.T) {
 		t.Fail()
 	}
 
-
 	if !SliceEqualsString(
 		[]string{"1", "2", "1"},
 		[]string{"1", "1", "2"},
@@ -25,7 +27,6 @@ func TestEqualSlices(t *testing.T) {
 		t.Fail()
 	}
 }
-
 
 func TestUnEqualSlices(t *testing.T) {
 	if SliceEqualsString(
@@ -42,11 +43,19 @@ func TestUnEqualSlices(t *testing.T) {
 		t.Fail()
 	}
 
-
 	if SliceEqualsString(
 		[]string{"2", "2", "1"},
 		[]string{"1", "1", "2"},
 	) {
+		t.Fail()
+	}
+}
+
+func TestDeepEquals(t *testing.T) {
+	x := map[string]interface{}{"r": 1, "g": 2, "b": 3}
+	y := map[string]interface{}{"r": 1, "g": 2, "b": 3}
+
+	if !PropertyDeepEqual(x, y, enums.PropColor) {
 		t.Fail()
 	}
 }

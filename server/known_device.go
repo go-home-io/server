@@ -68,7 +68,7 @@ func (d *knownDevice) isAllowed(rules []*providers.BakedRule, verb providers.Sec
 		}
 
 		for _, r := range v.Resources {
-			if r.MatchString(d.ID) {
+			if r.Match(d.ID) {
 				return true
 			}
 		}
