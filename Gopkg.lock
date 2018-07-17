@@ -37,6 +37,36 @@
   version = "v0.16.0"
 
 [[projects]]
+  digest = "1:f50cd3eefda65d741da69224fbfba0d7fea9847bad9b4f462457bae567b198f2"
+  name = "github.com/gobwas/glob"
+  packages = [
+    ".",
+    "compiler",
+    "match",
+    "syntax",
+    "syntax/ast",
+    "syntax/lexer",
+    "util/runes",
+    "util/strings",
+  ]
+  pruneopts = "UT"
+  revision = "5ccd90ef52e1e632236f7326478d4faa74f99438"
+  version = "v0.2.3"
+
+[[projects]]
+  digest = "1:21c8b3a5b2d66f5ba6731f12133ccbf970947a6f4e78f0d46b64c49f8a4034c1"
+  name = "github.com/google/go-cmp"
+  packages = [
+    "cmp",
+    "cmp/internal/diff",
+    "cmp/internal/function",
+    "cmp/internal/value",
+  ]
+  pruneopts = "UT"
+  revision = "3af367b6b30c263d47e8895973edcca9a49cf029"
+  version = "v0.2.0"
+
+[[projects]]
   digest = "1:c79fb010be38a59d657c48c6ba1d003a8aa651fa56b579d959d74573b7dff8e1"
   name = "github.com/gorilla/context"
   packages = ["."]
@@ -137,6 +167,8 @@
   input-imports = [
     "github.com/creasty/defaults",
     "github.com/fortytw2/leaktest",
+    "github.com/gobwas/glob",
+    "github.com/google/go-cmp/cmp",
     "github.com/gorilla/mux",
     "github.com/jessevdk/go-flags",
     "github.com/patrickmn/go-cache",

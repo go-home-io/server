@@ -24,13 +24,17 @@ RUN mkdir -p /app && \
 
 ARG LINT
 ARG C_TOKEN
+ARG TRAVIS
+ARG TRAVIS_JOB_ID
+ARG TRAVIS_BRANCH
+ARG TRAVIS_PULL_REQUEST
 RUN if [ "${LINT}" != "false" ]; then \
         set -e && \
         mkdir bin && \
         make utilities-ci && \
         make lint && \
         make test && \
-        ${GOPATH}/bin/goveralls -coverprofile=./bin/cover.out -repotoken $C_TOKEN; \
+        TRAVIS=$TRAVIS TRAVIS_JOB_ID=$TRAVIS_JOB_ID TRAVIS_BRANCH=$TRAVIS_BRANCH TRAVIS_PULL_REQUEST=$TRAVIS_PULL_REQUEST ${GOPATH}/bin/goveralls -coverprofile=./bin/cover.out -repotoken $C_TOKEN; \
     fi;
 
 ##################################################################################################
