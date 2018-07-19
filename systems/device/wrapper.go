@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 
 	"github.com/go-home-io/server/plugins/common"
@@ -53,6 +54,8 @@ type wrapperConstruct struct {
 
 // Device wrapper implementation.
 type deviceWrapper struct {
+	sync.Mutex
+
 	Ctor *wrapperConstruct
 
 	ID          string
@@ -63,12 +66,24 @@ type deviceWrapper struct {
 	jobID        int
 	updateMethod reflect.Value
 	commands     map[enums.Command]reflect.Value
+
+	isPolling bool
 }
 
 // NewDeviceWrapper constructs a new device wrapper.
 func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 	w := deviceWrapper{
-		Ctor: ctor,
+		Ctor:      ctor,
+		isPolling: false,
+	}
+
+	w.Spec = ctor.DeviceInterface.(device.IDevice).GetSpec()
+	if nil == w.Spec {
+		w.Spec = &device.Spec{
+			SupportedProperties: make([]enums.Property, 0),
+			SupportedCommands:   make([]enums.Command, 0),
+			UpdatePeriod:        0,
+		}
 	}
 
 	if !w.setState(ctor.DeviceState) {
@@ -76,13 +91,9 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 			common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
 	}
 
-	w.Spec = ctor.DeviceInterface.(device.IDevice).GetSpec()
-	if nil == w.Spec {
-		w.Spec = &device.Spec{}
-	}
-
 	interval := int(w.Spec.UpdatePeriod / time.Second)
 	if interval > 0 {
+		w.isPolling = true
 		if interval < 10 {
 			interval = 10
 		}
@@ -96,7 +107,7 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 		}
 
 		ctor.Logger.Debug(fmt.Sprintf("Polling rate for the device is %d seconds", interval),
-			common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken)
+			common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
 	}
 
 	w.validateDeviceSpec(ctor)
@@ -138,6 +149,9 @@ func (w *deviceWrapper) Unload() {
 // InvokeCommand performs a call to the device provider.
 // This method validates whether device actually reported this operation as supported.
 func (w *deviceWrapper) InvokeCommand(cmdName enums.Command, param map[string]interface{}) {
+	w.Lock()
+	defer w.Unlock()
+
 	method, ok := w.commands[cmdName]
 	if !ok {
 		w.Ctor.Logger.Warn("Device doesn't support this command",
@@ -247,6 +261,10 @@ func (w *deviceWrapper) validateDeviceSpec(ctor *wrapperConstruct) {
 
 // Updates internal device state which is stored in wrapper.
 func (w *deviceWrapper) setState(deviceState interface{}) bool {
+	if nil == deviceState || reflect.ValueOf(deviceState).Kind() == reflect.Ptr && reflect.ValueOf(deviceState).IsNil() {
+		return false
+	}
+
 	allowedProps, ok := enums.AllowedProperties[w.Ctor.DeviceType]
 	if !ok {
 		w.Ctor.Logger.Warn("Received unknown device type",
@@ -272,6 +290,10 @@ func (w *deviceWrapper) setState(deviceState interface{}) bool {
 		if err != nil {
 			w.Ctor.Logger.Warn("Received unknown device property", common.LogDevicePropertyToken, jsonKey,
 				common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
+			continue
+		}
+
+		if !enums.SliceContainsProperty(w.Spec.SupportedProperties, prop) {
 			continue
 		}
 
@@ -307,6 +329,10 @@ func (w *deviceWrapper) getFieldValueOrNil(valField reflect.Value) interface{} {
 
 // Performs data pull from device provider plugin.
 func (w *deviceWrapper) pullUpdate() {
+	if !w.isPolling {
+		return
+	}
+
 	w.Ctor.Logger.Debug("Fetching update for the device", common.LogDeviceTypeToken,
 		w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
 	switch w.Ctor.DeviceType {

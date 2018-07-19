@@ -12,4 +12,8 @@ const (
 	DevHub
 	// DevLight describes lights device type.
 	DevLight
+	// DevSwitch describes switch device type.
+	DevSwitch
+	// DevSensor describes sensor device type.
+	DevSensor
 )

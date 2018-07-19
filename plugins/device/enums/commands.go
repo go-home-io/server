@@ -27,8 +27,10 @@ const (
 
 // AllowedCommands contains set of all possible allowed commands per device type.
 var AllowedCommands = map[DeviceType][]Command{
-	DevHub:   {},
-	DevLight: {CmdToggle, CmdOn, CmdOff, CmdSetColor, CmdSetTransitionTime, CmdSetBrightness, CmdSetScene},
+	DevHub:    {},
+	DevLight:  {CmdToggle, CmdOn, CmdOff, CmdSetColor, CmdSetTransitionTime, CmdSetBrightness, CmdSetScene},
+	DevSwitch: {CmdToggle, CmdOn, CmdOff},
+	DevSensor: {},
 }
 
 // SliceContainsCommand checks whether slice contains certain command.
@@ -53,7 +55,12 @@ func (i Command) IsCommandAllowed(deviceType DeviceType) bool {
 
 // GetCommandMethodName transforms string representation of the command into actual method name.
 func (i Command) GetCommandMethodName() string {
-	parts := strings.Split(i.String(), "-")
+	return transformCommandOrProperty(i.String(), "-")
+}
+
+// Transforms back from enum to method/property name.
+func transformCommandOrProperty(i string, sep string) string {
+	parts := strings.Split(i, sep)
 	result := ""
 	for _, v := range parts {
 		result += strings.Title(v)

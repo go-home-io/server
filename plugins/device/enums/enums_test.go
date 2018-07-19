@@ -76,3 +76,41 @@ func TestSlicePropertyNotContains(t *testing.T) {
 		t.Fail()
 	}
 }
+
+// Test various property conversions.
+func TestPropertyConversions(t *testing.T) {
+	in := []string{"on", "battery_level"}
+	prop := []Property{PropOn, PropBatteryLevel}
+	out := []string{"On", "BatteryLevel"}
+
+	for i, v := range in {
+		p, _ := PropertyString(v)
+		if p != prop[i] {
+			t.Fail()
+		}
+
+		o := p.GetPropertyName()
+		if o != out[i] {
+			t.Fail()
+		}
+	}
+}
+
+// Test various command conversions.
+func TestCommandConversions(t *testing.T) {
+	in := []string{"on", "set-brightness"}
+	cmd := []Command{CmdOn, CmdSetBrightness}
+	out := []string{"On", "SetBrightness"}
+
+	for i, v := range in {
+		p, _ := CommandString(v)
+		if p != cmd[i] {
+			t.Fail()
+		}
+
+		o := p.GetCommandMethodName()
+		if o != out[i] {
+			t.Fail()
+		}
+	}
+}

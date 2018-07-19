@@ -20,7 +20,7 @@ type ILight interface {
 	SetTransitionTime(common.Int) error
 }
 
-// LightState returns information about known devices for the lights.
+// LightState returns information about known light.
 type LightState struct {
 	TransitionTime    uint16       `json:"transition_time"`
 	BrightnessPercent uint8        `json:"brightness"`

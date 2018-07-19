@@ -983,7 +983,7 @@ func TestUpdatesFanOut(t *testing.T) {
 
 	state.Update(busMsg)
 	time.Sleep(1 * time.Second)
-	if msg != nil {
+	if !msg.FirstSeen {
 		t.Fail()
 	}
 

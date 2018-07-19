@@ -55,7 +55,6 @@ func NewPluginLoader(ctor *ConstructPluginLoader) providers.IPluginLoaderProvide
 func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interface{}, error) {
 	pKey := getPluginKey(request.SystemType, request.PluginProvider)
 	if method, ok := l.loadedPlugins[pKey]; ok {
-
 		return l.loadPlugin(request, method)
 	}
 	p, err := plugin.Open(fmt.Sprintf("%s/%s.so", l.pluginsFolder, pKey))
@@ -111,7 +110,7 @@ func (l *pluginLoader) loadPlugin(request *providers.PluginLoadRequest,
 
 	err = yaml.Unmarshal(request.RawConfig, settingsObject)
 	if err != nil {
-		return nil, errors.New("failed to unmarshal config")
+		return nil, err
 	}
 
 	settingsInterface, ok := settingsObject.(common.ISettings)

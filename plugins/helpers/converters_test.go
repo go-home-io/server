@@ -13,6 +13,7 @@ type testData struct {
 	cmd   enums.Command
 }
 
+// Tests properties conversion.
 func TestProperties(t *testing.T) {
 	data := []testData{
 		{

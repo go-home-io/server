@@ -173,23 +173,28 @@ func (s *serverState) GetDevice(deviceID string) *knownDevice {
 
 func (s *serverState) processDeviceStateUpdate(dv *knownDevice, newState map[string]interface{}, firstOccurrence bool) {
 	msg := &common.MsgDeviceUpdate{
-		ID:    dv.ID,
-		State: make(map[enums.Property]interface{}),
+		ID:        dv.ID,
+		State:     make(map[enums.Property]interface{}),
+		FirstSeen: firstOccurrence,
 	}
 	for k, v := range newState {
+		prop, err := enums.PropertyString(k)
+		if err != nil {
+			continue
+		}
+
+		t, err := helpers.PropertyFixYaml(v, prop)
+		if nil != err {
+			continue
+		}
+
 		if !firstOccurrence {
 			prev, ok := dv.State[k]
-			prop, err := enums.PropertyString(k)
-			if err != nil {
-				continue
-			}
 			if ok && !helpers.PropertyDeepEqual(prev, v, prop) {
-				t, err := helpers.PropertyFixYaml(v, prop)
-				if nil != err {
-					continue
-				}
 				msg.State[prop] = t
 			}
+		} else {
+			msg.State[prop] = t
 		}
 
 		dv.State[k] = v

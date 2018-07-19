@@ -5,6 +5,7 @@ import (
 	"github.com/go-home-io/server/plugins/device/enums"
 )
 
+// Tests slices equality.
 func TestEqualSlices(t *testing.T) {
 	if !SliceEqualsString(
 		[]string{"1", "2", "3"},
@@ -28,6 +29,7 @@ func TestEqualSlices(t *testing.T) {
 	}
 }
 
+// Tests that slices are not equal.
 func TestUnEqualSlices(t *testing.T) {
 	if SliceEqualsString(
 		[]string{"1", "2", "3"},

@@ -95,6 +95,10 @@ func getExpectedType(deviceType enums.DeviceType) (reflect.Type, error) {
 	switch deviceType {
 	case enums.DevLight:
 		return device.TypeLight, nil
+	case enums.DevSwitch:
+		return device.TypeSwitch, nil
+	case enums.DevSensor:
+		return device.TypeSensor, nil
 	}
 
 	return nil, errors.New("unknown device type")
@@ -105,6 +109,10 @@ func loadDevice(deviceInterface interface{}, deviceType enums.DeviceType) (inter
 	switch deviceType {
 	case enums.DevLight:
 		return deviceInterface.(device.ILight).Load()
+	case enums.DevSwitch:
+		return deviceInterface.(device.ISwitch).Load()
+	case enums.DevSensor:
+		return deviceInterface.(device.ISensor).Load()
 	}
 
 	return nil, errors.New("unknown device type")

@@ -3,6 +3,7 @@ GO_BIN_FOLDER=$(GOPATH)/bin
 GOCMD=PATH=${PATH}:$(GO_BIN_FOLDER) go
 
 GOGET=$(GOCMD) get
+#GOBUILD=$(GOCMD) build -race
 GOBUILD=$(GOCMD) build
 GOGENERATE=$(GOCMD) generate
 

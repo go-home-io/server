@@ -48,6 +48,7 @@ func NormalizeDeviceName(raw string) string {
 		":", "_",
 		";", "_",
 		".", "_",
+		"$", "_",
 		"-", "_",
 		" ", "_")
 	return replacer.Replace(raw)

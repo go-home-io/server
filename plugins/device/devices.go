@@ -20,6 +20,7 @@ type IDevice interface {
 type Spec struct {
 	UpdatePeriod           time.Duration
 	SupportedCommands      []enums.Command
+	SupportedProperties    []enums.Property
 	PostCommandDeferUpdate time.Duration
 }
 
