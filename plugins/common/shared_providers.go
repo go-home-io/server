@@ -27,6 +27,7 @@ type ILoggerProvider interface {
 // MsgDeviceUpdate contains data with updates device's state.
 type MsgDeviceUpdate struct {
 	ID        string
+	Name      string
 	State     map[enums.Property]interface{}
 	FirstSeen bool
 	Type      enums.DeviceType

@@ -178,6 +178,7 @@ func (s *serverState) processDeviceStateUpdate(dv *knownDevice, newState map[str
 		ID:        dv.ID,
 		State:     make(map[enums.Property]interface{}),
 		FirstSeen: firstOccurrence,
+		Name:      dv.Name,
 		Type:      dv.Type,
 	}
 	for k, v := range newState {
