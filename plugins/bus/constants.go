@@ -33,5 +33,8 @@ const (
 	// Message will be discarded if it was send earlier than now()-MsgTTLSeconds.
 	MsgTTLSeconds = 10
 	// ChWorkerFormat describes formatter for worker messages channel.
-	ChWorkerFormat = "worker%s"
+	ChWorkerFormat = "worker-%s"
+	// ChExtendedAPIFormat describes formatter for master <-> worker
+	// extended API plugin.
+	ChExtendedAPIFormat = "api-%s%s"
 )

@@ -22,4 +22,6 @@ const (
 	SysSecurity
 	// SysTrigger describes event trigger system.
 	SysTrigger
+	// SysAPI describes API extensions system.
+	SysAPI
 )

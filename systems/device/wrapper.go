@@ -11,6 +11,7 @@ import (
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device"
 	"github.com/go-home-io/server/plugins/device/enums"
+	"github.com/go-home-io/server/plugins/helpers"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems/bus"
 	"github.com/go-home-io/server/utils"
@@ -18,7 +19,8 @@ import (
 
 // IDeviceWrapperProvider interface for any loaded devices.
 type IDeviceWrapperProvider interface {
-	GetID() string
+	ID() string
+	Name() string
 	Unload()
 	InvokeCommand(enums.Command, map[string]interface{})
 	GetUpdateMessage() *bus.DeviceUpdateMessage
@@ -58,7 +60,8 @@ type deviceWrapper struct {
 
 	Ctor *wrapperConstruct
 
-	ID          string
+	internalID  string
+	name        string
 	State       map[string]interface{}
 	Spec        *device.Spec
 	CommandsStr []string
@@ -88,7 +91,7 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 
 	if !w.setState(ctor.DeviceState) {
 		ctor.Logger.Warn("Failed to fetch device state",
-			common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
+			common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
 	}
 
 	interval := int(w.Spec.UpdatePeriod / time.Second)
@@ -103,11 +106,11 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 		w.jobID, err = ctor.Cron.AddFunc(fmt.Sprintf("@every %ds", interval), w.pullUpdate)
 		if err != nil {
 			ctor.Logger.Warn("Failed to schedule device updates",
-				common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
+				common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
 		}
 
 		ctor.Logger.Debug(fmt.Sprintf("Polling rate for the device is %d seconds", interval),
-			common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
+			common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
 	}
 
 	w.validateDeviceSpec(ctor)
@@ -123,13 +126,26 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 
 // GetID returns unique device ID.
 // ID is normalized and contains config name, provider name and ID returned from actual device.
-func (w *deviceWrapper) GetID() string {
-	if w.ID == "" {
-		w.ID = fmt.Sprintf("%s.%s.%s", utils.NormalizeDeviceName(w.Ctor.DeviceConfigName),
+func (w *deviceWrapper) ID() string {
+	if w.internalID == "" {
+		w.internalID = fmt.Sprintf("%s.%s.%s", utils.NormalizeDeviceName(w.Ctor.DeviceConfigName),
 			utils.NormalizeDeviceName(w.Ctor.DeviceType.String()),
 			utils.NormalizeDeviceName(w.Ctor.DeviceInterface.(device.IDevice).GetName()))
 	}
-	return w.ID
+	return w.internalID
+}
+
+// Name returns device name.
+func (w *deviceWrapper) Name() string {
+	if w.name == "" {
+		if w.Ctor.IsRootDevice && "" != w.Ctor.DeviceConfigName {
+			w.name = w.Ctor.DeviceConfigName
+		} else {
+			w.name = helpers.GetNameFromID(w.ID())
+		}
+	}
+
+	return w.name
 }
 
 // Unload stops all background activities.
@@ -155,13 +171,13 @@ func (w *deviceWrapper) InvokeCommand(cmdName enums.Command, param map[string]in
 	method, ok := w.commands[cmdName]
 	if !ok {
 		w.Ctor.Logger.Warn("Device doesn't support this command",
-			common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID,
+			common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID(),
 			common.LogDeviceCommandToken, cmdName.String())
 		return
 	}
 
 	w.Ctor.Logger.Debug("Invoking device command",
-		common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID,
+		common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID(),
 		common.LogDeviceCommandToken, cmdName.String())
 
 	var results []reflect.Value
@@ -170,7 +186,7 @@ func (w *deviceWrapper) InvokeCommand(cmdName enums.Command, param map[string]in
 		obj, err := json.Marshal(param)
 		if err != nil {
 			w.Ctor.Logger.Error("Got error while marshalling data for device command", err,
-				common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID,
+				common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID(),
 				common.LogDeviceCommandToken, cmdName.String())
 			return
 		}
@@ -181,14 +197,14 @@ func (w *deviceWrapper) InvokeCommand(cmdName enums.Command, param map[string]in
 		err = json.Unmarshal(obj, &objNew)
 		if err != nil {
 			w.Ctor.Logger.Error("Got error while preparing data for device command", err,
-				common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID,
+				common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID(),
 				common.LogDeviceCommandToken, cmdName.String())
 			return
 		}
 
 		if !w.Ctor.Validator.Validate(objNew) {
 			w.Ctor.Logger.Warn("Received incorrect command params",
-				common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID,
+				common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID(),
 				common.LogDeviceCommandToken, cmdName.String())
 			return
 		}
@@ -203,7 +219,7 @@ func (w *deviceWrapper) InvokeCommand(cmdName enums.Command, param map[string]in
 
 	if len(results) > 0 && results[0].Interface() != nil {
 		w.Ctor.Logger.Error("Got error while invoking device command", results[0].Interface().(error),
-			common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID,
+			common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID(),
 			common.LogDeviceCommandToken, cmdName.String())
 
 		return
@@ -219,10 +235,11 @@ func (w *deviceWrapper) InvokeCommand(cmdName enums.Command, param map[string]in
 func (w *deviceWrapper) GetUpdateMessage() *bus.DeviceUpdateMessage {
 	msg := bus.NewDeviceUpdateMessage()
 	msg.DeviceType = w.Ctor.DeviceType
-	msg.DeviceID = w.ID
+	msg.DeviceID = w.ID()
 	msg.State = w.State
 	msg.WorkerID = w.Ctor.WorkerID
 	msg.Commands = w.CommandsStr
+	msg.DeviceName = w.Name()
 	return msg
 }
 
@@ -234,7 +251,7 @@ func (w *deviceWrapper) validateDeviceSpec(ctor *wrapperConstruct) {
 	for _, v := range w.Spec.SupportedCommands {
 		if !v.IsCommandAllowed(ctor.DeviceType) {
 			ctor.Logger.Warn("Plugin claimed restricted command",
-				common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID,
+				common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID(),
 				common.LogDeviceCommandToken, v.String())
 			continue
 		}
@@ -242,14 +259,14 @@ func (w *deviceWrapper) validateDeviceSpec(ctor *wrapperConstruct) {
 		method := reflect.ValueOf(w.Ctor.DeviceInterface).MethodByName(v.GetCommandMethodName())
 		if !method.IsValid() {
 			ctor.Logger.Warn("Plugin claimed non-implemented command",
-				common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID,
+				common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID(),
 				common.LogDeviceCommandToken, v.String())
 			continue
 		}
 
 		if method.Type().NumIn() > 1 {
 			ctor.Logger.Warn("Plugin declared method with more than one param",
-				common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID,
+				common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID(),
 				common.LogDeviceCommandToken, v.String())
 			continue
 		}
@@ -261,14 +278,15 @@ func (w *deviceWrapper) validateDeviceSpec(ctor *wrapperConstruct) {
 
 // Updates internal device state which is stored in wrapper.
 func (w *deviceWrapper) setState(deviceState interface{}) bool {
-	if nil == deviceState || reflect.ValueOf(deviceState).Kind() == reflect.Ptr && reflect.ValueOf(deviceState).IsNil() {
+	if nil == deviceState ||
+		reflect.ValueOf(deviceState).Kind() == reflect.Ptr && reflect.ValueOf(deviceState).IsNil() {
 		return false
 	}
 
 	allowedProps, ok := enums.AllowedProperties[w.Ctor.DeviceType]
 	if !ok {
 		w.Ctor.Logger.Warn("Received unknown device type",
-			common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
+			common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
 		return false
 	}
 
@@ -289,7 +307,7 @@ func (w *deviceWrapper) setState(deviceState interface{}) bool {
 		prop, err := enums.PropertyString(jsonKey)
 		if err != nil {
 			w.Ctor.Logger.Warn("Received unknown device property", common.LogDevicePropertyToken, jsonKey,
-				common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
+				common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
 			continue
 		}
 
@@ -334,7 +352,7 @@ func (w *deviceWrapper) pullUpdate() {
 	}
 
 	w.Ctor.Logger.Debug("Fetching update for the device", common.LogDeviceTypeToken,
-		w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
+		w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
 	switch w.Ctor.DeviceType {
 	case enums.DevHub:
 		w.pullHubUpdate()
@@ -349,7 +367,7 @@ func (w *deviceWrapper) pullHubUpdate() {
 	hubState, err := w.Ctor.DeviceInterface.(device.IHub).Update()
 	if err != nil {
 		w.Ctor.Logger.Error("Failed to fetch hub updates", err, common.LogDeviceTypeToken,
-			w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
+			w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
 		return
 	}
 	w.processUpdate(hubState)
@@ -377,7 +395,7 @@ func (w *deviceWrapper) pullDeviceUpdate() {
 
 	if err != nil {
 		w.Ctor.Logger.Error("Failed to fetch device updates", err,
-			common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
+			common.LogDeviceTypeToken, w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
 	} else {
 		w.processUpdate(state[0].Interface())
 	}
@@ -392,7 +410,7 @@ func (w *deviceWrapper) startHubListeners() {
 				return
 			}
 			w.Ctor.Logger.Debug("Received discovery callback for the device", common.LogDeviceTypeToken,
-				w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
+				w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
 
 			w.processDiscovery(discovery)
 		case update, ok := <-w.Ctor.LoadData.DeviceStateUpdateChan:
@@ -415,19 +433,19 @@ func (w *deviceWrapper) startDeviceListeners() {
 // Processing update message from provider plugin.
 func (w *deviceWrapper) processUpdate(state interface{}) {
 	w.Ctor.Logger.Debug("Received update for the device", common.LogDeviceTypeToken,
-		w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
+		w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
 
 	w.setState(state)
 
 	w.Ctor.StatusUpdatesChan <- &UpdateEvent{
-		ID: w.ID,
+		ID: w.ID(),
 	}
 }
 
 // Processing discovery message from hub provider plugin.
 func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
 	w.Ctor.Logger.Info("Discovered a new device", common.LogDeviceTypeToken,
-		w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID)
+		w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
 
 	subLoadData := &device.InitDataDevice{
 		Logger:                w.Ctor.Logger,
@@ -439,14 +457,14 @@ func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
 	loadedDevice, ok := d.Interface.(device.IDevice)
 	if !ok {
 		w.Ctor.Logger.Warn("One of the loaded devices is not implementing IDevice interface",
-			common.LogDeviceTypeToken, w.Ctor.DeviceConfigName, common.LogDeviceNameToken, w.ID)
+			common.LogDeviceTypeToken, w.Ctor.DeviceConfigName, common.LogDeviceNameToken, w.ID())
 		return
 	}
 
 	err := loadedDevice.Init(subLoadData)
 	if err != nil {
 		w.Ctor.Logger.Warn("Failed to execute device.Load method",
-			common.LogDeviceTypeToken, w.Ctor.DeviceConfigName, common.LogDeviceNameToken, w.ID)
+			common.LogDeviceTypeToken, w.Ctor.DeviceConfigName, common.LogDeviceNameToken, w.ID())
 		return
 	}
 

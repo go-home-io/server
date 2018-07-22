@@ -8,21 +8,6 @@ import (
 	"os"
 )
 
-// Tests contains helper.
-func TestSliceContainsString(t *testing.T) {
-	in := []string{"$", "@", "testFunc", "#!_=", "123", "другая строка"}
-
-	for _, v := range in {
-		if !SliceContainsString(in, v) {
-			t.Fail()
-		}
-
-		if SliceContainsString(in, v+v) {
-			t.Fail()
-		}
-	}
-}
-
 // Tests that we're returning current time.
 func TestTimeNow(t *testing.T) {
 	if TimeNow() != time.Now().UTC().Unix() {

@@ -8,6 +8,7 @@ import (
 // Known devices, received from workers.
 type knownDevice struct {
 	ID       string                 `json:"id"`
+	Name     string                 `json:"name"`
 	Worker   string                 `json:"worker"`
 	Type     enums.DeviceType       `json:"type"`
 	State    map[string]interface{} `json:"state"`

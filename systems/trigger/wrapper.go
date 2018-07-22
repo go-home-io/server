@@ -36,8 +36,6 @@ type wrapper struct {
 	activeWindow bool
 	from         int
 	to           int
-	//from         time.Time
-	//to           time.Time
 }
 
 // ConstructTrigger has data required to create a new trigger.
@@ -49,6 +47,7 @@ type ConstructTrigger struct {
 	Provider  string
 	RawConfig []byte
 	FanOut    providers.IInternalFanOutProvider
+	Server    providers.IServerProvider
 }
 
 // NewTrigger creates a new trigger.
@@ -69,6 +68,7 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 		logger:    ctor.Logger,
 		name:      cfg.Name,
 		validator: ctor.Validator,
+		server:    ctor.Server,
 	}
 	err = w.loadActions(cfg.Actions)
 	if err != nil {
@@ -104,7 +104,9 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 	w.trigger = plugin.(pluginTrigger.ITrigger)
 	w.triggerChan = callback
 
-	return w, err
+	go w.processTriggers()
+
+	return w, nil
 }
 
 // GetID returns trigger id.
@@ -115,12 +117,6 @@ func (w *wrapper) GetID() string {
 	}
 
 	return w.ID
-}
-
-// Start is called by server object to start actual processing of triggers.
-func (w *wrapper) Start(server providers.IServerProvider) {
-	w.server = server
-	go w.processTriggers()
 }
 
 // Loads all trigger actions.

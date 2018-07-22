@@ -16,7 +16,6 @@ import (
 	"github.com/go-home-io/server/systems/logger"
 	"github.com/go-home-io/server/systems/secret"
 	"github.com/go-home-io/server/systems/security"
-	"github.com/go-home-io/server/systems/trigger"
 	"github.com/go-home-io/server/utils"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -66,24 +65,26 @@ type settingsProvider struct {
 	mSettings *providers.MasterSettings
 	isWorker  bool
 
-	devicesConfig []providers.RawDevice
+	devicesConfig []*providers.RawDevice
 
 	rawRoles         []*providers.SecRole
 	rawUsersProvider *rawProvider
 	securityProvider providers.ISecurityProvider
 
-	fanOut   providers.IInternalFanOutProvider
-	triggers []providers.ITriggerProvider
+	fanOut       providers.IInternalFanOutProvider
+	triggers     []*providers.RawMasterComponent
+	extendedAPIs []*providers.RawMasterComponent
 }
 
 // Load system configuration.
 func Load(options *StartUpOptions) providers.ISettingsProvider {
 	settings := settingsProvider{
 		isWorker:      options.IsWorker,
-		devicesConfig: make([]providers.RawDevice, 0),
+		devicesConfig: make([]*providers.RawDevice, 0),
 		logger:        logger.NewConsoleLogger(),
 		rawRoles:      make([]*providers.SecRole, 0),
-		triggers:      make([]providers.ITriggerProvider, 0),
+		triggers:      make([]*providers.RawMasterComponent, 0),
+		extendedAPIs:  make([]*providers.RawMasterComponent, 0),
 		fanOut:        fanout.NewFanOut(),
 	}
 
@@ -303,28 +304,38 @@ func (s *settingsProvider) loadGoHomeDefinition(provider *rawProvider) {
 
 // Processes config records related to devices.
 func (s *settingsProvider) processDeviceProvider(provider *rawProvider) error {
+	d, err := s.loadDeviceProvider(provider)
+	if nil == d {
+		return err
+	}
+
+	s.devicesConfig = append(s.devicesConfig, d)
+	return nil
+}
+
+func (s *settingsProvider) loadDeviceProvider(provider *rawProvider) (*providers.RawDevice, error) {
 	if s.isWorker {
-		return nil
+		return nil, nil
 	}
 
 	selector := providers.RawDeviceSelector{}
 	if err := yaml.Unmarshal(provider.Config, &selector); err != nil {
-		return err
+		return nil, err
 	}
 
 	if selector.Name == "" {
 		s.logger.Warn("Ignoring device since name is null", common.LogDeviceTypeToken, provider.Provider,
 			common.LogSystemToken, provider.System)
-		return nil
+		return nil, nil
 	}
 
 	selector.Name = strings.ToLower(selector.Name)
 
 	deviceType := utils.VerifyDeviceProvider(provider.Provider)
-	if deviceType == enums.DevUnknown {
+	if deviceType == enums.DevUnknown && provider.System != systems.SysAPI.String() {
 		s.logger.Warn("Ignoring device since type is unknown", common.LogDeviceTypeToken, provider.Provider,
 			common.LogSystemToken, provider.System)
-		return nil
+		return nil, nil
 	}
 
 	dup := false
@@ -338,19 +349,19 @@ func (s *settingsProvider) processDeviceProvider(provider *rawProvider) error {
 	}
 
 	if dup {
-		return nil
+		return nil, nil
 	}
 
-	d := providers.RawDevice{
+	d := &providers.RawDevice{
 		Plugin:     provider.Provider,
 		DeviceType: deviceType,
 		Selector:   &selector,
 		StrConfig:  string(provider.Config),
 		Name:       selector.Name,
+		IsAPI:      deviceType == enums.DevUnknown,
 	}
 
-	s.devicesConfig = append(s.devicesConfig, d)
-	return nil
+	return d, nil
 }
 
 // Loads logger configuration.
@@ -398,9 +409,14 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 	s.logger.Debug("Processing config", common.LogProviderToken, provider.Provider,
 		common.LogSystemToken, provider.System)
 
-	var err error
-	switch provider.System {
-	case systems.SysBus.String():
+	sys, err := systems.SystemTypeString(provider.System)
+	if err != nil {
+		s.logger.Warn("Unknown provider's system", common.LogProviderToken, provider.Provider,
+			common.LogSystemToken, provider.System)
+		return
+	}
+	switch sys {
+	case systems.SysBus:
 		ctor := &bus.ConstructBus{
 			RawConfig: provider.Config,
 			Provider:  provider.Provider,
@@ -413,13 +429,16 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 		if err != nil {
 			s.bus = nil
 		}
-	case systems.SysSecurity.String():
+	case systems.SysSecurity:
 		s.processSecurity(provider)
-	case systems.SysTrigger.String():
-		s.processTriggers(provider)
-	default:
-		s.logger.Warn("Unknown provider", common.LogProviderToken, provider.Provider,
-			common.LogSystemToken, provider.System)
+	case systems.SysTrigger:
+		cmp := s.getMasterComponents(provider)
+		if nil == cmp {
+			return
+		}
+		s.triggers = append(s.triggers, cmp)
+	case systems.SysAPI:
+		s.loadAPI(provider)
 	}
 
 	if err != nil {
@@ -469,25 +488,46 @@ func (s *settingsProvider) processSecurity(provider *rawProvider) {
 		common.LogProviderToken, provider.Provider, common.LogSystemToken, provider.System)
 }
 
-func (s *settingsProvider) processTriggers(provider *rawProvider) {
+func (s *settingsProvider) loadAPI(provider *rawProvider) {
+	cmp := s.getMasterComponents(provider)
+	if nil == cmp {
+		return
+	}
+
+	d, err := s.loadDeviceProvider(provider)
+	if err != nil || nil == d {
+		return
+	}
+
+	for _, v := range s.extendedAPIs {
+		if v.Name == d.Name {
+			s.logger.Warn("Duplicated API name, ignoring",
+				common.LogProviderToken, provider.Provider, "name", d.Name)
+			return
+		}
+	}
+
+	if len(d.Selector.Selectors) > 0 {
+		s.devicesConfig = append(s.devicesConfig, d)
+	}
+
+	cmp.Name = d.Name
+	s.extendedAPIs = append(s.extendedAPIs, cmp)
+}
+
+func (s *settingsProvider) getMasterComponents(provider *rawProvider) *providers.RawMasterComponent {
 	if s.isWorker {
-		return
+		return nil
 	}
 
-	ctor := &trigger.ConstructTrigger{
-		Logger:    s.PluginLogger(systems.SysTrigger, provider.Provider),
-		Provider:  provider.Provider,
+	cmp := &providers.RawMasterComponent{
 		RawConfig: provider.Config,
-		Loader:    s.pluginLoader,
-		FanOut:    s.fanOut,
-		Secret:    s.secrets,
-		Validator: s.validator,
+		Provider:  provider.Provider,
 	}
 
-	tr, err := trigger.NewTrigger(ctor)
-	if err != nil {
-		return
+	if "" == cmp.Name {
+		cmp.Name = cmp.Provider
 	}
 
-	s.triggers = append(s.triggers, tr)
+	return cmp
 }

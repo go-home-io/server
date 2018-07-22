@@ -6,9 +6,9 @@ import (
 	"fmt"
 )
 
-const _SystemTypeName = "go-homeloggerbusdevicesecretconfigsecuritytrigger"
+const _SystemTypeName = "go-homeloggerbusdevicesecretconfigsecuritytriggerapi"
 
-var _SystemTypeIndex = [...]uint8{0, 7, 13, 16, 22, 28, 34, 42, 49}
+var _SystemTypeIndex = [...]uint8{0, 7, 13, 16, 22, 28, 34, 42, 49, 52}
 
 func (i SystemType) String() string {
 	if i < 0 || i >= SystemType(len(_SystemTypeIndex)-1) {
@@ -17,7 +17,7 @@ func (i SystemType) String() string {
 	return _SystemTypeName[_SystemTypeIndex[i]:_SystemTypeIndex[i+1]]
 }
 
-var _SystemTypeValues = []SystemType{0, 1, 2, 3, 4, 5, 6, 7}
+var _SystemTypeValues = []SystemType{0, 1, 2, 3, 4, 5, 6, 7, 8}
 
 var _SystemTypeNameToValueMap = map[string]SystemType{
 	_SystemTypeName[0:7]:   0,
@@ -28,6 +28,7 @@ var _SystemTypeNameToValueMap = map[string]SystemType{
 	_SystemTypeName[28:34]: 5,
 	_SystemTypeName[34:42]: 6,
 	_SystemTypeName[42:49]: 7,
+	_SystemTypeName[49:52]: 8,
 }
 
 // SystemTypeString retrieves an enum value from the enum constants string name.

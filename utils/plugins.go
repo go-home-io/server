@@ -99,7 +99,7 @@ func (l *pluginLoader) loadPlugin(request *providers.PluginLoadRequest,
 		return nil, errors.New("plugin doesn't implement requested interface")
 	}
 
-	if nil == request.RawConfig {
+	if nil == request.RawConfig || nil == settingsObject {
 		err = l.initPlugin(request, pluginObject)
 		if err != nil {
 			return nil, err

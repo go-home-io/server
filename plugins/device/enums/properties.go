@@ -51,3 +51,13 @@ func SliceContainsProperty(s []Property, e Property) bool {
 func (i Property) GetPropertyName() string {
 	return transformCommandOrProperty(i.String(), "_")
 }
+
+// IsPropertyAllowed checks whether property is allowed to certain device type.
+func (i Property) IsPropertyAllowed(deviceType DeviceType) bool {
+	slice, ok := AllowedProperties[deviceType]
+	if !ok {
+		return false
+	}
+
+	return SliceContainsProperty(slice, i)
+}

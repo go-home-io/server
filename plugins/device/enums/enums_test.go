@@ -114,3 +114,38 @@ func TestCommandConversions(t *testing.T) {
 		}
 	}
 }
+
+// Test helper IsPropertyAllowed.
+func TestIsPropertyAllowed(t *testing.T) {
+	AllowedProperties = map[DeviceType][]Property{
+		DevLight: {PropOn, PropBrightness},
+	}
+
+	if !PropOn.IsPropertyAllowed(DevLight) {
+		t.Fail()
+	}
+
+	if PropBatteryLevel.IsPropertyAllowed(DevLight) {
+		t.Fail()
+	}
+
+	if PropBrightness.IsPropertyAllowed(DevHub) {
+		t.Fail()
+	}
+}
+
+
+// Tests helper SliceContainsDeviceType.
+func TestSliceContainsDeviceType(t *testing.T){
+	slice := []DeviceType{DevLight, DevHub}
+
+	if SliceContainsDeviceType(slice, DevSwitch){
+		t.Fail()
+	}
+
+	for _, v := range slice {
+		if ! SliceContainsDeviceType(slice, v){
+			t.Fail()
+		}
+	}
+}

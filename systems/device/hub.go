@@ -72,7 +72,7 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 		dev, ok := v.Interface.(device.IDevice)
 		if !ok {
 			pluginLogger.Warn("One of the loaded devices is not implementing IDevice interface",
-				common.LogDeviceNameToken, hubWrapper.GetID())
+				common.LogDeviceNameToken, hubWrapper.ID())
 			continue
 		}
 

@@ -141,6 +141,7 @@ func (s *serverState) Update(msg *bus.DeviceUpdateMessage) {
 			Commands: make([]string, len(msg.Commands)),
 			State:    make(map[string]interface{}),
 			ID:       msg.DeviceID,
+			Name:     msg.DeviceName,
 		}
 
 		copy(dv.Commands, msg.Commands)
@@ -149,6 +150,7 @@ func (s *serverState) Update(msg *bus.DeviceUpdateMessage) {
 
 	dv.LastSeen = utils.TimeNow()
 	dv.Worker = msg.WorkerID
+
 	s.processDeviceStateUpdate(dv, msg.State, firstOccurrence)
 }
 
@@ -176,6 +178,7 @@ func (s *serverState) processDeviceStateUpdate(dv *knownDevice, newState map[str
 		ID:        dv.ID,
 		State:     make(map[enums.Property]interface{}),
 		FirstSeen: firstOccurrence,
+		Type:      dv.Type,
 	}
 	for k, v := range newState {
 		prop, err := enums.PropertyString(k)
@@ -242,7 +245,7 @@ func (s *serverState) reBalance(newWorkerID string) {
 	}
 
 	for _, d := range s.Settings.DevicesConfig() {
-		candidates := s.pickWorker(&d)
+		candidates := s.pickWorker(d)
 		if 0 == len(candidates) {
 			s.Logger.Warn("Failed to select a worker for the device", common.LogSystemToken, logSystem,
 				common.LogDeviceTypeToken, d.Plugin, "name", d.Selector.Name)
@@ -270,6 +273,7 @@ func (s *serverState) reBalance(newWorkerID string) {
 			Config: d.StrConfig,
 			Type:   d.DeviceType,
 			Name:   d.Name,
+			IsAPI:  d.IsAPI,
 		})
 	}
 
@@ -338,7 +342,7 @@ func (s *serverState) pickWorker(device *providers.RawDevice) []string {
 		}
 
 		for _, wk := range s.KnownWorkers {
-			if utils.SliceContainsString(nonMet, wk.ID) {
+			if helpers.SliceContainsString(nonMet, wk.ID) {
 				continue
 			}
 
@@ -359,7 +363,7 @@ func (s *serverState) pickWorker(device *providers.RawDevice) []string {
 
 	candidates := make([]string, 0)
 	for _, wk := range s.KnownWorkers {
-		if !utils.SliceContainsString(nonMet, wk.ID) {
+		if !helpers.SliceContainsString(nonMet, wk.ID) {
 			candidates = append(candidates, wk.ID)
 		}
 	}

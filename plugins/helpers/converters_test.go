@@ -61,3 +61,31 @@ func TestProperties(t *testing.T) {
 		}
 	}
 }
+
+// Tests unmarshal properties.
+func TestUnmarshalProperty(t *testing.T) {
+	in := map[enums.Property]interface{}{
+		enums.PropOn:         true,
+		enums.PropBrightness: map[interface{}]interface{}{"value": 88},
+		enums.PropColor:      map[string]interface{}{"r": 129, "g": 10, "b": 23},
+	}
+
+	out := map[enums.Property]interface{}{
+		enums.PropOn:         true,
+		enums.PropBrightness: &common.Percent{Value: 88},
+		enums.PropColor:      &common.Color{R: 129, G: 10, B: 23},
+	}
+
+	for i, v := range in {
+		p, err := UnmarshalProperty(v, i)
+		if err != nil {
+			t.Error("Unmarshal failed on " + i.String())
+			t.Fail()
+		}
+
+		if !PropertyDeepEqual(p, out[i], i) {
+			t.Error("Equal failed on " + i.String())
+			t.Fail()
+		}
+	}
+}

@@ -6,9 +6,9 @@ import (
 
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
+	"github.com/go-home-io/server/plugins/helpers"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems/bus"
-	"github.com/go-home-io/server/utils"
 	"github.com/gobwas/glob"
 )
 
@@ -25,7 +25,7 @@ func (s *GoHomeServer) InternalCommandInvokeDeviceCommand(
 			continue
 		}
 
-		if !utils.SliceContainsString(v.Commands, cmd.String()) {
+		if !helpers.SliceContainsString(v.Commands, cmd.String()) {
 			s.Logger.Warn("Received command is not supported", common.LogSystemToken, logSystem,
 				common.LogDeviceNameToken, v.ID, common.LogDeviceCommandToken, cmd.String())
 			continue
@@ -64,7 +64,7 @@ func (s *GoHomeServer) commandInvokeDeviceCommand(user *providers.AuthenticatedU
 		return errors.New("unknown command")
 	}
 
-	if !utils.SliceContainsString(knownDevice.Commands, cmdName) {
+	if !helpers.SliceContainsString(knownDevice.Commands, cmdName) {
 		s.Logger.Warn("Received command is not supported", common.LogSystemToken, logSystem,
 			common.LogDeviceNameToken, deviceID, common.LogDeviceCommandToken, cmdName,
 			common.LogUserNameToken, user.Username)

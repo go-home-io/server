@@ -9,7 +9,7 @@ import (
 // MessageWithType helper type for initial service bus message parsing.
 type MessageWithType struct {
 	Type     bus.MessageType `json:"mt"`
-	SendTime int64
+	SendTime int64           `json:"st"`
 }
 
 // KeyValue helper type for key-value pair.
@@ -33,6 +33,7 @@ type DeviceAssignment struct {
 	Type   enums.DeviceType `json:"t"`
 	Config string           `json:"c"`
 	Name   string           `json:"n"`
+	IsAPI  bool             `json:"a"`
 }
 
 // DeviceAssignmentMessage used by server to send a new set of devices to worker.
@@ -49,6 +50,7 @@ type DeviceUpdateMessage struct {
 	State      map[string]interface{} `json:"s"`
 	Commands   []string               `json:"o"`
 	WorkerID   string                 `json:"w"`
+	DeviceName string                 `json:"n"`
 }
 
 // DeviceCommandMessage used by server to invoke device command on a worker.

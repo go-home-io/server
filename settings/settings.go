@@ -67,7 +67,7 @@ func (s *settingsProvider) IsWorker() bool {
 }
 
 // DevicesConfig returns raw devices configs.
-func (s *settingsProvider) DevicesConfig() []providers.RawDevice {
+func (s *settingsProvider) DevicesConfig() []*providers.RawDevice {
 	return s.devicesConfig
 }
 
@@ -75,10 +75,14 @@ func (s *settingsProvider) Security() providers.ISecurityProvider {
 	return s.securityProvider
 }
 
-func (s *settingsProvider) Triggers() []providers.ITriggerProvider {
+func (s *settingsProvider) Triggers() []*providers.RawMasterComponent {
 	return s.triggers
 }
 
 func (s *settingsProvider) FanOud() providers.IInternalFanOutProvider {
 	return s.fanOut
+}
+
+func (s *settingsProvider) ExtendedAPIs() []*providers.RawMasterComponent {
+	return s.extendedAPIs
 }

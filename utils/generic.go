@@ -9,16 +9,6 @@ import (
 	"github.com/go-home-io/server/plugins/device/enums"
 )
 
-// SliceContainsString slice.contains implementation for strings.
-func SliceContainsString(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
 // TimeNow returns epoch UTC.
 func TimeNow() int64 {
 	return time.Now().UTC().Unix()

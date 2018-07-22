@@ -10,4 +10,6 @@ const (
 	urlCommandName muxKeys = "commandName"
 	// ctxtUserName describes user in the context.
 	ctxtUserName muxKeys = "user"
+	// routeAPI describes base api prefix.
+	routeAPI = "/api/v1"
 )

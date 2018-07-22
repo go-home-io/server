@@ -8,7 +8,7 @@ import (
 
 // IServiceBus defines service bus plugin interface.
 type IServiceBus interface {
-	Init(data InitDataServiceBus) error
+	Init(*InitDataServiceBus) error
 	Subscribe(channel string, queue chan RawMessage) error
 	Unsubscribe(channel string)
 	Publish(channel string, messages ...interface{})

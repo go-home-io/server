@@ -10,10 +10,12 @@ import (
 	"time"
 	"github.com/go-home-io/server/systems/fanout"
 	"github.com/go-home-io/server/plugins/common"
+	"github.com/go-home-io/server/plugins/helpers"
 )
 
 // Settings mock.
-func getFakeSettings(publishCallback func(name string, msg ...interface{}), devices []providers.RawDevice, logCallback func(string)) providers.ISettingsProvider {
+func getFakeSettings(publishCallback func(name string, msg ...interface{}),
+	devices []*providers.RawDevice, logCallback func(string)) providers.ISettingsProvider {
 	return mocks.FakeNewSettings(publishCallback, false, devices, logCallback)
 }
 
@@ -260,14 +262,14 @@ func TestPickWorkerMultipleMatchFromManyRegex(t *testing.T) {
 		t.Fail()
 	}
 
-	if utils.SliceContainsString(results, "2") {
+	if helpers.SliceContainsString(results, "2") {
 		t.Fail()
 	}
 }
 
 // Tests whether warning is generated when no workers is available.
 func TestReBalanceNoWorkers(t *testing.T) {
-	devices := []providers.RawDevice{
+	devices := []*providers.RawDevice{
 		{
 			StrConfig: "1",
 			Selector:  &providers.RawDeviceSelector{Selectors: map[string]string{}},
@@ -291,9 +293,9 @@ func TestReBalanceNoWorkers(t *testing.T) {
 // Tests whether warning is generated when worker is at its devices' capacity.
 func TestReBalanceTooManyDevices(t *testing.T) {
 	max := 3
-	devices := make([]providers.RawDevice, max+2)
+	devices := make([]*providers.RawDevice, max+2)
 	for ii := 0; ii < max+2; ii++ {
-		devices[ii] = providers.RawDevice{
+		devices[ii] = &providers.RawDevice{
 			StrConfig: "1",
 			Selector:  &providers.RawDeviceSelector{Selectors: map[string]string{}},
 		}
@@ -324,7 +326,7 @@ func TestReBalanceTooManyDevices(t *testing.T) {
 // Tests whether re-balance evenly distributes devices among
 // available workers.
 func TestReBalanceNoSelectors(t *testing.T) {
-	devices := []providers.RawDevice{
+	devices := []*providers.RawDevice{
 		{
 			StrConfig: "1",
 			Selector:  &providers.RawDeviceSelector{Selectors: map[string]string{}},
@@ -380,7 +382,7 @@ func TestReBalanceNoSelectors(t *testing.T) {
 // Tests whether re-balance is prioritizing devices with selectors
 // and tries to evenly distribute what's left.
 func TestReBalanceWithSelectors(t *testing.T) {
-	devices := []providers.RawDevice{
+	devices := []*providers.RawDevice{
 		{
 			StrConfig: "1",
 			Selector:  &providers.RawDeviceSelector{Selectors: map[string]string{}},
@@ -421,12 +423,12 @@ func TestReBalanceWithSelectors(t *testing.T) {
 		t.Fail()
 	}
 
-	if 2 != len(published["1"]) || utils.SliceContainsString(published["1"], "1") {
+	if 2 != len(published["1"]) || helpers.SliceContainsString(published["1"], "1") {
 		t.Errorf("First worker has incorrect assigments, got %d devices", len(published["1"]))
 		t.Fail()
 	}
 
-	if 1 != len(published["2"]) || !utils.SliceContainsString(published["2"], "1") {
+	if 1 != len(published["2"]) || !helpers.SliceContainsString(published["2"], "1") {
 		t.Errorf("Second worker has incorrect assigments, got %d devices", len(published["2"]))
 		t.Fail()
 	}
@@ -434,7 +436,7 @@ func TestReBalanceWithSelectors(t *testing.T) {
 
 // Tests whether regular ping message is not triggering re-balance.
 func TestPingMessageNoReBalance(t *testing.T) {
-	devices := make([]providers.RawDevice, 0)
+	devices := make([]*providers.RawDevice, 0)
 
 	published := make(map[string][]string)
 	logInvoked := false
@@ -472,7 +474,7 @@ func TestPingMessageNoReBalance(t *testing.T) {
 // Tests whether after reboot worker will receive it's device
 // assignment back.
 func TestWorkerRestartNoReBalance(t *testing.T) {
-	devices := make([]providers.RawDevice, 0)
+	devices := make([]*providers.RawDevice, 0)
 
 	published := make(map[string][]string)
 	s := getFakeSettings(getSbPatch(published, t), devices, nil)
@@ -507,7 +509,7 @@ func TestWorkerRestartNoReBalance(t *testing.T) {
 func TestWorkerPropertiesChangesReBalance(t *testing.T) {
 	defer leaktest.Check(t)()
 
-	devices := []providers.RawDevice{
+	devices := []*providers.RawDevice{
 		{
 			StrConfig: "d1",
 			Name:      "d1",
@@ -571,7 +573,7 @@ func TestWorkerPropertiesChangesReBalance(t *testing.T) {
 		t.Fail()
 	}
 
-	if !utils.SliceContainsString(published["1"], "d2") || !utils.SliceContainsString(published["1"], "d3") {
+	if !helpers.SliceContainsString(published["1"], "d2") || !helpers.SliceContainsString(published["1"], "d3") {
 		t.Errorf("Re-balanced wrong drvices")
 		t.Fail()
 	}
@@ -582,7 +584,7 @@ func TestWorkerPropertiesChangesReBalance(t *testing.T) {
 func TestNewWorkerDiscoveryReBalance(t *testing.T) {
 	defer leaktest.Check(t)()
 
-	devices := []providers.RawDevice{
+	devices := []*providers.RawDevice{
 		{
 			StrConfig: "d1",
 			Name:      "d1",
@@ -635,7 +637,7 @@ func TestNewWorkerDiscoveryReBalance(t *testing.T) {
 func TestNewWorkerDiscoveryNoReBalanceWithSelectors(t *testing.T) {
 	defer leaktest.Check(t)()
 
-	devices := []providers.RawDevice{
+	devices := []*providers.RawDevice{
 		{
 			StrConfig: "d1",
 			Name:      "d1",
@@ -729,7 +731,7 @@ func TestComparePropertiesUpdatedOne(t *testing.T) {
 
 // Tests whether stale check honors last seen.
 func TestStaleWorkersAllAreFine(t *testing.T) {
-	devices := []providers.RawDevice{
+	devices := []*providers.RawDevice{
 		{
 			StrConfig: "d1",
 			Name:      "d1",
@@ -776,7 +778,7 @@ func TestStaleWorkersAllAreFine(t *testing.T) {
 
 // Tests whether re-balance is triggered when one worker is stale.
 func TestStaleWorkersOneIsStale(t *testing.T) {
-	devices := []providers.RawDevice{
+	devices := []*providers.RawDevice{
 		{
 			StrConfig: "d1",
 			Name:      "d1",
@@ -825,7 +827,7 @@ func TestStaleWorkersOneIsStale(t *testing.T) {
 // and selectors are honored.
 // No re-balance should be called for the second worker.
 func TestStaleWorkersOneIsStaleNoWorkersForDevice(t *testing.T) {
-	devices := []providers.RawDevice{
+	devices := []*providers.RawDevice{
 		{
 			StrConfig: "d1",
 			Name:      "d1",
@@ -1015,7 +1017,7 @@ func TestUpdatesFanOut(t *testing.T) {
 	busMsg.State["on"] = "wrong_bool"
 	state.Update(busMsg)
 	time.Sleep(1 * time.Second)
-	if nil == msg || 1 != len(msg.State){
+	if nil == msg || 1 != len(msg.State) {
 		t.Fail()
 	}
 }

@@ -17,3 +17,16 @@ const (
 	// DevSensor describes sensor device type.
 	DevSensor
 )
+
+// SliceContainsDeviceType is a helper Slice.contains.
+func SliceContainsDeviceType(s []DeviceType, e DeviceType) bool {
+	if nil == s {
+		return false
+	}
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}

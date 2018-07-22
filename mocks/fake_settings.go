@@ -13,7 +13,12 @@ type fakeSettings struct {
 	logger   common.ILoggerProvider
 	cron     providers.ICronProvider
 	bus      providers.IBusProvider
-	devices  []providers.RawDevice
+	devices  []*providers.RawDevice
+	security providers.ISecurityProvider
+}
+
+func (f *fakeSettings) ExtendedAPIs() []*providers.RawMasterComponent {
+	panic("implement me")
 }
 
 func (f *fakeSettings) SystemLogger() common.ILoggerProvider {
@@ -63,16 +68,16 @@ func (f *fakeSettings) IsWorker() bool {
 	return f.isWorker
 }
 
-func (f *fakeSettings) DevicesConfig() []providers.RawDevice {
+func (f *fakeSettings) DevicesConfig() []*providers.RawDevice {
 	return f.devices
 }
 
 func (f *fakeSettings) Security() providers.ISecurityProvider {
-	return nil
+	return f.security
 }
 
-func (f *fakeSettings) Triggers() []providers.ITriggerProvider {
-	return []providers.ITriggerProvider{}
+func (f *fakeSettings) Triggers() []*providers.RawMasterComponent {
+	return []*providers.RawMasterComponent{}
 }
 
 func (f *fakeSettings) FanOud() providers.IInternalFanOutProvider {
@@ -80,12 +85,18 @@ func (f *fakeSettings) FanOud() providers.IInternalFanOutProvider {
 }
 
 func FakeNewSettings(sbPublish func(string, ...interface{}), isWorker bool,
-	devices []providers.RawDevice, logCallback func(string)) *fakeSettings {
+	devices []*providers.RawDevice, logCallback func(string)) *fakeSettings {
 	return &fakeSettings{
 		isWorker: isWorker,
 		bus:      FakeNewServiceBus(sbPublish),
 		logger:   FakeNewLogger(logCallback),
 		cron:     FakeNewCron(),
 		devices:  devices,
+	}
+}
+
+func FakeNewSettingsWithUserStorage(sec providers.ISecurityProvider) *fakeSettings {
+	return &fakeSettings{
+		security: sec,
 	}
 }

@@ -6,6 +6,8 @@ import (
 	busPlugin "github.com/go-home-io/server/plugins/bus"
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/providers"
+	"github.com/go-home-io/server/systems"
+	"github.com/go-home-io/server/systems/api"
 	"github.com/go-home-io/server/systems/bus"
 	"github.com/go-home-io/server/systems/device"
 )
@@ -25,7 +27,8 @@ type workerState struct {
 
 	mutex *sync.Mutex
 
-	devices map[string]device.IDeviceWrapperProvider
+	devices      map[string]device.IDeviceWrapperProvider
+	extendedAPIs []providers.IExtendedAPIProvider
 
 	statusUpdatesChan chan *device.UpdateEvent
 	discoveryChan     chan *device.NewDeviceDiscoveredEvent
@@ -42,6 +45,7 @@ func newWorkerState(settings providers.ISettingsProvider) *workerState {
 		mutex: &sync.Mutex{},
 
 		devices:           make(map[string]device.IDeviceWrapperProvider),
+		extendedAPIs:      make([]providers.IExtendedAPIProvider, 0),
 		discoveryChan:     make(chan *device.NewDeviceDiscoveredEvent, 5),
 		statusUpdatesChan: make(chan *device.UpdateEvent, 30),
 	}
@@ -96,7 +100,7 @@ func (w *workerState) start() {
 
 			go w.Settings.ServiceBus().Publish(busPlugin.ChDeviceUpdates, wrapper.GetUpdateMessage())
 		case discover := <-w.discoveryChan:
-			id := discover.Provider.GetID()
+			id := discover.Provider.ID()
 			if _, ok := w.devices[id]; ok {
 				w.Logger.Warn("Received duplicate discovery for the same device",
 					common.LogSystemToken, logSystem, common.LogDeviceNameToken, id)
@@ -127,6 +131,34 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 	}
 
 	for _, a := range devices {
+		if a.IsAPI {
+			ctor := &api.ConstructAPI{
+				Name:       a.Name,
+				Provider:   a.Plugin,
+				IsServer:   false,
+				Logger:     w.Settings.PluginLogger(systems.SysAPI, a.Plugin),
+				Loader:     w.Settings.PluginLoader(),
+				RawConfig:  []byte(a.Config),
+				ServiceBus: w.Settings.ServiceBus(),
+				Secret:     w.Settings.Secrets(),
+				Validator:  w.Settings.Validator(),
+			}
+
+			go func(dev *bus.DeviceAssignment) {
+				defer wg.Done()
+
+				wrapper, err := api.NewExtendedAPIProvider(ctor)
+				if err != nil {
+					failed.Devices = append(failed.Devices, dev)
+					return
+				}
+
+				w.extendedAPIs = append(w.extendedAPIs, wrapper)
+			}(a)
+
+			continue
+		}
+
 		ctor := &device.ConstructDevice{
 			DiscoveryChan:     w.discoveryChan,
 			StatusUpdatesChan: w.statusUpdatesChan,
@@ -146,7 +178,7 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 			}
 
 			for _, v := range wrappers {
-				w.devices[v.GetID()] = v
+				w.devices[v.ID()] = v
 				go w.Settings.ServiceBus().Publish(busPlugin.ChDeviceUpdates, v.GetUpdateMessage())
 			}
 		}(a)
@@ -181,6 +213,12 @@ func (w *workerState) unloadDevices() {
 		v.Unload()
 		delete(w.devices, k)
 	}
+
+	for _, v := range w.extendedAPIs {
+		v.Unload()
+	}
+
+	w.extendedAPIs = make([]providers.IExtendedAPIProvider, 0)
 
 	w.Logger.Debug("Done un-loading", common.LogSystemToken, logSystem)
 }

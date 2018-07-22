@@ -88,3 +88,22 @@ func convertProperty(from, to interface{}) (interface{}, error) {
 	err = yaml.Unmarshal(data, to)
 	return to, err
 }
+
+// UnmarshalProperty returns type used by property from it's map[{interface}]interface{}
+// or interface{} representation distributed through FanOut channel.
+func UnmarshalProperty(x interface{}, p enums.Property) (interface{}, error) {
+	if nil == x {
+		return x, nil
+	}
+
+	switch p {
+	case enums.PropOn:
+		return x.(bool), nil
+	case enums.PropBrightness:
+		return convertProperty(x, &common.Percent{})
+	case enums.PropColor:
+		return convertProperty(x, &common.Color{})
+	}
+
+	return x, nil
+}

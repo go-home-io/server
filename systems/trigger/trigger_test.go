@@ -286,6 +286,9 @@ func TestInvoke(t *testing.T) {
 		Secret:    mocks.FakeNewSecretStore(nil, false),
 		FanOut:    mocks.FakeNewFanOut(),
 		Provider:  "test",
+		Server:mocks.FakeNewServer(func() {
+			invoked = true
+		}),
 	}
 
 	ctr.RawConfig = []byte(fmt.Sprintf(`
@@ -296,14 +299,12 @@ actions:
       args:
          r: 5`))
 
-	pl, err := NewTrigger(ctr)
+	_, err := NewTrigger(ctr)
 	if err != nil {
 		t.Error(err.Error())
 		t.FailNow()
 	}
-	pl.Start(mocks.FakeNewServer(func() {
-		invoked = true
-	}))
+
 	fakePlugin.testInvoke()
 
 	time.Sleep(1 * time.Second)
@@ -372,6 +373,9 @@ func TestInvokeOutsideOfActiveWindow(t *testing.T) {
 		Secret:    mocks.FakeNewSecretStore(nil, false),
 		FanOut:    mocks.FakeNewFanOut(),
 		Provider:  "test",
+		Server:mocks.FakeNewServer(func() {
+			invoked = true
+		}),
 	}
 	ctr.RawConfig = []byte(fmt.Sprintf(`
 name: test
@@ -387,9 +391,6 @@ actions:
 		t.Error(err.Error())
 		t.FailNow()
 	}
-	pl.Start(mocks.FakeNewServer(func() {
-		invoked = true
-	}))
 
 	fakePlugin.testInvoke()
 	time.Sleep(1 * time.Second)

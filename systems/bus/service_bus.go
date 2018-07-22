@@ -57,12 +57,16 @@ func NewServiceBusProvider(ctor *ConstructBus) (providers.IBusProvider, error) {
 
 // Subscribe allows to subscribe to the incoming messages.
 func (s *provider) Subscribe(channel bus.ChannelName, queue chan bus.RawMessage) error {
-	return s.bus.Subscribe(channel.String(), queue)
+	return s.SubscribeStr(channel.String(), queue)
+}
+
+func (s *provider) SubscribeStr(channel string, queue chan bus.RawMessage) error {
+	return s.bus.Subscribe(channel, queue)
 }
 
 // SubscribeToWorker is a syntax sugar around worker channels.
 func (s *provider) SubscribeToWorker(workerName string, queue chan bus.RawMessage) error {
-	return s.bus.Subscribe(fmt.Sprintf(bus.ChWorkerFormat, workerName), queue)
+	return s.SubscribeStr(fmt.Sprintf(bus.ChWorkerFormat, workerName), queue)
 }
 
 // Unsubscribe removes bus subscription.
@@ -72,12 +76,16 @@ func (s *provider) Unsubscribe(channel string) {
 
 // Publish allows to send a new message.
 func (s *provider) Publish(channel bus.ChannelName, messages ...interface{}) {
-	s.bus.Publish(channel.String(), messages...)
+	s.PublishStr(channel.String(), messages...)
+}
+
+func (s *provider) PublishStr(channel string, messages ...interface{}) {
+	s.bus.Publish(channel, messages...)
 }
 
 // PublishToWorker is a syntax sugar around worker channels.
 func (s *provider) PublishToWorker(workerName string, messages ...interface{}) {
-	s.bus.Publish(fmt.Sprintf(bus.ChWorkerFormat, workerName), messages...)
+	s.PublishStr(fmt.Sprintf(bus.ChWorkerFormat, workerName), messages...)
 }
 
 // Ping allows to validate whether service bus is available.

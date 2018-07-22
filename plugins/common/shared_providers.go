@@ -29,6 +29,7 @@ type MsgDeviceUpdate struct {
 	ID        string
 	State     map[enums.Property]interface{}
 	FirstSeen bool
+	Type      enums.DeviceType
 }
 
 // IFanOutProvider defines interface used for distributing

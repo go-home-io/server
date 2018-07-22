@@ -18,10 +18,11 @@ type ISettingsProvider interface {
 	WorkerSettings() *WorkerSettings
 	MasterSettings() *MasterSettings
 	IsWorker() bool
-	DevicesConfig() []RawDevice
+	DevicesConfig() []*RawDevice
 	Secrets() common.ISecretProvider
 	Security() ISecurityProvider
-	Triggers() []ITriggerProvider
+	Triggers() []*RawMasterComponent
+	ExtendedAPIs() []*RawMasterComponent
 	FanOud() IInternalFanOutProvider
 }
 
@@ -40,6 +41,7 @@ type RawDevice struct {
 	Selector   *RawDeviceSelector
 	StrConfig  string
 	Name       string
+	IsAPI      bool
 }
 
 // MasterSettings has configured data for master node.
@@ -53,4 +55,11 @@ type WorkerSettings struct {
 	Name       string            `yaml:"name"`
 	Properties map[string]string `yaml:"properties"`
 	MaxDevices int               `yaml:"maxDevices" validate:"gte=0,lte=1000" default:"99"`
+}
+
+// RawMasterComponent has configuration for master component.
+type RawMasterComponent struct {
+	Name      string
+	Provider  string
+	RawConfig []byte
 }
