@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 op=$1
 IMAGE_NAME=gohomeio/server
 IMAGE_VERSION=latest
