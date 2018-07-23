@@ -45,7 +45,7 @@ build_armhf(){
     LINT=false
     INSTALL_LIBS='apt-get update && apt-get install -y make git gcc libc-dev'
 
-    docker run --rm --privileged multiarch/qemu-user-static:register
+    #docker run --rm --privileged multiarch/qemu-user-static:register
     docker_build
     docker_push
 }
@@ -61,7 +61,7 @@ update_docker_configuration() {
   Updating docker and configuration
   "
 
-  sudo apt install --only-upgrade docker-ce -y
+  sudo apt upgrade docker-ce -y
 
   echo '{
   "experimental": true,
@@ -73,7 +73,7 @@ update_docker_configuration() {
 }
 
 build_manifest(){
-    update_docker_configuration
+    #update_docker_configuration
 
 #    git clone -b manifest-cmd https://github.com/clnperez/cli.git
 #    cd cli
@@ -104,6 +104,7 @@ x86_64*)
     ;;
 armhf*)
     update_docker_configuration
+    docker manifest -h
     docker_login
     build_armhf
     ;;
