@@ -100,9 +100,8 @@ x86_64*)
     ;;
 armhf*)
     update_docker_configuration
-    docker manifest --help
     docker run --rm --privileged multiarch/qemu-user-static:register
-    docker build -t test . -f Dockefile.armhf
+    docker build -t test . -f Dockerfile.armhf
     docker_login
     build_armhf
     ;;
