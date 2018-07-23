@@ -45,7 +45,7 @@ build_armhf(){
     LINT=false
     INSTALL_LIBS='apt-get update && apt-get install -y make git gcc libc-dev'
 
-    #docker run --rm --privileged multiarch/qemu-user-static:register
+    docker run --rm --privileged multiarch/qemu-user-static:register
     docker_build
     docker_push
 }
@@ -57,19 +57,12 @@ push_manifest(){
 }
 
 update_docker_configuration() {
-  echo "INFO:
-  Updating docker and configuration
-  "
-
-  sudo apt update -y
-  sudo apt install --only-upgrade docker-ce -y
+  #sudo apt update -y
+  #sudo apt install --only-upgrade docker-ce -y
 
   echo '{
-  "experimental": true,
-  "storage-driver": "overlay2",
-  "max-concurrent-downloads": 50,
-  "max-concurrent-uploads": 50
-}' | sudo tee /etc/docker/daemon.json
+  "experimental": "enabled"
+}' | sudo tee ${HOME}/.docker/config.json
   sudo service docker restart
 }
 
@@ -105,7 +98,8 @@ x86_64*)
     ;;
 armhf*)
     update_docker_configuration
-    docker manifest -h
+    docker manifest -help
+    docker build -t test . -f Dockefile.armhf
     docker_login
     build_armhf
     ;;

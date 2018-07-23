@@ -1,0 +1,10 @@
+FROM arm32v7/golang:1.11beta1-stretch
+
+ENV PROVIDERS=https://github.com/go-home-io/providers.git \
+    HOME_DIR=${GOPATH}/src/github.com/go-home-io/server
+
+WORKDIR ${HOME_DIR}
+
+COPY . .
+
+RUN apt-get update && apt-get install -y make git gcc libc-dev
