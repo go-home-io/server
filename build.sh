@@ -25,6 +25,7 @@ docker_push(){
 
 build_x86_64(){
     IMG_NAME=${IMAGE_NAME}:amd64-${IMAGE_VERSION}
+    LATEST=${IMAGE_NAME}:amd64-latest
 
     BUILD_IMAGE=golang:1.11beta1-alpine3.8
     RUN_IMAGE=alpine:3.8
@@ -50,16 +51,34 @@ build_armhf(){
 }
 
 push_manifest(){
-    docker-linux-amd64 manifest create ${IMAGE_NAME}:${IMG_VERSION} ${IMAGE_NAME}:arm32v7-${IMG_VERSION} ${IMAGE_NAME}:amd64-${IMG_VERSION}
-    docker-linux-amd64 manifest annotate ${IMAGE_NAME}:${IMG_VERSION} ${IMAGE_NAME}:arm32v7-${IMG_VERSION} --os linux --arch arm --variant armv7
-    docker-linux-amd64 manifest push ${IMAGE_NAME}:${IMG_VERSION}
+    docker manifest create ${IMAGE_NAME}:${IMG_VERSION} ${IMAGE_NAME}:arm32v7-${IMG_VERSION} ${IMAGE_NAME}:amd64-${IMG_VERSION}
+    docker manifest annotate ${IMAGE_NAME}:${IMG_VERSION} ${IMAGE_NAME}:arm32v7-${IMG_VERSION} --os linux --arch arm --variant armv7
+    docker manifest push ${IMAGE_NAME}:${IMG_VERSION}
+}
+
+update_docker_configuration() {
+  echo "INFO:
+  Updating docker and configuration
+  "
+
+  sudo apt install --only-upgrade docker-ce -y
+
+  echo '{
+  "experimental": true,
+  "storage-driver": "overlay2",
+  "max-concurrent-downloads": 50,
+  "max-concurrent-uploads": 50
+}' | sudo tee /etc/docker/daemon.json
+  sudo service docker restart
 }
 
 build_manifest(){
-    git clone -b manifest-cmd https://github.com/clnperez/cli.git
-    cd cli
-    make -f docker.Makefile cross
-    export PATH=${PATH}:`pwd`/build
+    update_docker_configuration
+
+#    git clone -b manifest-cmd https://github.com/clnperez/cli.git
+#    cd cli
+#    make -f docker.Makefile cross
+#    export PATH=${PATH}:`pwd`/build
 
     IMG_VERSION=${IMAGE_VERSION}
     push_manifest
@@ -79,17 +98,21 @@ ci*)
     docker_build
     ;;
 x86_64*)
+    update_docker_configuration
     docker_login
     build_x86_64
     ;;
 armhf*)
+    update_docker_configuration
     docker_login
     build_armhf
     ;;
 docker*)
+    update_docker_configuration
     docker_login
     build_x86_64
     build_armhf
+    build_manifest
     ;;
 *)
     echo "Wrong command"
