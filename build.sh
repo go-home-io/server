@@ -61,7 +61,8 @@ update_docker_configuration() {
   Updating docker and configuration
   "
 
-  sudo apt upgrade docker-ce -y
+  sudo apt update -y
+  sudo apt install --only-upgrade docker-ce -y
 
   echo '{
   "experimental": true,
