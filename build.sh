@@ -59,10 +59,12 @@ push_manifest(){
 update_docker_configuration() {
   #sudo apt update -y
   #sudo apt install --only-upgrade docker-ce -y
+  mkdir -p ${HOME}/.docker
+  touch ${HOME}/.docker/config.json
 
   echo '{
   "experimental": "enabled"
-}' | sudo tee /root/.docker/config.json
+}' | sudo tee ${HOME}/.docker/config.json
   sudo service docker restart
 }
 
