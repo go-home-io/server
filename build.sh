@@ -57,8 +57,8 @@ push_manifest(){
 }
 
 update_docker_configuration() {
-  #sudo apt update -y
-  #sudo apt install --only-upgrade docker-ce -y
+  sudo apt update -y
+  sudo apt install --only-upgrade docker-ce -y
   mkdir -p ${HOME}/.docker
   touch ${HOME}/.docker/config.json
 
@@ -100,7 +100,7 @@ x86_64*)
     ;;
 armhf*)
     update_docker_configuration
-    docker manifest -help
+    docker manifest --help
     docker run --rm --privileged multiarch/qemu-user-static:register
     docker build -t test . -f Dockefile.armhf
     docker_login
