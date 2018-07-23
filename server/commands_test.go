@@ -193,6 +193,7 @@ func TestGetAllDevices(t *testing.T) {
 	}
 }
 
+// Tests internal command invoke.
 func TestInternalInvokeCommand(t *testing.T) {
 	numCalled := 0
 	s := getFakeSettings(func(name string, msg ...interface{}) {
