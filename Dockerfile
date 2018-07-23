@@ -2,6 +2,7 @@ ARG BUILD_IMAGE
 ARG RUN_IMAGE
 FROM $BUILD_IMAGE as build
 
+
 ENV PROVIDERS=https://github.com/go-home-io/providers.git \
     HOME_DIR=${GOPATH}/src/github.com/go-home-io/server
 
@@ -9,8 +10,7 @@ WORKDIR ${HOME_DIR}
 
 COPY . .
 
-ARG INSTALL_LIBS
-RUN /bin/sh -c "${INSTALL_LIBS}" && \
+RUN apk update && apk add make git gcc libc-dev && \
     make utilities-build && \
     cd ${GOPATH} && \
     mkdir -p src/github.com/go-home-io && \
@@ -44,6 +44,8 @@ FROM $RUN_IMAGE
 ENV HOME_DIR=/go-home
 
 WORKDIR ${HOME_DIR}
+
+RUN apk update && apk add ca-certificates
 
 COPY --from=build /app/ ./
 

@@ -11,49 +11,41 @@ docker_login(){
 }
 
 docker_build(){
-    docker build -t ${IMG_NAME} --build-arg TRAVIS=${TRAVIS} --build-arg TRAVIS_JOB_ID=${TRAVIS_JOB_ID} \
-          --build-arg TRAVIS_BRANCH=${TRAVIS_BRANCH} --build-arg TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST} \
-          --build-arg BUILD_IMAGE=${BUILD_IMAGE} --build-arg LINT=${LINT} --build-arg RUN_IMAGE=${RUN_IMAGE} \
-          --build-arg INSTALL_LIBS="${INSTALL_LIBS}" --build-arg C_TOKEN=${C_TOKEN} .
+    docker build --no-cache -t ${IMAGE_NAME}:${ARCH}-${IMAGE_VERSION} \
+          --build-arg TRAVIS=${TRAVIS} \
+          --build-arg TRAVIS_JOB_ID=${TRAVIS_JOB_ID} \
+          --build-arg TRAVIS_BRANCH=${TRAVIS_BRANCH} \
+          --build-arg TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST} \
+          --build-arg BUILD_IMAGE=${BUILD_IMAGE} \
+          --build-arg RUN_IMAGE=${RUN_IMAGE} \
+          --build-arg LINT=${LINT} \
+          --build-arg C_TOKEN=${C_TOKEN} .
 }
 
 docker_push(){
-    docker push ${IMG_NAME}
-    docker tag ${IMG_NAME} ${LATEST}
-    docker push ${LATEST}
+    docker push ${IMAGE_NAME}:${ARCH}-${IMAGE_VERSION}
+    docker tag ${IMAGE_NAME}:${ARCH}-${IMAGE_VERSION} ${IMAGE_NAME}:${ARCH}-latest
+    docker push ${IMAGE_NAME}:${ARCH}-latest
 }
 
-build_x86_64(){
-    IMG_NAME=${IMAGE_NAME}:amd64-${IMAGE_VERSION}
-    LATEST=${IMAGE_NAME}:amd64-latest
-
+build_amd64(){
     BUILD_IMAGE=golang:1.11beta1-alpine3.8
     RUN_IMAGE=alpine:3.8
     LINT=false
-    INSTALL_LIBS='apk update && apk add make git gcc libc-dev'
+    ARCH=amd64
 
     docker_build
     docker_push
 }
 
-build_armhf(){
-    IMG_NAME=${IMAGE_NAME}:arm32v7-${IMAGE_VERSION}
-    LATEST=${IMAGE_NAME}:arm32v7-latest
-
-    BUILD_IMAGE=arm32v7/golang:1.11beta1-stretch
-    RUN_IMAGE=arm32v7/debianstretch-slim
+build_arm32v6(){
+    BUILD_IMAGE=arm32v6/golang:1.11beta1-alpine3.8
+    RUN_IMAGE=arm32v6/alpine:3.8
     LINT=false
-    INSTALL_LIBS='apt-get update && apt-get install -y make git gcc libc-dev'
+    ARCH=arm32v6
 
-#    docker run --rm --privileged multiarch/qemu-user-static:register
     docker_build
     docker_push
-}
-
-push_manifest(){
-    docker manifest create ${IMAGE_NAME}:${IMG_VERSION} ${IMAGE_NAME}:arm32v7-${IMG_VERSION} ${IMAGE_NAME}:amd64-${IMG_VERSION}
-    docker manifest annotate ${IMAGE_NAME}:${IMG_VERSION} ${IMAGE_NAME}:arm32v7-${IMG_VERSION} --os linux --arch arm --variant armv7
-    docker manifest push ${IMAGE_NAME}:${IMG_VERSION}
 }
 
 update_docker_configuration() {
@@ -69,48 +61,37 @@ update_docker_configuration() {
 }
 
 build_manifest(){
-    #update_docker_configuration
-
-#    git clone -b manifest-cmd https://github.com/clnperez/cli.git
-#    cd cli
-#    make -f docker.Makefile cross
-#    export PATH=${PATH}:`pwd`/build
-
-    IMG_VERSION=${IMAGE_VERSION}
-    push_manifest
-    IMG_VERSION=latest
-    push_manifest
+    docker pull ${IMAGE_NAME}:arm32v6-${IMAGE_VERSION}
+	docker manifest create ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:arm32v6-${IMAGE_VERSION}  ${IMAGE_NAME}:amd64-${IMAGE_VERSION}
+	docker manifest annotate ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:arm32v6-${IMAGE_VERSION} --os linux --arch arm
+	docker manifest push ${IMAGE_NAME}:${IMAGE_VERSION}
 }
 
 case ${op} in
 ci*)
-    IMG_NAME=ci
-
     BUILD_IMAGE=golang:1.11beta1-alpine3.8
     RUN_IMAGE=alpine:3.8
     LINT=true
-    INSTALL_LIBS='apk update && apk add make git gcc libc-dev'
+    ARCH=ci
 
     docker_build
     ;;
-x86_64*)
-    update_docker_configuration
-    docker_login
-    build_x86_64
+amd64*)
+    build_amd64
     ;;
-armhf*)
-    update_docker_configuration
-    docker run --rm --privileged multiarch/qemu-user-static:register
-    docker build -t test . -f Dockerfile.armhf
-    docker_login
-    build_armhf
+arm32v6*)
+    build_arm32v6
     ;;
 docker*)
-    update_docker_configuration
+    #update_docker_configuration
     docker_login
-    build_x86_64
-    build_armhf
-    build_manifest
+    build_amd64
+    #build_manifest
+    ;;
+manifest*)
+	build_manifest
+	IMAGE_VERSION=latest
+	build_manifest
     ;;
 *)
     echo "Wrong command"
