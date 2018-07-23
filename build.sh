@@ -45,7 +45,7 @@ build_armhf(){
     LINT=false
     INSTALL_LIBS='apt-get update && apt-get install -y make git gcc libc-dev'
 
-    docker run --rm --privileged multiarch/qemu-user-static:register
+#    docker run --rm --privileged multiarch/qemu-user-static:register
     docker_build
     docker_push
 }
@@ -62,7 +62,7 @@ update_docker_configuration() {
 
   echo '{
   "experimental": "enabled"
-}' | sudo tee ${HOME}/.docker/config.json
+}' | sudo tee /root/.docker/config.json
   sudo service docker restart
 }
 
@@ -99,6 +99,7 @@ x86_64*)
 armhf*)
     update_docker_configuration
     docker manifest -help
+    docker run --rm --privileged multiarch/qemu-user-static:register
     docker build -t test . -f Dockefile.armhf
     docker_login
     build_armhf
