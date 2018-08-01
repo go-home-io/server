@@ -38,6 +38,7 @@ build_amd64(){
     RUN_IMAGE=alpine:3.8
     LINT=false
     ARCH=amd64
+    GOARCH=amd64
 
     docker_build
     docker_push
