@@ -1,10 +1,10 @@
 # Go params
 GO_BIN_FOLDER=$(GOPATH)/bin
-GOCMD=PATH=${PATH}:$(GO_BIN_FOLDER) go
+GOCMD=GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER) go
 
 GOGET=$(GOCMD) get
 #GOBUILD=$(GOCMD) build -race
-GOBUILD=$(GOCMD) build
+GOBUILD=$(GOCMD) build -ldflags="-s -w"
 GOGENERATE=$(GOCMD) generate
 
 METALINER=$(GO_BIN_FOLDER)/gometalinter.v2
@@ -102,7 +102,8 @@ utilities-ci:
 utilities: utilities-build utilities-ci
 
 build-server:
-	$(GOBUILD) -o $(BIN_NAME)
+	$(GOBUILD) -ldflags "-X github.com/go-home-io/server/utils.Version=${VERSION} \
+		-X github.com/go-home-io/server/utils.Arch=${GOARCH}" -o $(BIN_NAME)
 
 build: build-plugins build-server
 

@@ -13,6 +13,12 @@
   version = "v1.2.1"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/enr/go-commons"
+  packages = ["lang"]
+  revision = "bcd3f40eeea857496af2cf1bea949ab00e925b12"
+
+[[projects]]
   name = "github.com/fortytw2/leaktest"
   packages = ["."]
   revision = "a5ef70473c97b71626b9abeda80ee92ba2a7de9e"
@@ -106,6 +112,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/vkorn/go-bintray"
+  packages = ["bintray"]
+  revision = "627b4bc5e55607bce2a9a76439ce52ac465e02f8"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
@@ -144,6 +156,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "28a6ccd11f24c711176b4d01c70bf88168deb4edd3b1aa742c0dc1b924c7538c"
+  inputs-digest = "3bbd6c07b729e9700e3dd09006e92657f3035629c7659ee131df5094673447d8"
   solver-name = "gps-cdcl"
   solver-version = 1

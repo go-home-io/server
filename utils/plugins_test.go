@@ -51,6 +51,7 @@ func (*fakePlugin) GetSpec() *device.Spec {
 	return nil
 }
 
+// Tests error while loading plugins.
 func TestErrorsScenarios(t *testing.T) {
 	loader := NewPluginLoader(&ConstructPluginLoader{
 		Validator: nil,

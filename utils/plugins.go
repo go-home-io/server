@@ -4,8 +4,14 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"os"
 	"plugin"
 	"reflect"
+	"strings"
+
+	"net/http"
+
+	"io"
 
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/providers"
@@ -18,7 +24,15 @@ const (
 	PluginEntryPointMethodName = "Load"
 	// PluginInterfaceInitMethodName is the name of first initialization method.
 	PluginInterfaceInitMethodName = "Init"
+	// PluginCDNUrlFormat is format for bintray CDN.
+	PluginCDNUrlFormat = "https://dl.bintray.com/go-home-io/%s/%s"
 )
+
+// Arch describes build architecture.
+var Arch string
+
+// Version describes build version.
+var Version string
 
 // ConstructPluginLoader contains params required for creating a new plugin loader instance.
 type ConstructPluginLoader struct {
@@ -57,8 +71,16 @@ func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interfa
 	if method, ok := l.loadedPlugins[pKey]; ok {
 		return l.loadPlugin(request, method)
 	}
-	p, err := plugin.Open(fmt.Sprintf("%s/%s.so", l.pluginsFolder, pKey))
 
+	fileName := l.getActualFileName(pKey)
+	if _, err := os.Stat(fileName); err != nil {
+		err = l.downloadFile(pKey, fileName)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	p, err := plugin.Open(fileName)
 	if err != nil {
 		return nil, errors.New("didn't find plugin file")
 	}
@@ -166,4 +188,36 @@ func (l *pluginLoader) initPlugin(request *providers.PluginLoadRequest, pluginOb
 	}
 
 	return nil
+}
+
+// Gets actual plugin name.
+func (l *pluginLoader) getActualFileName(pluginKey string) string {
+	actualVersion := ""
+	if "" != Version {
+		actualVersion = fmt.Sprintf("-%s", Version)
+	}
+
+	return fmt.Sprintf("%s/%s%s.so", l.pluginsFolder, pluginKey, actualVersion)
+}
+
+// Downloads plugin from bintray CDN.
+func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
+	name := strings.Replace(pluginKey, "/", "_", -1)
+	name = fmt.Sprintf("%s-%s.so", name, Version)
+	println("Downloading " + name)
+
+	out, err := os.Create(actualName)
+	if err != nil {
+		return err
+	}
+
+	defer out.Close()
+	res, err := http.Get(fmt.Sprintf(PluginCDNUrlFormat, Arch, name))
+	if err != nil {
+		return err
+	}
+
+	defer res.Body.Close()
+	_, err = io.Copy(out, res.Body)
+	return err
 }

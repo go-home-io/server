@@ -11,5 +11,6 @@ jobs:
 #      script:
 #        - ./build.sh ci
     - stage: docker
+      if: tag IS present
       script:
         - ./build.sh docker

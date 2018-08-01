@@ -19,6 +19,11 @@ docker_build(){
           --build-arg BUILD_IMAGE=${BUILD_IMAGE} \
           --build-arg RUN_IMAGE=${RUN_IMAGE} \
           --build-arg LINT=${LINT} \
+          --build-arg GOARCH=${GOARCH} \
+          --build-arg GOARM=${GOARM} \
+          --build-arg TRAVIS_TAG=${TRAVIS_TAG} \
+          --build-arg BINTRAY_API_USER=${BINTRAY_API_USER} \
+          --build-arg BINTRAY_API_KEY=${BINTRAY_API_KEY} \
           --build-arg C_TOKEN=${C_TOKEN} .
 }
 
@@ -43,6 +48,8 @@ build_arm32v6(){
     RUN_IMAGE=arm32v6/alpine:3.8
     LINT=false
     ARCH=arm32v6
+    GOARCH=arm
+    GOARM=6
 
     docker_build
     docker_push
