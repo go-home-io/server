@@ -4,7 +4,7 @@ set -e
 
 op=$1
 IMAGE_NAME=gohomeio/server
-IMAGE_VERSION=latest
+IMAGE_VERSION=${TRAVIS_TAG}
 
 docker_login(){
     echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
@@ -29,8 +29,8 @@ docker_build(){
 
 docker_push(){
     docker push ${IMAGE_NAME}:${ARCH}-${IMAGE_VERSION}
-    docker tag ${IMAGE_NAME}:${ARCH}-${IMAGE_VERSION} ${IMAGE_NAME}:${ARCH}-latest
-    docker push ${IMAGE_NAME}:${ARCH}-latest
+#    docker tag ${IMAGE_NAME}:${ARCH}-${IMAGE_VERSION} ${IMAGE_NAME}:${ARCH}-latest
+#    docker push ${IMAGE_NAME}:${ARCH}-latest
 }
 
 build_amd64(){
@@ -97,8 +97,6 @@ docker*)
     #build_manifest
     ;;
 manifest*)
-	build_manifest
-	IMAGE_VERSION=latest
 	build_manifest
     ;;
 *)
