@@ -1,0 +1,10 @@
+FROM arm32v6/golang:1.11beta1-alpine3.8
+
+ADD build.rpi.cache.sh .
+ADD Makefile .
+
+RUN apk update && apk add make git gcc libc-dev ca-certificates binutils-gold && \
+    chmod +x build.rpi.cache.sh && \
+    make utilities-build
+
+CMD ["./build.rpi.cache.sh"]

@@ -1,0 +1,11 @@
+FROM arm32v6/alpine:3.8
+
+ENV HOME_DIR=/go-home
+
+WORKDIR ${HOME_DIR}
+
+RUN apk update && apk add ca-certificates
+
+ADD go-home .
+
+CMD ["./go-home"]

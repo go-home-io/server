@@ -29,8 +29,19 @@ docker_build(){
 
 docker_push(){
     docker push ${IMAGE_NAME}:${ARCH}-${IMAGE_VERSION}
-#    docker tag ${IMAGE_NAME}:${ARCH}-${IMAGE_VERSION} ${IMAGE_NAME}:${ARCH}-latest
-#    docker push ${IMAGE_NAME}:${ARCH}-latest
+}
+
+build_arm32v6_cached(){
+    ARCH=arm32v6
+    docker run -e BINTRAY_API_USER=${BINTRAY_API_USER} -e BINTRAY_API_KEY=${BINTRAY_API_KEY} \
+        -e VERSION=${IMAGE_VERSION} -e GOARCH=arm -e GOARM=6  \
+        --rm -v /home/pi/go-home-io:/mount --name=build -a stdin -a stdout -it go-home-cahe /bin/sh -c "./build.rpi.cache.sh"
+
+    sudo rm -rf /home/pi/go-home-io/app/plugins
+    sudo cp -f src/github.com/go-home-io/server/Dockerfile.rpi /home/pi/go-home-io/app/Dockerfile
+    cd app
+    docker build --no-cache -t ${IMAGE_NAME}:${ARCH}-${IMAGE_VERSION} .
+    docker_push
 }
 
 build_amd64(){
@@ -70,7 +81,8 @@ update_docker_configuration() {
 
 build_manifest(){
     docker pull ${IMAGE_NAME}:arm32v6-${IMAGE_VERSION}
-	docker manifest create ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:arm32v6-${IMAGE_VERSION}  ${IMAGE_NAME}:amd64-${IMAGE_VERSION}
+    docker pull ${IMAGE_NAME}:amd64-${IMAGE_VERSION}
+	docker manifest create ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:arm32v6-${IMAGE_VERSION}  ${IMAGE_NAME}:amd64-${IMAGE_VERSION} --amend
 	docker manifest annotate ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:arm32v6-${IMAGE_VERSION} --os linux --arch arm
 	docker manifest push ${IMAGE_NAME}:${IMAGE_VERSION}
 }
@@ -88,7 +100,7 @@ amd64*)
     build_amd64
     ;;
 arm32v6*)
-    build_arm32v6
+    build_arm32v6_cached
     ;;
 docker*)
     #update_docker_configuration
