@@ -13,6 +13,8 @@ import (
 
 	"io"
 
+	"path/filepath"
+
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
@@ -29,10 +31,10 @@ const (
 )
 
 // Arch describes build architecture.
-var Arch string
+var Arch string = "arm"
 
 // Version describes build version.
-var Version string
+var Version string = "0.0.1"
 
 // ConstructPluginLoader contains params required for creating a new plugin loader instance.
 type ConstructPluginLoader struct {
@@ -82,6 +84,8 @@ func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interfa
 
 	p, err := plugin.Open(fileName)
 	if err != nil {
+		// We want to delete failed plugin
+		os.Remove(fileName)
 		return nil, errors.New("didn't find plugin file")
 	}
 
@@ -206,18 +210,26 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 	name = fmt.Sprintf("%s-%s.so", name, Version)
 	println("Downloading " + name)
 
+	os.MkdirAll(filepath.Dir(actualName), os.ModePerm)
 	out, err := os.Create(actualName)
 	if err != nil {
+		println("Failed to load " + name + ": " + err.Error())
 		return err
 	}
 
 	defer out.Close()
-	res, err := http.Get(fmt.Sprintf(PluginCDNUrlFormat, Arch, name))
+	downloadURL := fmt.Sprintf(PluginCDNUrlFormat, Arch, name)
+	res, err := http.Get(downloadURL)
 	if err != nil {
+		println("Failed to get " + downloadURL + ": " + err.Error())
 		return err
 	}
 
 	defer res.Body.Close()
 	_, err = io.Copy(out, res.Body)
+	if err != nil {
+		println("Failed to save " + name + ": " + err.Error())
+	}
+
 	return err
 }
