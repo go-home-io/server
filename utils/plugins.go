@@ -31,10 +31,10 @@ const (
 )
 
 // Arch describes build architecture.
-var Arch string = "arm"
+var Arch string
 
 // Version describes build version.
-var Version string = "0.0.1"
+var Version string
 
 // ConstructPluginLoader contains params required for creating a new plugin loader instance.
 type ConstructPluginLoader struct {
