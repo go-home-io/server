@@ -58,7 +58,7 @@ func newServerState(settings providers.ISettingsProvider) *serverState {
 		workerMutex: &sync.Mutex{},
 		deviceMutex: &sync.Mutex{},
 
-		fanOut: settings.FanOud(),
+		fanOut: settings.FanOut(),
 	}
 
 	_, err := settings.Cron().AddFunc("@every 15s", s.checkStaleWorkers)
@@ -150,6 +150,7 @@ func (s *serverState) Update(msg *bus.DeviceUpdateMessage) {
 
 	dv.LastSeen = utils.TimeNow()
 	dv.Worker = msg.WorkerID
+	dv.Commands = msg.Commands
 
 	s.processDeviceStateUpdate(dv, msg.State, firstOccurrence)
 }
@@ -173,6 +174,7 @@ func (s *serverState) GetDevice(deviceID string) *knownDevice {
 	return s.KnownDevices[deviceID]
 }
 
+// Processes device state updates.
 func (s *serverState) processDeviceStateUpdate(dv *knownDevice, newState map[string]interface{}, firstOccurrence bool) {
 	msg := &common.MsgDeviceUpdate{
 		ID:        dv.ID,
@@ -202,6 +204,15 @@ func (s *serverState) processDeviceStateUpdate(dv *knownDevice, newState map[str
 		}
 
 		dv.State[k] = v
+	}
+
+	if dv.Type == enums.DevGroup {
+		for k := range dv.State {
+			_, ok := newState[k]
+			if !ok {
+				delete(dv.State, k)
+			}
+		}
 	}
 
 	if 0 != len(msg.State) {

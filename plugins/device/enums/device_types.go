@@ -16,6 +16,8 @@ const (
 	DevSwitch
 	// DevSensor describes sensor device type.
 	DevSensor
+	// DevGroup describes devices group type.
+	DevGroup
 )
 
 // SliceContainsDeviceType is a helper Slice.contains.

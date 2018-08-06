@@ -15,10 +15,15 @@ type fakeSettings struct {
 	bus      providers.IBusProvider
 	devices  []*providers.RawDevice
 	security providers.ISecurityProvider
+	fanOut providers.IInternalFanOutProvider
+}
+
+func (f *fakeSettings) Groups() []*providers.RawMasterComponent {
+	return nil
 }
 
 func (f *fakeSettings) ExtendedAPIs() []*providers.RawMasterComponent {
-	panic("implement me")
+	return nil
 }
 
 func (f *fakeSettings) SystemLogger() common.ILoggerProvider {
@@ -80,8 +85,8 @@ func (f *fakeSettings) Triggers() []*providers.RawMasterComponent {
 	return []*providers.RawMasterComponent{}
 }
 
-func (f *fakeSettings) FanOud() providers.IInternalFanOutProvider {
-	return nil
+func (f *fakeSettings) FanOut() providers.IInternalFanOutProvider {
+	return f.fanOut
 }
 
 func FakeNewSettings(sbPublish func(string, ...interface{}), isWorker bool,
@@ -92,6 +97,7 @@ func FakeNewSettings(sbPublish func(string, ...interface{}), isWorker bool,
 		logger:   FakeNewLogger(logCallback),
 		cron:     FakeNewCron(),
 		devices:  devices,
+		fanOut:FakeNewFanOut(),
 	}
 }
 
@@ -100,3 +106,4 @@ func FakeNewSettingsWithUserStorage(sec providers.ISecurityProvider) *fakeSettin
 		security: sec,
 	}
 }
+

@@ -98,6 +98,7 @@ func TestCorrectUnload(t *testing.T) {
 	time.Sleep(1 * time.Second)
 }
 
+// Tests that messages are delivered properly.
 func TestMessagesDelivery(t *testing.T) {
 	p := &fakePlugin{}
 	b := mocks.FakeNewServiceBus(nil)
@@ -124,6 +125,7 @@ func TestMessagesDelivery(t *testing.T) {
 	}
 }
 
+// Test wrapper methods.
 func TestMethods(t *testing.T) {
 	ctor := &ConstructAPI{
 		Name:      "test",

@@ -81,11 +81,30 @@ func (s *GoHomeServer) commandInvokeDeviceCommand(user *providers.AuthenticatedU
 		}
 	}
 
+	if knownDevice.Type == enums.DevGroup {
+		return s.commandGroupCommand(user, knownDevice.ID, command, inputData)
+	}
+
 	s.Logger.Debug("Invoking device operation", common.LogSystemToken, logSystem,
 		common.LogDeviceNameToken, deviceID, common.LogDeviceCommandToken, cmdName,
 		common.LogUserNameToken, user.Username)
 	s.Settings.ServiceBus().PublishToWorker(knownDevice.Worker,
 		bus.NewDeviceCommandMessage(deviceID, command, inputData))
+	return nil
+}
+
+// Invokes group command
+func (s *GoHomeServer) commandGroupCommand(user *providers.AuthenticatedUser,
+	groupID string, cmd enums.Command, data map[string]interface{}) error {
+	g, ok := s.groups[groupID]
+	if !ok {
+		s.Logger.Warn("Received unknown group", common.LogSystemToken, logSystem,
+			common.LogDeviceNameToken, groupID, common.LogDeviceCommandToken, cmd.String(),
+			common.LogUserNameToken, user.Username)
+		return errors.New("unknown group")
+	}
+
+	g.InvokeCommand(cmd, data)
 	return nil
 }
 

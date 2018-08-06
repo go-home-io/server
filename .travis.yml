@@ -7,9 +7,9 @@ git:
 install: true
 jobs:
   include:
-#    - stage: ci
-#      script:
-#        - ./build.sh ci
+    - stage: ci
+      script:
+        - ./build.sh ci
     - stage: docker
       if: tag IS present
       script:

@@ -18,9 +18,24 @@ type ILogger interface {
 	Flush()
 }
 
+// LogLevel represents log level for the plugin.
+type LogLevel int
+
+const (
+	// Info describes info log level.
+	Info LogLevel = iota
+	// Debug describes debug log level.
+	Debug
+	// Warning describes warn log level.
+	Warning
+	// Error describes error log level.
+	Error
+)
+
 // InitDataLogger has data required for initializing a new logger.
 type InitDataLogger struct {
 	Secret common.ISecretProvider
+	Level  LogLevel
 }
 
 // TypeLogger is a syntax sugar around ILogger type.

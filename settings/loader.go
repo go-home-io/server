@@ -74,6 +74,7 @@ type settingsProvider struct {
 	fanOut       providers.IInternalFanOutProvider
 	triggers     []*providers.RawMasterComponent
 	extendedAPIs []*providers.RawMasterComponent
+	groups       []*providers.RawMasterComponent
 }
 
 // Load system configuration.
@@ -86,6 +87,7 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 		triggers:      make([]*providers.RawMasterComponent, 0),
 		extendedAPIs:  make([]*providers.RawMasterComponent, 0),
 		fanOut:        fanout.NewFanOut(),
+		groups:        make([]*providers.RawMasterComponent, 0),
 	}
 
 	settings.validator = utils.NewValidator(settings.logger)
@@ -330,6 +332,16 @@ func (s *settingsProvider) loadDeviceProvider(provider *rawProvider) (*providers
 	}
 
 	selector.Name = strings.ToLower(selector.Name)
+
+	if provider.Provider == enums.DevGroup.String() {
+		s.groups = append(s.groups, &providers.RawMasterComponent{
+			Provider:  provider.Provider,
+			Name:      selector.Name,
+			RawConfig: provider.Config,
+		})
+
+		return nil, nil
+	}
 
 	deviceType := utils.VerifyDeviceProvider(provider.Provider)
 	if deviceType == enums.DevUnknown && provider.System != systems.SysAPI.String() {

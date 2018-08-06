@@ -15,6 +15,7 @@ import (
 	"github.com/go-home-io/server/systems"
 	"github.com/go-home-io/server/systems/api"
 	"github.com/go-home-io/server/systems/bus"
+	"github.com/go-home-io/server/systems/group"
 	"github.com/go-home-io/server/systems/trigger"
 	"github.com/gorilla/mux"
 )
@@ -36,6 +37,7 @@ type GoHomeServer struct {
 
 	triggers     []providers.ITriggerProvider
 	extendedAPIs []providers.IExtendedAPIProvider
+	groups       map[string]providers.IGroupProvider
 }
 
 // NewServer constructs a new master server.
@@ -59,6 +61,8 @@ func (s *GoHomeServer) Start() {
 	prepareCidrs()
 
 	s.startTriggers()
+	s.startGroups()
+
 	router := mux.NewRouter()
 	s.registerAPI(router)
 	go func() {
@@ -87,6 +91,33 @@ func (s *GoHomeServer) Start() {
 	}
 }
 
+// GetDevice returns known device.
+func (s *GoHomeServer) GetDevice(ID string) *providers.KnownDevice {
+	kd := s.state.GetDevice(ID)
+	if nil == kd {
+		return nil
+	}
+
+	return &providers.KnownDevice{
+		Commands: kd.Commands,
+		Worker:   kd.Worker,
+	}
+}
+
+// PushMasterDeviceUpdate pushed device to known devices state
+func (s *GoHomeServer) PushMasterDeviceUpdate(update *providers.MasterDeviceUpdate) {
+	msg := &bus.DeviceUpdateMessage{
+		State:      update.State,
+		Commands:   update.Commands,
+		DeviceID:   update.ID,
+		DeviceName: update.Name,
+		DeviceType: update.Type,
+		WorkerID:   "master",
+	}
+
+	s.state.Update(msg)
+}
+
 // All API registration.
 func (s *GoHomeServer) registerAPI(router *mux.Router) {
 	publicRouter := router.PathPrefix("/pub").Subrouter()
@@ -96,6 +127,7 @@ func (s *GoHomeServer) registerAPI(router *mux.Router) {
 	apiRouter.HandleFunc("/device", s.getDevices).Methods(http.MethodGet)
 	apiRouter.HandleFunc(fmt.Sprintf("/device/{%s}/{%s}", urlDeviceID, urlCommandName),
 		s.deviceCommand).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/group", s.getGroups).Methods(http.MethodGet)
 
 	apiRouter.Use(s.logMiddleware)
 	router.Use(s.authMiddleware)
@@ -134,6 +166,7 @@ func (s *GoHomeServer) busCycle() {
 	}
 }
 
+// Starts triggers
 func (s *GoHomeServer) startTriggers() {
 	s.triggers = make([]providers.ITriggerProvider, 0)
 	for _, v := range s.Settings.Triggers() {
@@ -142,7 +175,7 @@ func (s *GoHomeServer) startTriggers() {
 			Provider:  v.Provider,
 			RawConfig: v.RawConfig,
 			Loader:    s.Settings.PluginLoader(),
-			FanOut:    s.Settings.FanOud(),
+			FanOut:    s.Settings.FanOut(),
 			Secret:    s.Settings.Secrets(),
 			Validator: s.Settings.Validator(),
 			Server:    s,
@@ -156,6 +189,7 @@ func (s *GoHomeServer) startTriggers() {
 	}
 }
 
+// Starts APIs
 func (s *GoHomeServer) startAPI(root *mux.Router, external *mux.Router) {
 	s.extendedAPIs = make([]providers.IExtendedAPIProvider, 0)
 	for _, v := range s.Settings.ExtendedAPIs() {
@@ -167,7 +201,7 @@ func (s *GoHomeServer) startAPI(root *mux.Router, external *mux.Router) {
 			Logger:             s.Settings.PluginLogger(systems.SysAPI, v.Provider),
 			Secret:             s.Settings.Secrets(),
 			Loader:             s.Settings.PluginLoader(),
-			FanOut:             s.Settings.FanOud(),
+			FanOut:             s.Settings.FanOut(),
 			InternalRootRouter: root,
 			ExternalAPIRouter:  external,
 			IsServer:           true,
@@ -181,5 +215,25 @@ func (s *GoHomeServer) startAPI(root *mux.Router, external *mux.Router) {
 		}
 
 		s.extendedAPIs = append(s.extendedAPIs, a)
+	}
+}
+
+// Starts groups
+func (s *GoHomeServer) startGroups() {
+	s.groups = make(map[string]providers.IGroupProvider)
+
+	for _, v := range s.Settings.Groups() {
+		ctor := &group.ConstructGroup{
+			RawConfig: v.RawConfig,
+			Settings:  s.Settings,
+			Server:    s,
+		}
+
+		g, err := group.NewGroupProvider(ctor)
+		if err != nil {
+			continue
+		}
+
+		s.groups[g.ID()] = g
 	}
 }

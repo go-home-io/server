@@ -8,9 +8,17 @@ import (
 
 type fakeServer struct {
 	callback func()
+	device   *providers.KnownDevice
 }
 
-func (*fakeServer) Start() {
+func (f *fakeServer) GetDevice(string) *providers.KnownDevice {
+	return f.device
+}
+
+func (f *fakeServer) PushMasterDeviceUpdate(*providers.MasterDeviceUpdate) {
+}
+
+func (f *fakeServer) Start() {
 }
 
 func (f *fakeServer) InternalCommandInvokeDeviceCommand(deviceRegexp glob.Glob, cmd enums.Command,
@@ -20,7 +28,11 @@ func (f *fakeServer) InternalCommandInvokeDeviceCommand(deviceRegexp glob.Glob, 
 	}
 }
 
-func FakeNewServer(callback func()) providers.IServerProvider {
+func (f *fakeServer) AddDevice(device *providers.KnownDevice) {
+	f.device = device
+}
+
+func FakeNewServer(callback func()) *fakeServer {
 	return &fakeServer{
 		callback: callback,
 	}

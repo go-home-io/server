@@ -54,7 +54,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	c.CreateVersion("", arch, pkg, version)
+	err = c.CreateVersion("", arch, pkg, version)
+	if err != nil {
+		println("Failed to create version")
+		os.Exit(1)
+	}
 
 	for _, v := range fileList {
 		ext := filepath.Ext(v)

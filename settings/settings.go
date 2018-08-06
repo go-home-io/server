@@ -79,10 +79,14 @@ func (s *settingsProvider) Triggers() []*providers.RawMasterComponent {
 	return s.triggers
 }
 
-func (s *settingsProvider) FanOud() providers.IInternalFanOutProvider {
+func (s *settingsProvider) FanOut() providers.IInternalFanOutProvider {
 	return s.fanOut
 }
 
 func (s *settingsProvider) ExtendedAPIs() []*providers.RawMasterComponent {
 	return s.extendedAPIs
+}
+
+func (s *settingsProvider) Groups() []*providers.RawMasterComponent {
+	return s.groups
 }

@@ -2,16 +2,24 @@
 package logger
 
 import (
+	"strings"
+
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/logger"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
+	"gopkg.in/yaml.v2"
 )
 
 // Logger provider wrapper implementation.
 type provider struct {
 	logger logger.ILogger
 	nodeID string
+}
+
+// Logger settings.
+type settings struct {
+	Level string `yaml:"level"`
 }
 
 // ConstructLogger has data required for a new logger.
@@ -32,6 +40,7 @@ func NewLoggerProvider(ctor *ConstructLogger) (common.ILoggerProvider, error) {
 	pluginLoadRequest := &providers.PluginLoadRequest{
 		InitData: &logger.InitDataLogger{
 			Secret: ctor.Secret,
+			Level:  getLogLevel(ctor.RawConfig),
 		},
 		RawConfig:      ctor.RawConfig,
 		PluginProvider: ctor.LoggerType,
@@ -84,4 +93,24 @@ func (p *provider) Flush() {
 // Extending logger fields with current node ID.
 func (p *provider) prepareFields(fields ...string) []string {
 	return append(fields, common.LogNodeToken, p.nodeID)
+}
+
+// Gets log level from config.
+func getLogLevel(rawConfig []byte) logger.LogLevel {
+	s := &settings{}
+	err := yaml.Unmarshal(rawConfig, s)
+	if err != nil {
+		return logger.Info
+	}
+
+	switch strings.ToLower(s.Level) {
+	case "debug":
+		return logger.Debug
+	case "warn", "warning":
+		return logger.Warning
+	case "error":
+		return logger.Error
+	}
+
+	return logger.Info
 }

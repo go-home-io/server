@@ -23,7 +23,8 @@ type ISettingsProvider interface {
 	Security() ISecurityProvider
 	Triggers() []*RawMasterComponent
 	ExtendedAPIs() []*RawMasterComponent
-	FanOud() IInternalFanOutProvider
+	Groups() []*RawMasterComponent
+	FanOut() IInternalFanOutProvider
 }
 
 // RawDeviceSelector has data required for understanding
