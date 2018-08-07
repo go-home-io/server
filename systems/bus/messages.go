@@ -40,6 +40,7 @@ type DeviceAssignment struct {
 type DeviceAssignmentMessage struct {
 	MessageWithType
 	Devices []*DeviceAssignment `json:"d"`
+	UOM     enums.UOM           `json:"u"`
 }
 
 // DeviceUpdateMessage used by worker to update service with devices state update.
@@ -83,13 +84,14 @@ func NewDiscoveryMessage(nodeID string, firstStart bool, properties map[string]s
 }
 
 // NewDeviceAssignmentMessage constructs device assignment message.
-func NewDeviceAssignmentMessage(devices []*DeviceAssignment) *DeviceAssignmentMessage {
+func NewDeviceAssignmentMessage(devices []*DeviceAssignment, uom enums.UOM) *DeviceAssignmentMessage {
 	return &DeviceAssignmentMessage{
 		MessageWithType: MessageWithType{
 			Type:     bus.MsgDeviceAssignment,
 			SendTime: utils.TimeNow(),
 		},
 		Devices: devices,
+		UOM:     uom,
 	}
 }
 

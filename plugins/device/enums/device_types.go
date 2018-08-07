@@ -18,6 +18,8 @@ const (
 	DevSensor
 	// DevGroup describes devices group type.
 	DevGroup
+	// DevWeather describes weather device.
+	DevWeather
 )
 
 // SliceContainsDeviceType is a helper Slice.contains.

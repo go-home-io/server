@@ -49,6 +49,7 @@ type wrapperConstruct struct {
 	LoadData         *device.InitDataDevice
 	IsRootDevice     bool
 	Validator        providers.IValidatorProvider
+	UOM              enums.UOM
 
 	StatusUpdatesChan chan *UpdateEvent
 	DiscoveryChan     chan *NewDeviceDiscoveredEvent
@@ -452,6 +453,7 @@ func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
 		Secret:                w.Ctor.Secret,
 		DeviceDiscoveredChan:  w.Ctor.LoadData.DeviceDiscoveredChan,
 		DeviceStateUpdateChan: make(chan *device.StateUpdateData, 10),
+		UOM:                   w.Ctor.UOM,
 	}
 
 	loadedDevice, ok := d.Interface.(device.IDevice)
@@ -481,6 +483,7 @@ func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
 		WorkerID:          w.Ctor.WorkerID,
 		DiscoveryChan:     w.Ctor.DiscoveryChan,
 		StatusUpdatesChan: w.Ctor.StatusUpdatesChan,
+		UOM:               w.Ctor.UOM,
 	}
 
 	wrapper := NewDeviceWrapper(ctor)

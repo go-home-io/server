@@ -18,6 +18,7 @@ type ConstructDevice struct {
 	ConfigName string
 	RawConfig  string
 	Settings   providers.ISettingsProvider
+	UOM        enums.UOM
 
 	StatusUpdatesChan chan *UpdateEvent
 	DiscoveryChan     chan *NewDeviceDiscoveredEvent
@@ -38,6 +39,7 @@ func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 		Secret:                ctor.Settings.Secrets(),
 		DeviceDiscoveredChan:  make(chan *device.DiscoveredDevices, 3),
 		DeviceStateUpdateChan: make(chan *device.StateUpdateData, 10),
+		UOM:                   ctor.UOM,
 	}
 
 	expectedType, err := getExpectedType(ctor.DeviceType)
@@ -83,6 +85,7 @@ func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 		Validator:         ctor.Settings.Validator(),
 		DiscoveryChan:     ctor.DiscoveryChan,
 		StatusUpdatesChan: ctor.StatusUpdatesChan,
+		UOM:               ctor.UOM,
 	}
 
 	wrappers[0] = NewDeviceWrapper(deviceCtor)
@@ -99,6 +102,8 @@ func getExpectedType(deviceType enums.DeviceType) (reflect.Type, error) {
 		return device.TypeSwitch, nil
 	case enums.DevSensor:
 		return device.TypeSensor, nil
+	case enums.DevWeather:
+		return device.TypeWeather, nil
 	}
 
 	return nil, errors.New("unknown device type")
@@ -113,6 +118,8 @@ func loadDevice(deviceInterface interface{}, deviceType enums.DeviceType) (inter
 		return deviceInterface.(device.ISwitch).Load()
 	case enums.DevSensor:
 		return deviceInterface.(device.ISensor).Load()
+	case enums.DevWeather:
+		return deviceInterface.(device.IWeather).Load()
 	}
 
 	return nil, errors.New("unknown device type")

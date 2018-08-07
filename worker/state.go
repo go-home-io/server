@@ -167,6 +167,7 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 			RawConfig:         a.Config,
 			DeviceName:        a.Plugin,
 			DeviceType:        a.Type,
+			UOM:               msg.UOM,
 		}
 
 		go func(dev *bus.DeviceAssignment) {

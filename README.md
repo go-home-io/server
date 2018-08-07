@@ -1,3 +1,3 @@
-[![Build Status](https://travis-ci.com/go-home-io/server.svg?branch=master)](https://travis-ci.com/go-home-io/server) [![Coverage Status](https://coveralls.io/repos/github/go-home-io/server/badge.svg?branch=master)](https://coveralls.io/github/go-home-io/server?branch=master) 
+[![Build Status](https://travis-ci.com/go-home-io/server.svg?branch=master)](https://travis-ci.com/go-home-io/server) [![Coverage Status](https://coveralls.io/repos/github/go-home-io/server/badge.svg?branch=master)](https://coveralls.io/github/go-home-io/server?branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/go-home-io/server)](https://goreportcard.com/report/github.com/go-home-io/server) 
 
 [go-home](https://go-home.io) server

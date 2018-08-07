@@ -40,6 +40,7 @@ type DiscoveredDevices struct {
 type InitDataDevice struct {
 	Logger common.ILoggerProvider
 	Secret common.ISecretProvider
+	UOM    enums.UOM
 
 	DeviceStateUpdateChan chan *StateUpdateData
 	DeviceDiscoveredChan  chan *DiscoveredDevices

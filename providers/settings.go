@@ -47,8 +47,9 @@ type RawDevice struct {
 
 // MasterSettings has configured data for master node.
 type MasterSettings struct {
-	Port         int `yaml:"port" validate:"required,port" default:"8000"`
-	DelayedStart int `yaml:"delayedStart" validate:"gte=0"`
+	Port         int       `yaml:"port" validate:"required,port" default:"8000"`
+	DelayedStart int       `yaml:"delayedStart" validate:"gte=0"`
+	UOM          enums.UOM `yaml:"units" default:"imperial"`
 }
 
 // WorkerSettings has configured data for worker node.

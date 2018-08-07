@@ -81,7 +81,8 @@ func (s *serverState) Discovery(msg *bus.DiscoveryMessage) {
 			if msg.IsFirstStart {
 				s.Logger.Info("Received discovery from a known worker with no changes, re-sending device data",
 					common.LogWorkerToken, msg.NodeID, common.LogSystemToken, logSystem)
-				s.Settings.ServiceBus().PublishToWorker(msg.NodeID, bus.NewDeviceAssignmentMessage(wk.Devices))
+				s.Settings.ServiceBus().PublishToWorker(msg.NodeID, bus.NewDeviceAssignmentMessage(wk.Devices,
+					s.Settings.MasterSettings().UOM))
 			} else {
 				s.Logger.Debug("Received discovery from a known worker",
 					common.LogWorkerToken, msg.NodeID, common.LogSystemToken, logSystem)
@@ -247,7 +248,8 @@ func (s *serverState) reBalance(newWorkerID string) {
 	defer s.workerMutex.Unlock()
 
 	sort.Slice(s.Settings.DevicesConfig(), func(i, j int) bool {
-		return len(s.Settings.DevicesConfig()[i].Selector.Selectors) > len(s.Settings.DevicesConfig()[j].Selector.Selectors)
+		return len(s.Settings.DevicesConfig()[i].Selector.Selectors) >
+			len(s.Settings.DevicesConfig()[j].Selector.Selectors)
 	})
 
 	distributed := make(map[string][]*bus.DeviceAssignment)
@@ -300,7 +302,7 @@ func (s *serverState) reBalance(newWorkerID string) {
 			continue
 		}
 
-		s.Settings.ServiceBus().PublishToWorker(n, bus.NewDeviceAssignmentMessage(d))
+		s.Settings.ServiceBus().PublishToWorker(n, bus.NewDeviceAssignmentMessage(d, s.Settings.MasterSettings().UOM))
 		s.KnownWorkers[n].Devices = make([]*bus.DeviceAssignment, len(d))
 		copy(s.KnownWorkers[n].Devices, d)
 	}

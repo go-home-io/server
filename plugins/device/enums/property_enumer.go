@@ -7,9 +7,9 @@ import (
 	"fmt"
 )
 
-const _PropertyName = "oncolornum_devicestransition_timebrightnessscenespowertemperaturebattery_level"
+const _PropertyName = "oncolornum_devicestransition_timebrightnessscenespowertemperaturebattery_levelsunrisesunsethumiditypressurevisibilitywind_directionwind_speed"
 
-var _PropertyIndex = [...]uint8{0, 2, 7, 18, 33, 43, 49, 54, 65, 78}
+var _PropertyIndex = [...]uint8{0, 2, 7, 18, 33, 43, 49, 54, 65, 78, 85, 91, 99, 107, 117, 131, 141}
 
 func (i Property) String() string {
 	if i < 0 || i >= Property(len(_PropertyIndex)-1) {
@@ -18,18 +18,25 @@ func (i Property) String() string {
 	return _PropertyName[_PropertyIndex[i]:_PropertyIndex[i+1]]
 }
 
-var _PropertyValues = []Property{0, 1, 2, 3, 4, 5, 6, 7, 8}
+var _PropertyValues = []Property{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 
 var _PropertyNameToValueMap = map[string]Property{
-	_PropertyName[0:2]:   0,
-	_PropertyName[2:7]:   1,
-	_PropertyName[7:18]:  2,
-	_PropertyName[18:33]: 3,
-	_PropertyName[33:43]: 4,
-	_PropertyName[43:49]: 5,
-	_PropertyName[49:54]: 6,
-	_PropertyName[54:65]: 7,
-	_PropertyName[65:78]: 8,
+	_PropertyName[0:2]:     0,
+	_PropertyName[2:7]:     1,
+	_PropertyName[7:18]:    2,
+	_PropertyName[18:33]:   3,
+	_PropertyName[33:43]:   4,
+	_PropertyName[43:49]:   5,
+	_PropertyName[49:54]:   6,
+	_PropertyName[54:65]:   7,
+	_PropertyName[65:78]:   8,
+	_PropertyName[78:85]:   9,
+	_PropertyName[85:91]:   10,
+	_PropertyName[91:99]:   11,
+	_PropertyName[99:107]:  12,
+	_PropertyName[107:117]: 13,
+	_PropertyName[117:131]: 14,
+	_PropertyName[131:141]: 15,
 }
 
 // PropertyString retrieves an enum value from the enum constants string name.

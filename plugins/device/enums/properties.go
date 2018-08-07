@@ -24,6 +24,20 @@ const (
 	PropTemperature
 	// PropBatteryLevel describes device battery level.
 	PropBatteryLevel
+	// PropSunrise describes sunrise time.
+	PropSunrise
+	// PropSunset describes sunset time.
+	PropSunset
+	// PropHumidity describes humidity.
+	PropHumidity
+	// PropPressure describes pressure.
+	PropPressure
+	// PropVisibility describes visibility.
+	PropVisibility
+	// PropWindDirection describes wind direction.
+	PropWindDirection
+	// PropWindSpeed describes wind speed.
+	PropWindSpeed
 )
 
 // AllowedProperties contains set of all possible allowed properties per device type.
@@ -32,6 +46,8 @@ var AllowedProperties = map[DeviceType][]Property{
 	DevLight:  {PropOn, PropColor, PropTransitionTime, PropBrightness, PropScenes},
 	DevSwitch: {PropOn},
 	DevSensor: {PropOn, PropBatteryLevel, PropPower, PropTemperature},
+	DevWeather: {PropTemperature, PropSunrise, PropSunset, PropHumidity, PropPressure,
+		PropVisibility, PropWindDirection, PropWindSpeed},
 }
 
 // SliceContainsProperty checks whether slice contains certain property.

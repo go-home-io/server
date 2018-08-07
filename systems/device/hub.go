@@ -19,6 +19,7 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 		Secret:                ctor.Settings.Secrets(),
 		DeviceDiscoveredChan:  make(chan *device.DiscoveredDevices, 3),
 		DeviceStateUpdateChan: make(chan *device.StateUpdateData, 10),
+		UOM:                   ctor.UOM,
 	}
 
 	pluginLoadRequest := &providers.PluginLoadRequest{
@@ -56,6 +57,7 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 		Validator:         ctor.Settings.Validator(),
 		DiscoveryChan:     ctor.DiscoveryChan,
 		StatusUpdatesChan: ctor.StatusUpdatesChan,
+		UOM:               ctor.UOM,
 	}
 
 	hubWrapper := NewDeviceWrapper(hubCtor)
@@ -67,6 +69,7 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 			Secret:                ctor.Settings.Secrets(),
 			DeviceDiscoveredChan:  loadData.DeviceDiscoveredChan,
 			DeviceStateUpdateChan: make(chan *device.StateUpdateData, 10),
+			UOM:                   ctor.UOM,
 		}
 
 		dev, ok := v.Interface.(device.IDevice)
@@ -92,6 +95,7 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 			Validator:         ctor.Settings.Validator(),
 			DiscoveryChan:     ctor.DiscoveryChan,
 			StatusUpdatesChan: ctor.StatusUpdatesChan,
+			UOM:               ctor.UOM,
 		}
 
 		w := NewDeviceWrapper(spawnedCtor)
