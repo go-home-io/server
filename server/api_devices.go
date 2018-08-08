@@ -4,15 +4,25 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/gorilla/mux"
 )
 
-// Contains data about known groups.
-type knownGroup struct {
-	ID      string   `json:"id"`
+type knownLocation struct {
 	Name    string   `json:"name"`
 	Devices []string `json:"devices"`
+}
+
+// Contains data about known groups.
+type knownGroup struct {
+	knownLocation
+	ID string `json:"id"`
+}
+
+// Contains server state required UI to start.
+type currentState struct {
+	Devices   []*knownDevice   `json:"devices"`
+	Groups    []*knownGroup    `json:"groups"`
+	Locations []*knownLocation `json:"locations"`
 }
 
 // Returns all devices available for the user.
@@ -22,25 +32,25 @@ func (s *GoHomeServer) getDevices(writer http.ResponseWriter, request *http.Requ
 
 // Returns all groups available for the user.
 func (s *GoHomeServer) getGroups(writer http.ResponseWriter, request *http.Request) {
-	devices := s.commandGetAllDevices(getContextUser(request))
-	response := make([]*knownGroup, 0)
-	for _, v := range devices {
-		if v.Type != enums.DevGroup {
-			continue
+	respond(writer, s.commandGetAllGroups(getContextUser(request)))
+}
+
+// Returns server state required for UI to start.
+func (s *GoHomeServer) getCurrentState(writer http.ResponseWriter, request *http.Request) {
+	usr := getContextUser(request)
+	response := &currentState{
+		Devices:   s.commandGetAllDevices(usr),
+		Groups:    s.commandGetAllGroups(usr),
+		Locations: make([]*knownLocation, 0),
+	}
+
+	for _, v := range s.locations {
+		l := &knownLocation{
+			Devices: v.Devices(),
+			Name:    v.ID(),
 		}
 
-		g, ok := s.groups[v.ID]
-		if !ok {
-			continue
-		}
-
-		group := &knownGroup{
-			ID:      v.ID,
-			Name:    v.Name,
-			Devices: g.Devices(),
-		}
-
-		response = append(response, group)
+		response.Locations = append(response.Locations, l)
 	}
 
 	respond(writer, response)

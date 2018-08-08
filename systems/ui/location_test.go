@@ -1,44 +1,34 @@
-package group
+package ui
 
 import (
 	"testing"
-
 	"time"
 
 	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/providers"
 )
 
-// Tests group provider.
+// Tests location provider.
 func TestGroupProvider(t *testing.T) {
 	var config = `
-system: device
-provider: group
-name: cabinet lights
+system: ui
+provider: location
+name: cabinet loc
 devices:
   - device1
   - device*
   - otherdevice
 `
-
-	invoked := 0
-
 	s := mocks.FakeNewSettings(nil, false, nil, nil)
 	f := s.FanOut()
 
-	srv := mocks.FakeNewServer(func() {
-		invoked++
-	})
-
-	ctor := &ConstructGroup{
-		Settings:  s,
-		Server:    srv,
+	ctor := &ConstructLocation{
 		RawConfig: []byte(config),
+		FanOut:    f,
 	}
 
-	prov, _ := NewGroupProvider(ctor)
+	prov, _ := NewLocationProvider(ctor)
 	f.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
 		ID: "device1",
 	}
@@ -50,16 +40,11 @@ devices:
 		t.FailNow()
 	}
 
-	srv.AddDevice(&providers.KnownDevice{
-		Commands: []string{"On"},
-		Worker:   "worker-1",
-	})
 	msg := &common.MsgDeviceUpdate{
 		ID:        "device1",
 		Name:      "device 1",
 		Type:      enums.DevLight,
-		State:     map[enums.Property]interface{}{enums.PropOn: true},
-		FirstSeen: false,
+		FirstSeen: true,
 	}
 
 	f.ChannelInDeviceUpdates() <- msg
@@ -79,11 +64,13 @@ devices:
 	}
 
 	f.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
-		ID: "wrongdevice",
+		ID:        "wrongdevice",
+		FirstSeen: true,
 	}
 	time.Sleep(1 * time.Second)
 	f.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
-		ID: "wrongdevice",
+		ID:        "wrongdevice",
+		FirstSeen: true,
 	}
 	time.Sleep(1 * time.Second)
 
@@ -92,42 +79,25 @@ devices:
 		t.FailNow()
 	}
 
-	if prov.ID() != "group.cabinet_lights" {
+	if prov.ID() != "cabinet loc" {
 		t.Error("Wrong name")
-		t.Fail()
-	}
-
-	prov.InvokeCommand(enums.CmdOn, nil)
-
-	if 1 != invoked {
-		t.Error("Not invoked")
 		t.Fail()
 	}
 }
 
-// Tests wrong settings.
+// Test wrong config.
 func TestWrongSettings(t *testing.T) {
-	var config = `
-system: device
-provider: group
-name: cabinet lights
-devices: devices:
-`
-	invoked := 0
-
+	var config = `ad`
 	s := mocks.FakeNewSettings(nil, false, nil, nil)
+	f := s.FanOut()
 
-	srv := mocks.FakeNewServer(func() {
-		invoked++
-	})
-
-	ctor := &ConstructGroup{
-		Settings:  s,
-		Server:    srv,
+	ctor := &ConstructLocation{
 		RawConfig: []byte(config),
+		FanOut:    f,
+		Logger:    mocks.FakeNewLogger(nil),
 	}
 
-	_, err := NewGroupProvider(ctor)
+	_, err := NewLocationProvider(ctor)
 	if err == nil {
 		t.Fail()
 	}

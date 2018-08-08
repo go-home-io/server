@@ -17,6 +17,7 @@ import (
 	"github.com/go-home-io/server/systems/bus"
 	"github.com/go-home-io/server/systems/group"
 	"github.com/go-home-io/server/systems/trigger"
+	"github.com/go-home-io/server/systems/ui"
 	"github.com/gorilla/mux"
 )
 
@@ -38,6 +39,7 @@ type GoHomeServer struct {
 	triggers     []providers.ITriggerProvider
 	extendedAPIs []providers.IExtendedAPIProvider
 	groups       map[string]providers.IGroupProvider
+	locations    []providers.ILocationProvider
 }
 
 // NewServer constructs a new master server.
@@ -62,6 +64,7 @@ func (s *GoHomeServer) Start() {
 
 	s.startTriggers()
 	s.startGroups()
+	s.startLocations()
 
 	router := mux.NewRouter()
 	s.registerAPI(router)
@@ -128,6 +131,7 @@ func (s *GoHomeServer) registerAPI(router *mux.Router) {
 	apiRouter.HandleFunc(fmt.Sprintf("/device/{%s}/{%s}", urlDeviceID, urlCommandName),
 		s.deviceCommand).Methods(http.MethodPost)
 	apiRouter.HandleFunc("/group", s.getGroups).Methods(http.MethodGet)
+	apiRouter.HandleFunc("/state", s.getCurrentState).Methods(http.MethodGet)
 
 	apiRouter.Use(s.logMiddleware)
 	router.Use(s.authMiddleware)
@@ -166,7 +170,7 @@ func (s *GoHomeServer) busCycle() {
 	}
 }
 
-// Starts triggers
+// Starts triggers.
 func (s *GoHomeServer) startTriggers() {
 	s.triggers = make([]providers.ITriggerProvider, 0)
 	for _, v := range s.Settings.Triggers() {
@@ -189,7 +193,7 @@ func (s *GoHomeServer) startTriggers() {
 	}
 }
 
-// Starts APIs
+// Starts APIs.
 func (s *GoHomeServer) startAPI(root *mux.Router, external *mux.Router) {
 	s.extendedAPIs = make([]providers.IExtendedAPIProvider, 0)
 	for _, v := range s.Settings.ExtendedAPIs() {
@@ -218,7 +222,7 @@ func (s *GoHomeServer) startAPI(root *mux.Router, external *mux.Router) {
 	}
 }
 
-// Starts groups
+// Starts groups.
 func (s *GoHomeServer) startGroups() {
 	s.groups = make(map[string]providers.IGroupProvider)
 
@@ -235,5 +239,25 @@ func (s *GoHomeServer) startGroups() {
 		}
 
 		s.groups[g.ID()] = g
+	}
+}
+
+// Starts locations.
+func (s *GoHomeServer) startLocations() {
+	s.locations = make([]providers.ILocationProvider, 0)
+
+	for _, v := range s.Settings.MasterSettings().Locations {
+		ctor := &ui.ConstructLocation{
+			RawConfig: v.RawConfig,
+			Logger:    s.Settings.SystemLogger(),
+			FanOut:    s.Settings.FanOut(),
+		}
+
+		l, err := ui.NewLocationProvider(ctor)
+		if err != nil {
+			continue
+		}
+
+		s.locations = append(s.locations, l)
 	}
 }

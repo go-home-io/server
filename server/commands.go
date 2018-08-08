@@ -120,3 +120,31 @@ func (s *GoHomeServer) commandGetAllDevices(user *providers.AuthenticatedUser) [
 
 	return allowedDevices
 }
+
+// Returns all allowed for the user locations.
+func (s *GoHomeServer) commandGetAllGroups(user *providers.AuthenticatedUser) []*knownGroup {
+	devices := s.commandGetAllDevices(user)
+	response := make([]*knownGroup, 0)
+	for _, v := range devices {
+		if v.Type != enums.DevGroup {
+			continue
+		}
+
+		g, ok := s.groups[v.ID]
+		if !ok {
+			continue
+		}
+
+		group := &knownGroup{
+			ID: v.ID,
+			knownLocation: knownLocation{
+				Name:    v.Name,
+				Devices: g.Devices(),
+			},
+		}
+
+		response = append(response, group)
+	}
+
+	return response
+}

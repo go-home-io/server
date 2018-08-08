@@ -290,7 +290,9 @@ func (s *settingsProvider) loadGoHomeDefinition(provider *rawProvider) {
 		s.nodeID = s.wSettings.Name
 
 	} else if !s.isWorker && provider.Provider == configGoHomeMaster {
-		set := &providers.MasterSettings{}
+		set := &providers.MasterSettings{
+			Locations: make([]*providers.RawMasterComponent, 0),
+		}
 		if err := yaml.Unmarshal(provider.Config, &set); err != nil {
 			panic("Failed to unmarshal server config")
 		}
@@ -451,6 +453,8 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 		s.triggers = append(s.triggers, cmp)
 	case systems.SysAPI:
 		s.loadAPI(provider)
+	case systems.SysUI:
+		s.loadUIProviders(provider)
 	}
 
 	if err != nil {
@@ -542,4 +546,30 @@ func (s *settingsProvider) getMasterComponents(provider *rawProvider) *providers
 	}
 
 	return cmp
+}
+
+func (s *settingsProvider) loadUIProviders(provider *rawProvider) {
+	if s.isWorker {
+		return
+	}
+	c := &providers.RawDeviceSelector{}
+	err := yaml.Unmarshal(provider.Config, c)
+	if err != nil {
+		s.logger.Error("Failed to unmarshal UI provider", err)
+		return
+	}
+
+	if "" == c.Name {
+		s.logger.Warn("Skipping UI provider since name is nul", common.LogProviderToken, provider.Provider)
+		return
+	}
+
+	switch provider.Provider {
+	case "location":
+		s.mSettings.Locations = append(s.mSettings.Locations, &providers.RawMasterComponent{
+			Provider:  provider.Provider,
+			Name:      c.Name,
+			RawConfig: provider.Config,
+		})
+	}
 }

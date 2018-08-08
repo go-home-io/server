@@ -24,4 +24,6 @@ const (
 	SysTrigger
 	// SysAPI describes API extensions system.
 	SysAPI
+	// SysUI describes UI system.
+	SysUI
 )
