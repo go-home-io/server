@@ -1,6 +1,5 @@
 component_depth: 4
 languages:
-  - go
+- go
 exclude:
-  - /mocks/.*
-  - *.sh
+- /mocks/.*
