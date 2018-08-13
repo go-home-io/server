@@ -4,9 +4,11 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/gorilla/mux"
 )
 
+// Contains data about known locations.
 type knownLocation struct {
 	Name    string   `json:"name"`
 	Devices []string `json:"devices"`
@@ -23,6 +25,7 @@ type currentState struct {
 	Devices   []*knownDevice   `json:"devices"`
 	Groups    []*knownGroup    `json:"groups"`
 	Locations []*knownLocation `json:"locations"`
+	UOM       enums.UOM        `json:"uom"`
 }
 
 // Returns all devices available for the user.
@@ -41,16 +44,8 @@ func (s *GoHomeServer) getCurrentState(writer http.ResponseWriter, request *http
 	response := &currentState{
 		Devices:   s.commandGetAllDevices(usr),
 		Groups:    s.commandGetAllGroups(usr),
-		Locations: make([]*knownLocation, 0),
-	}
-
-	for _, v := range s.locations {
-		l := &knownLocation{
-			Devices: v.Devices(),
-			Name:    v.ID(),
-		}
-
-		response.Locations = append(response.Locations, l)
+		Locations: s.commandGetAllLocations(usr),
+		UOM:       s.Settings.MasterSettings().UOM,
 	}
 
 	respond(writer, response)
@@ -62,4 +57,18 @@ func (s *GoHomeServer) deviceCommand(writer http.ResponseWriter, request *http.R
 	b, _ := ioutil.ReadAll(request.Body)
 	respondOkError(writer, s.commandInvokeDeviceCommand(getContextUser(request),
 		vars[string(urlDeviceID)], vars[string(urlCommandName)], b))
+}
+
+// Gets device state history.
+func (s *GoHomeServer) getStateHistory(writer http.ResponseWriter, request *http.Request) {
+	user := getContextUser(request)
+	vars := mux.Vars(request)
+	kd := s.state.GetDevice(vars[string(urlDeviceID)])
+
+	if !kd.History(user) {
+		respondError(writer, "Unauthorized access")
+		return
+	}
+
+	respond(writer, s.Settings.Storage().History(kd.ID))
 }

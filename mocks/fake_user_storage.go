@@ -1,8 +1,11 @@
+//+build !release
+
 package mocks
 
 import (
-	"github.com/go-home-io/server/plugins/user"
 	"errors"
+
+	"github.com/go-home-io/server/plugins/user"
 )
 
 type fakeUserStorage struct {

@@ -1,0 +1,6 @@
+component_depth: 4
+languages:
+  - go
+exclude:
+  - /mocks/.*
+  - *.sh

@@ -218,7 +218,10 @@ func (s *serverState) processDeviceStateUpdate(dv *knownDevice, newState map[str
 
 	if 0 != len(msg.State) {
 		s.fanOut.ChannelInDeviceUpdates() <- msg
+		go s.Settings.Storage().State(msg)
 	}
+
+	go s.Settings.Storage().Heartbeat(dv.ID)
 }
 
 // Compares received properties to already known state.

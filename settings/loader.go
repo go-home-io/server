@@ -16,6 +16,7 @@ import (
 	"github.com/go-home-io/server/systems/logger"
 	"github.com/go-home-io/server/systems/secret"
 	"github.com/go-home-io/server/systems/security"
+	"github.com/go-home-io/server/systems/storage"
 	"github.com/go-home-io/server/utils"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -60,6 +61,7 @@ type settingsProvider struct {
 	pluginLoader providers.IPluginLoaderProvider
 	validator    providers.IValidatorProvider
 	secrets      common.ISecretProvider
+	storage      providers.IStorageProvider
 
 	wSettings *providers.WorkerSettings
 	mSettings *providers.MasterSettings
@@ -187,6 +189,11 @@ func (s *settingsProvider) validate() {
 			s.mSettings = &providers.MasterSettings{
 				Port: 8080,
 			}
+		}
+
+		if nil == s.storage {
+			s.logger.Warn("Storage provider is not defined", common.LogSystemToken, logSystem)
+			s.storage = storage.NewEmptyStorageProvider()
 		}
 	}
 }
@@ -317,6 +324,7 @@ func (s *settingsProvider) processDeviceProvider(provider *rawProvider) error {
 	return nil
 }
 
+// Loads devices.
 func (s *settingsProvider) loadDeviceProvider(provider *rawProvider) (*providers.RawDevice, error) {
 	if s.isWorker {
 		return nil, nil
@@ -431,6 +439,12 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 	}
 	switch sys {
 	case systems.SysBus:
+		if nil != s.bus {
+			s.logger.Warn("Duplicated service bus", common.LogProviderToken, provider.Provider,
+				common.LogSystemToken, provider.System)
+			return
+		}
+
 		ctor := &bus.ConstructBus{
 			RawConfig: provider.Config,
 			Provider:  provider.Provider,
@@ -455,6 +469,8 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 		s.loadAPI(provider)
 	case systems.SysUI:
 		s.loadUIProviders(provider)
+	case systems.SysStorage:
+		s.processStorage(provider)
 	}
 
 	if err != nil {
@@ -463,6 +479,30 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 	}
 }
 
+// Processes storage provider.
+func (s *settingsProvider) processStorage(provider *rawProvider) {
+	if s.isWorker {
+		return
+	}
+
+	if s.storage != nil {
+		s.logger.Warn("Duplicated storage provider",
+			common.LogProviderToken, provider.Provider, common.LogSystemToken, provider.System)
+		return
+	}
+
+	ctor := &storage.ConstructStorage{
+		Logger:    s.logger,
+		Secret:    s.secrets,
+		Provider:  provider.Provider,
+		RawConfig: provider.Config,
+		Loader:    s.pluginLoader,
+	}
+
+	s.storage = storage.NewStorageProvider(ctor)
+}
+
+// Processes security groups.
 func (s *settingsProvider) processSecurity(provider *rawProvider) {
 	if s.isWorker {
 		return
@@ -504,6 +544,7 @@ func (s *settingsProvider) processSecurity(provider *rawProvider) {
 		common.LogProviderToken, provider.Provider, common.LogSystemToken, provider.System)
 }
 
+// Loads extended API.
 func (s *settingsProvider) loadAPI(provider *rawProvider) {
 	cmp := s.getMasterComponents(provider)
 	if nil == cmp {
@@ -531,6 +572,7 @@ func (s *settingsProvider) loadAPI(provider *rawProvider) {
 	s.extendedAPIs = append(s.extendedAPIs, cmp)
 }
 
+// Loads master component.
 func (s *settingsProvider) getMasterComponents(provider *rawProvider) *providers.RawMasterComponent {
 	if s.isWorker {
 		return nil
@@ -548,6 +590,7 @@ func (s *settingsProvider) getMasterComponents(provider *rawProvider) *providers
 	return cmp
 }
 
+// Loads UI configuration.
 func (s *settingsProvider) loadUIProviders(provider *rawProvider) {
 	if s.isWorker {
 		return

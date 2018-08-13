@@ -104,6 +104,7 @@ func (s *GoHomeServer) GetDevice(ID string) *providers.KnownDevice {
 	return &providers.KnownDevice{
 		Commands: kd.Commands,
 		Worker:   kd.Worker,
+		Type:     kd.Type,
 	}
 }
 
@@ -128,6 +129,8 @@ func (s *GoHomeServer) registerAPI(router *mux.Router) {
 
 	apiRouter := router.PathPrefix(routeAPI).Subrouter()
 	apiRouter.HandleFunc("/device", s.getDevices).Methods(http.MethodGet)
+	apiRouter.HandleFunc(fmt.Sprintf("/state/{%s}", urlDeviceID),
+		s.getStateHistory).Methods(http.MethodGet)
 	apiRouter.HandleFunc(fmt.Sprintf("/device/{%s}/{%s}", urlDeviceID, urlCommandName),
 		s.deviceCommand).Methods(http.MethodPost)
 	apiRouter.HandleFunc("/group", s.getGroups).Methods(http.MethodGet)

@@ -121,7 +121,7 @@ func (s *GoHomeServer) commandGetAllDevices(user *providers.AuthenticatedUser) [
 	return allowedDevices
 }
 
-// Returns all allowed for the user locations.
+// Returns all allowed for the user groups.
 func (s *GoHomeServer) commandGetAllGroups(user *providers.AuthenticatedUser) []*knownGroup {
 	devices := s.commandGetAllDevices(user)
 	response := make([]*knownGroup, 0)
@@ -139,12 +139,96 @@ func (s *GoHomeServer) commandGetAllGroups(user *providers.AuthenticatedUser) []
 			ID: v.ID,
 			knownLocation: knownLocation{
 				Name:    v.Name,
-				Devices: g.Devices(),
+				Devices: make([]string, 0),
 			},
 		}
 
-		response = append(response, group)
+		for _, dev := range g.Devices() {
+			d := s.state.GetDevice(dev)
+			if nil == d || !d.Get(user) {
+				continue
+			}
+
+			group.Devices = append(group.Devices, dev)
+		}
+
+		if 0 != len(group.Devices) {
+			response = append(response, group)
+		}
 	}
 
 	return response
+}
+
+// Returns all allowed for the user locations.
+func (s *GoHomeServer) commandGetAllLocations(user *providers.AuthenticatedUser) []*knownLocation {
+	devices := s.commandGetAllDevices(user)
+	groups := s.commandGetAllGroups(user)
+	response := make([]*knownLocation, 0)
+	devicesProcessed := make([]string, 0)
+	var defaultLocation *knownLocation
+
+	const DefaultLocation = "Default"
+
+	for _, v := range s.locations {
+		location := &knownLocation{
+			Name:    v.ID(),
+			Devices: make([]string, 0),
+		}
+
+		for _, dev := range v.Devices() {
+			d := s.state.GetDevice(dev)
+			if nil == d || !d.Get(user) {
+				continue
+			}
+
+			location.Devices = append(location.Devices, dev)
+			devicesProcessed = append(devicesProcessed, dev)
+		}
+
+		if 0 != len(location.Devices) {
+			response = append(response, location)
+		}
+
+		if DefaultLocation == location.Name {
+			defaultLocation = location
+		}
+	}
+
+	devicesLeft := make([]string, 0)
+	for _, v := range devices {
+		if helpers.SliceContainsString(devicesProcessed, v.ID) || groupsHasDevice(groups, v.ID) {
+			continue
+		}
+
+		devicesLeft = append(devicesLeft, v.ID)
+	}
+
+	if 0 == len(devicesLeft) {
+		return response
+	}
+
+	if nil == defaultLocation {
+		defaultLocation = &knownLocation{
+			Name:    DefaultLocation,
+			Devices: make([]string, 0),
+		}
+
+		response = append(response, defaultLocation)
+	}
+
+	defaultLocation.Devices = append(defaultLocation.Devices, devicesLeft...)
+
+	return response
+}
+
+// Checks whether this device has been claimed as a part of a group.
+func groupsHasDevice(groups []*knownGroup, deviceID string) bool {
+	for _, g := range groups {
+		if helpers.SliceContainsString(g.Devices, deviceID) {
+			return true
+		}
+	}
+
+	return false
 }

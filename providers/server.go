@@ -27,5 +27,6 @@ type MasterDeviceUpdate struct {
 // KnownDevice contains data about known device.
 type KnownDevice struct {
 	Worker   string
+	Type     enums.DeviceType
 	Commands []string
 }

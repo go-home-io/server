@@ -13,7 +13,6 @@ var convertRequired = []enums.Property{enums.PropTemperature, enums.PropWindSpee
 // UOMConvertString converts properties from one system to another.
 func UOMConvertString(value float64, property enums.Property, currentUOM string, desiredUOM enums.UOM) float64 {
 	current := getUOM(property, currentUOM)
-	//println(current.String())
 	return UOMConvert(value, property, current, desiredUOM)
 }
 

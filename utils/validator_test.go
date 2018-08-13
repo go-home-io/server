@@ -2,6 +2,7 @@ package utils
 
 import (
 	"testing"
+
 	"github.com/go-home-io/server/mocks"
 )
 
@@ -27,7 +28,7 @@ func TestSuccessValidation(t *testing.T) {
 
 	validator := NewValidator(mocks.FakeNewLogger(nil))
 	for _, v := range in {
-		if ! validator.Validate(v) {
+		if !validator.Validate(v) {
 			t.Fail()
 		}
 	}

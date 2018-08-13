@@ -142,7 +142,7 @@ func (p *provider) processDeviceUpdates(msg *common.MsgDeviceUpdate) {
 	}
 
 	kd := p.server.GetDevice(msg.ID)
-	if nil == kd {
+	if nil == kd || kd.Type == enums.DevGroup {
 		return
 	}
 

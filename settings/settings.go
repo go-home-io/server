@@ -61,7 +61,7 @@ func (s *settingsProvider) MasterSettings() *providers.MasterSettings {
 	return s.mSettings
 }
 
-// IsWorker returns flag indicating whether this instance is a worker.
+// IsWorker returns a flag indicating whether this instance is a worker.
 func (s *settingsProvider) IsWorker() bool {
 	return s.isWorker
 }
@@ -71,22 +71,32 @@ func (s *settingsProvider) DevicesConfig() []*providers.RawDevice {
 	return s.devicesConfig
 }
 
+// Security returns a security provider.
 func (s *settingsProvider) Security() providers.ISecurityProvider {
 	return s.securityProvider
 }
 
+// Triggers returns a list of known triggers.
 func (s *settingsProvider) Triggers() []*providers.RawMasterComponent {
 	return s.triggers
 }
 
+// FanOut returns fan out channel.
 func (s *settingsProvider) FanOut() providers.IInternalFanOutProvider {
 	return s.fanOut
 }
 
+// ExtendedAPIs returns a list of known APIs.
 func (s *settingsProvider) ExtendedAPIs() []*providers.RawMasterComponent {
 	return s.extendedAPIs
 }
 
+// Groups returns a list of known groups.
 func (s *settingsProvider) Groups() []*providers.RawMasterComponent {
 	return s.groups
+}
+
+// Storage returns a storage provider.
+func (s *settingsProvider) Storage() providers.IStorageProvider {
+	return s.storage
 }

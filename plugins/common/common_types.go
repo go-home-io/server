@@ -13,6 +13,11 @@ type Int struct {
 	Value int `json:"value" validate:"required"`
 }
 
+// Float defines simple float parameter type.
+type Float struct {
+	Value float64 `json:"value" validate:"required"`
+}
+
 // String defines simple string parameter type.
 type String struct {
 	Value string `json:"value" validate:"required"`

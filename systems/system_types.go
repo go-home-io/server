@@ -26,4 +26,6 @@ const (
 	SysAPI
 	// SysUI describes UI system.
 	SysUI
+	// SysStorage describes state storage system.
+	SysStorage
 )

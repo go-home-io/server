@@ -2,8 +2,9 @@ package helpers
 
 import (
 	"testing"
-	"github.com/go-home-io/server/plugins/device/enums"
+
 	"github.com/go-home-io/server/plugins/common"
+	"github.com/go-home-io/server/plugins/device/enums"
 )
 
 type testData struct {
@@ -18,7 +19,7 @@ func TestProperties(t *testing.T) {
 	data := []testData{
 		{
 			input: map[interface{}]interface{}{"r": 10, "g": 20, "b": 30},
-			gold:  &common.Color{R: 10, G: 20, B: 30,},
+			gold:  common.Color{R: 10, G: 20, B: 30},
 			prop:  enums.PropColor,
 			cmd:   enums.CmdSetColor,
 		},
@@ -30,7 +31,7 @@ func TestProperties(t *testing.T) {
 		},
 		{
 			input: 10,
-			gold:  &common.Percent{Value: 10},
+			gold:  common.Percent{Value: 10},
 			prop:  enums.PropBrightness,
 			cmd:   enums.CmdSetBrightness,
 		},
@@ -40,10 +41,12 @@ func TestProperties(t *testing.T) {
 		p, err := PropertyFixYaml(v.input, v.prop)
 		if err != nil {
 			t.Error("failed fix property " + v.prop.String())
+			t.FailNow()
 		}
 
 		if !PropertyDeepEqual(p, v.gold, v.prop) {
 			t.Error("failed deep equal property " + v.prop.String())
+			t.FailNow()
 		}
 
 		if -1 == v.cmd {
@@ -54,10 +57,12 @@ func TestProperties(t *testing.T) {
 
 		if err != nil {
 			t.Error("failed fix command " + v.cmd.String())
+			t.Fail()
 		}
 
 		if !PropertyDeepEqual(p, v.gold, v.prop) {
 			t.Error("failed deep equal command " + v.prop.String())
+			t.Fail()
 		}
 	}
 }
@@ -68,12 +73,14 @@ func TestUnmarshalProperty(t *testing.T) {
 		enums.PropOn:         true,
 		enums.PropBrightness: map[interface{}]interface{}{"value": 88},
 		enums.PropColor:      map[string]interface{}{"r": 129, "g": 10, "b": 23},
+		enums.PropHumidity:   map[interface{}]interface{}{"value": 88},
 	}
 
 	out := map[enums.Property]interface{}{
 		enums.PropOn:         true,
-		enums.PropBrightness: &common.Percent{Value: 88},
-		enums.PropColor:      &common.Color{R: 129, G: 10, B: 23},
+		enums.PropBrightness: common.Percent{Value: 88},
+		enums.PropColor:      common.Color{R: 129, G: 10, B: 23},
+		enums.PropHumidity:   common.Float{Value: 88},
 	}
 
 	for i, v := range in {

@@ -3,8 +3,9 @@
 package mocks
 
 import (
-	"github.com/go-home-io/server/plugins/bus"
 	"errors"
+
+	"github.com/go-home-io/server/plugins/bus"
 )
 
 // Service bus provider.

@@ -2,11 +2,13 @@ package utils
 
 import (
 	"errors"
-	"github.com/go-home-io/server/plugins/device"
-	"testing"
-	"github.com/go-home-io/server/providers"
+	"os"
 	"reflect"
+	"testing"
+
 	"github.com/go-home-io/server/mocks"
+	"github.com/go-home-io/server/plugins/device"
+	"github.com/go-home-io/server/providers"
 )
 
 type wrongSettings struct {
@@ -51,8 +53,13 @@ func (*fakePlugin) GetSpec() *device.Spec {
 	return nil
 }
 
+func cleanup() {
+	os.RemoveAll("./plugins")
+}
+
 // Tests error while loading plugins.
 func TestErrorsScenarios(t *testing.T) {
+	defer cleanup()
 	loader := NewPluginLoader(&ConstructPluginLoader{
 		Validator: nil,
 	})

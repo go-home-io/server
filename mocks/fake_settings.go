@@ -15,7 +15,16 @@ type fakeSettings struct {
 	bus      providers.IBusProvider
 	devices  []*providers.RawDevice
 	security providers.ISecurityProvider
-	fanOut providers.IInternalFanOutProvider
+	fanOut   providers.IInternalFanOutProvider
+	storage  providers.IStorageProvider
+}
+
+func (f *fakeSettings) Storage() providers.IStorageProvider {
+	if nil != f.storage {
+		return f.storage
+	}
+
+	return FakeNewStorage()
 }
 
 func (f *fakeSettings) Groups() []*providers.RawMasterComponent {
@@ -97,7 +106,7 @@ func FakeNewSettings(sbPublish func(string, ...interface{}), isWorker bool,
 		logger:   FakeNewLogger(logCallback),
 		cron:     FakeNewCron(),
 		devices:  devices,
-		fanOut:FakeNewFanOut(),
+		fanOut:   FakeNewFanOut(),
 	}
 }
 
@@ -106,4 +115,3 @@ func FakeNewSettingsWithUserStorage(sec providers.ISecurityProvider) *fakeSettin
 		security: sec,
 	}
 }
-

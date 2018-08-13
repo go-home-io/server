@@ -4,16 +4,14 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 	"os"
+	"path/filepath"
 	"plugin"
 	"reflect"
 	"strings"
-
-	"net/http"
-
-	"io"
-
-	"path/filepath"
 
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/providers"
@@ -46,6 +44,7 @@ type ConstructPluginLoader struct {
 type pluginLoader struct {
 	pluginsFolder string
 	validator     providers.IValidatorProvider
+	logger        *log.Logger
 
 	loadedPlugins map[string]func() (interface{}, interface{}, error)
 }
@@ -61,6 +60,7 @@ func NewPluginLoader(ctor *ConstructPluginLoader) providers.IPluginLoaderProvide
 		pluginsFolder: loc,
 		validator:     ctor.Validator,
 		loadedPlugins: make(map[string]func() (interface{}, interface{}, error)),
+		logger:        log.New(os.Stdout, "plugins", log.LstdFlags),
 	}
 
 	return &loader
@@ -206,14 +206,15 @@ func (l *pluginLoader) getActualFileName(pluginKey string) string {
 
 // Downloads plugin from bintray CDN.
 func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
+
 	name := strings.Replace(pluginKey, "/", "_", -1)
 	name = fmt.Sprintf("%s-%s.so", name, Version)
-	println("Downloading " + name)
+	l.logger.Println("Downloading " + name)
 
 	os.MkdirAll(filepath.Dir(actualName), os.ModePerm)
 	out, err := os.Create(actualName)
 	if err != nil {
-		println("Failed to load " + name + ": " + err.Error())
+		l.logger.Println("Failed to load " + name + ": " + err.Error())
 		return err
 	}
 
@@ -221,14 +222,14 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 	downloadURL := fmt.Sprintf(PluginCDNUrlFormat, Arch, name)
 	res, err := http.Get(downloadURL)
 	if err != nil {
-		println("Failed to get " + downloadURL + ": " + err.Error())
+		l.logger.Println("Failed to get " + downloadURL + ": " + err.Error())
 		return err
 	}
 
 	defer res.Body.Close()
 	_, err = io.Copy(out, res.Body)
 	if err != nil {
-		println("Failed to save " + name + ": " + err.Error())
+		l.logger.Println("Failed to save " + name + ": " + err.Error())
 	}
 
 	return err

@@ -1,11 +1,12 @@
 package utils
 
 import (
-	"testing"
-	"time"
-	"github.com/go-home-io/server/plugins/device/enums"
 	"fmt"
 	"os"
+	"testing"
+	"time"
+
+	"github.com/go-home-io/server/plugins/device/enums"
 )
 
 // Tests that we're returning current time.

@@ -14,7 +14,7 @@ type ISecret interface {
 	UpdateLogger(common.ILoggerProvider)
 }
 
-// InitDataSecret has data required for initializing a new secret store.
+// InitDataSecret has data required for initializing of a new secret store.
 type InitDataSecret struct {
 	Options map[string]string
 	Logger  common.ILoggerProvider

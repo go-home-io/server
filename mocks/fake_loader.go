@@ -1,8 +1,11 @@
+//+build !release
+
 package mocks
 
 import (
-	"github.com/go-home-io/server/providers"
 	"errors"
+
+	"github.com/go-home-io/server/providers"
 )
 
 type IFakePlugin interface {

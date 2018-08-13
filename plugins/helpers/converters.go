@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"errors"
+	"reflect"
 
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
@@ -36,9 +37,9 @@ func PropertyFixYaml(x interface{}, p enums.Property) (interface{}, error) {
 		return r, nil
 	case enums.PropBrightness:
 		return convertValueProperty(x, &common.Percent{})
+	default:
+		return convertProperty(x, &common.Float{})
 	}
-
-	return x, nil
 }
 
 // PropertyDeepEqual uses some extended rules for different common types.
@@ -86,7 +87,7 @@ func convertProperty(from, to interface{}) (interface{}, error) {
 		return nil, err
 	}
 	err = yaml.Unmarshal(data, to)
-	return to, err
+	return reflect.ValueOf(to).Elem().Interface(), err
 }
 
 // UnmarshalProperty returns type used by property from it's map[{interface}]interface{}
@@ -103,7 +104,7 @@ func UnmarshalProperty(x interface{}, p enums.Property) (interface{}, error) {
 		return convertProperty(x, &common.Percent{})
 	case enums.PropColor:
 		return convertProperty(x, &common.Color{})
+	default:
+		return convertProperty(x, &common.Float{})
 	}
-
-	return x, nil
 }

@@ -25,6 +25,7 @@ type ISettingsProvider interface {
 	ExtendedAPIs() []*RawMasterComponent
 	Groups() []*RawMasterComponent
 	FanOut() IInternalFanOutProvider
+	Storage() IStorageProvider
 }
 
 // RawDeviceSelector has data required for understanding

@@ -104,11 +104,11 @@ func getLogLevel(rawConfig []byte) logger.LogLevel {
 	}
 
 	switch strings.ToLower(s.Level) {
-	case "debug":
+	case "debug", "dbg":
 		return logger.Debug
 	case "warn", "warning":
 		return logger.Warning
-	case "error":
+	case "error", "err":
 		return logger.Error
 	}
 
