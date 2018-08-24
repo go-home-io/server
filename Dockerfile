@@ -42,7 +42,7 @@ ENV VERSION=${TRAVIS_TAG}
 
 ARG GOARM
 RUN mkdir -p /app && \
-    VERSION=${VERSION} GOARM=${GOARM} GOARCH=${GOARCH} make generate
+    VERSION=${VERSION} GOARM=${GOARM} GOARCH=${GOARCH} make generate && \
     VERSION=${VERSION} GOARM=${GOARM} GOARCH=${GOARCH} make BIN_FOLDER=/app build
 
 ARG LINT
