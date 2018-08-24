@@ -3,6 +3,7 @@ GO_BIN_FOLDER=$(GOPATH)/bin
 GOCMD=GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER) GO111MODULE=on go
 
 GOGET=$(GOCMD) get
+GOGET_NO_MOD=GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER) GO111MODULE=off go get
 GOBUILD=$(GOCMD) build -ldflags="-s -w"
 GOGENERATE=$(GOCMD) generate
 
@@ -112,7 +113,7 @@ utilities-build:
 	$(GOGET) github.com/rakyll/statik
 
 utilities-ci:
-	$(GOGET) gopkg.in/alecthomas/gometalinter.v2
+	$(GOGET_NO_MOD) gopkg.in/alecthomas/gometalinter.v2
 	$(METALINER) --install
 	$(GOGET) github.com/mattn/goveralls
 
