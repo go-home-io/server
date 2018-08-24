@@ -10,9 +10,9 @@ import (
 // PropertySave converts actual property before storing into the database.
 func PropertySave(property enums.Property, value interface{}) (interface{}, error) {
 	switch property {
-	case enums.PropScenes:
+	case enums.PropScenes, enums.PropSensorType:
 		return nil, nil
-	case enums.PropOn:
+	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
 		return value, nil
 	case enums.PropBrightness:
 		return value.(common.Percent).Value, nil

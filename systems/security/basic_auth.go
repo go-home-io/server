@@ -38,20 +38,7 @@ func (b *basicAuthProvider) Init(data *user.InitDataUserStorage) error {
 // Authorize validates default basic auth header against loaded file.
 // If user is not found, falls back to system's secret store.
 func (b *basicAuthProvider) Authorize(headers map[string][]string) (username string, err error) {
-	var auth []string
-
-	for k, v := range headers {
-		if k != "Authorization" {
-			continue
-		}
-
-		if 1 != len(v) {
-			continue
-		}
-
-		auth = strings.SplitN(v[0], " ", 2)
-		break
-	}
+	auth := strings.SplitN(getAuth(headers), " ", 2)
 
 	if 2 != len(auth) || "Basic" != auth[0] {
 		b.logger.Warn("No Basic Auth header found")
@@ -110,4 +97,47 @@ func (b *basicAuthProvider) readFile(name string) bool {
 	}
 
 	return true
+}
+
+// Returns authentication info ether from header or from cookie.
+func getAuth(headers map[string][]string) string {
+	for k, v := range headers {
+		if "Cookie" == k {
+			auth := getAuthFromCookie(v)
+			if "" != auth {
+				return auth
+			}
+		}
+
+		if k != "Authorization" || 1 != len(v) {
+			continue
+		}
+
+		return v[0]
+	}
+
+	return ""
+}
+
+// Returns X-Authorization cookie if present.
+func getAuthFromCookie(cookies []string) string {
+	const cookieName = "x-authorization"
+	for _, v := range cookies {
+		p := strings.Split(v, ";")
+		for _, kv := range p {
+			kv = strings.TrimSpace(kv)
+			if len(cookieName) >= len(kv) || strings.ToLower(kv[0:len(cookieName)]) != cookieName {
+				continue
+			}
+
+			parts := strings.SplitN(kv, "=", 2)
+			if len(parts) != 2 {
+				continue
+			}
+
+			return parts[1]
+		}
+	}
+
+	return ""
 }

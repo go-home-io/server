@@ -11,13 +11,15 @@ import (
 // Contains data about known locations.
 type knownLocation struct {
 	Name    string   `json:"name"`
+	Icon    string   `json:"icon"`
 	Devices []string `json:"devices"`
 }
 
 // Contains data about known groups.
 type knownGroup struct {
-	knownLocation
-	ID string `json:"id"`
+	Name    string   `json:"name"`
+	Devices []string `json:"devices"`
+	ID      string   `json:"id"`
 }
 
 // Contains server state required UI to start.

@@ -16,6 +16,7 @@ import (
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
+	"github.com/mholt/archiver"
 	"gopkg.in/yaml.v2"
 )
 
@@ -86,7 +87,7 @@ func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interfa
 	if err != nil {
 		// We want to delete failed plugin
 		os.Remove(fileName)
-		return nil, errors.New("didn't find plugin file")
+		return nil, err
 	}
 
 	LoadSymbol, err := p.Lookup(PluginEntryPointMethodName)
@@ -206,31 +207,40 @@ func (l *pluginLoader) getActualFileName(pluginKey string) string {
 
 // Downloads plugin from bintray CDN.
 func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
-
 	name := strings.Replace(pluginKey, "/", "_", -1)
-	name = fmt.Sprintf("%s-%s.so", name, Version)
-	l.logger.Println("Downloading " + name)
+	name = fmt.Sprintf("%s-%s.so.tar.gz", name, Version)
 
-	os.MkdirAll(filepath.Dir(actualName), os.ModePerm)
-	out, err := os.Create(actualName)
+	archName := fmt.Sprintf("%s.tar.gz", actualName)
+	if _, err := os.Stat(archName); err != nil {
+		l.logger.Println("Downloading " + name)
+		os.MkdirAll(filepath.Dir(actualName), os.ModePerm)
+		out, err := os.Create(archName)
+		if err != nil {
+			l.logger.Println("Failed to load " + name + ": " + err.Error())
+			return err
+		}
+
+		defer out.Close()
+		downloadURL := fmt.Sprintf(PluginCDNUrlFormat, Arch, name)
+		res, err := http.Get(downloadURL)
+		if err != nil {
+			l.logger.Println("Failed to get " + downloadURL + ": " + err.Error())
+			return err
+		}
+
+		defer res.Body.Close()
+		_, err = io.Copy(out, res.Body)
+		if err != nil {
+			l.logger.Println("Failed to save " + name + ": " + err.Error())
+		}
+	}
+
+	err := archiver.TarGz.Open(archName, filepath.Dir(actualName))
 	if err != nil {
-		l.logger.Println("Failed to load " + name + ": " + err.Error())
+		os.Remove(archName)
+
 		return err
 	}
 
-	defer out.Close()
-	downloadURL := fmt.Sprintf(PluginCDNUrlFormat, Arch, name)
-	res, err := http.Get(downloadURL)
-	if err != nil {
-		l.logger.Println("Failed to get " + downloadURL + ": " + err.Error())
-		return err
-	}
-
-	defer res.Body.Close()
-	_, err = io.Copy(out, res.Body)
-	if err != nil {
-		l.logger.Println("Failed to save " + name + ": " + err.Error())
-	}
-
-	return err
+	return nil
 }

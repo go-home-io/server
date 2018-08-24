@@ -7,13 +7,14 @@ import (
 
 // Known devices, received from workers.
 type knownDevice struct {
-	ID       string                 `json:"id"`
-	Name     string                 `json:"name"`
-	Worker   string                 `json:"worker"`
-	Type     enums.DeviceType       `json:"type"`
-	State    map[string]interface{} `json:"state"`
-	LastSeen int64                  `json:"last_seen"`
-	Commands []string               `json:"commands"`
+	ID         string                 `json:"id"`
+	Name       string                 `json:"name"`
+	Worker     string                 `json:"worker"`
+	Type       enums.DeviceType       `json:"type"`
+	State      map[string]interface{} `json:"state"`
+	LastSeen   int64                  `json:"last_seen"`
+	Commands   []string               `json:"commands"`
+	IsReadOnly bool                   `json:"read_only"`
 }
 
 // Get validates whether user can see this device.

@@ -16,6 +16,7 @@ type location struct {
 	sync.Mutex
 
 	name      string
+	icon      string
 	devices   []string
 	unmatched []string
 
@@ -36,9 +37,15 @@ func (l *location) ID() string {
 	return l.name
 }
 
+// Icon returns user-defined icon.
+func (l *location) Icon() string {
+	return l.icon
+}
+
 // Groups settings.
 type locationSettings struct {
 	Name    string   `yaml:"name"`
+	Icon    string   `yaml:"icon"`
 	Devices []string `yaml:"devices"`
 }
 
@@ -63,6 +70,7 @@ func NewLocationProvider(ctor *ConstructLocation) (providers.ILocationProvider, 
 		unmatched:  make([]string, 0),
 		name:       settings.Name,
 		devicesExp: make([]glob.Glob, 0),
+		icon:       settings.Icon,
 	}
 
 	for _, v := range settings.Devices {

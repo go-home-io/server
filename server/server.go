@@ -1,3 +1,5 @@
+//go:generate statik -src=./../public -f
+
 // Package server contains go-home server.
 package server
 
@@ -18,7 +20,13 @@ import (
 	"github.com/go-home-io/server/systems/group"
 	"github.com/go-home-io/server/systems/trigger"
 	"github.com/go-home-io/server/systems/ui"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
+	"github.com/rakyll/statik/fs"
+
+	// Importing statik auto-generated files.
+	_ "github.com/go-home-io/server/server/statik"
 )
 
 const (
@@ -31,8 +39,7 @@ type GoHomeServer struct {
 	Settings      providers.ISettingsProvider
 	Logger        common.ILoggerProvider
 	MessageParser bus.IMasterMessageParserProvider
-
-	incomingChan chan busPlugin.RawMessage
+	incomingChan  chan busPlugin.RawMessage
 
 	state IServerStateProvider
 
@@ -40,6 +47,8 @@ type GoHomeServer struct {
 	extendedAPIs []providers.IExtendedAPIProvider
 	groups       map[string]providers.IGroupProvider
 	locations    []providers.ILocationProvider
+
+	wsSettings websocket.Upgrader
 }
 
 // NewServer constructs a new master server.
@@ -66,10 +75,20 @@ func (s *GoHomeServer) Start() {
 	s.startGroups()
 	s.startLocations()
 
+	s.wsSettings = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool {
+		return true
+	}}
 	router := mux.NewRouter()
 	s.registerAPI(router)
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%d", s.Settings.MasterSettings().Port), router)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", s.Settings.MasterSettings().Port),
+			handlers.CORS(
+				handlers.AllowedOrigins([]string{"*"}),
+				handlers.AllowedMethods([]string{http.MethodGet, http.MethodPost}),
+				handlers.AllowedHeaders([]string{"Accept-Encoding", "Content-Type", "Connection",
+					"Host", "Origin", "User-Agent", "Referer", "Authorization"}),
+				handlers.AllowCredentials(),
+			)(router))
 		if err != nil {
 			s.Logger.Fatal("Failed to start server", err, common.LogSystemToken, logSystem)
 		}
@@ -124,10 +143,16 @@ func (s *GoHomeServer) PushMasterDeviceUpdate(update *providers.MasterDeviceUpda
 
 // All API registration.
 func (s *GoHomeServer) registerAPI(router *mux.Router) {
+	sFS, err := fs.New()
+	if err != nil {
+		s.Logger.Fatal("Failed to enable statik", err)
+	}
+
 	publicRouter := router.PathPrefix("/pub").Subrouter()
 	publicRouter.HandleFunc("/ping", s.ping).Methods(http.MethodGet)
 
 	apiRouter := router.PathPrefix(routeAPI).Subrouter()
+	apiRouter.HandleFunc("/ws", s.handleWS)
 	apiRouter.HandleFunc("/device", s.getDevices).Methods(http.MethodGet)
 	apiRouter.HandleFunc(fmt.Sprintf("/state/{%s}", urlDeviceID),
 		s.getStateHistory).Methods(http.MethodGet)
@@ -138,6 +163,8 @@ func (s *GoHomeServer) registerAPI(router *mux.Router) {
 
 	apiRouter.Use(s.logMiddleware)
 	router.Use(s.authMiddleware)
+
+	router.PathPrefix("/").Handler(http.FileServer(sFS))
 
 	s.startAPI(router, apiRouter)
 }

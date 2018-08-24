@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
@@ -75,9 +76,13 @@ func (s *GoHomeServer) commandInvokeDeviceCommand(user *providers.AuthenticatedU
 	if len(data) > 0 {
 		err := json.Unmarshal(data, &inputData)
 		if err != nil {
-			s.Logger.Error("Failed to unmarshal input request", err,
-				common.LogSystemToken, logSystem)
-			return errors.New("bad request data")
+			data = []byte(fmt.Sprintf(`{ "value" : %s  }`, string(data)))
+			err := json.Unmarshal(data, &inputData)
+			if err != nil {
+				s.Logger.Error("Failed to unmarshal input request", err,
+					common.LogSystemToken, logSystem)
+				return errors.New("bad request data")
+			}
 		}
 	}
 
@@ -114,7 +119,17 @@ func (s *GoHomeServer) commandGetAllDevices(user *providers.AuthenticatedUser) [
 
 	for _, v := range s.state.GetAllDevices() {
 		if v.Get(user) {
-			allowedDevices = append(allowedDevices, v)
+			d := &knownDevice{
+				ID:         v.ID,
+				Type:       v.Type,
+				State:      v.State,
+				Name:       v.Name,
+				Worker:     v.Worker,
+				Commands:   v.Commands,
+				LastSeen:   v.LastSeen,
+				IsReadOnly: !v.Command(user),
+			}
+			allowedDevices = append(allowedDevices, d)
 		}
 	}
 
@@ -137,10 +152,8 @@ func (s *GoHomeServer) commandGetAllGroups(user *providers.AuthenticatedUser) []
 
 		group := &knownGroup{
 			ID: v.ID,
-			knownLocation: knownLocation{
-				Name:    v.Name,
-				Devices: make([]string, 0),
-			},
+			Name:    v.Name,
+			Devices: make([]string, 0),
 		}
 
 		for _, dev := range g.Devices() {
@@ -173,6 +186,7 @@ func (s *GoHomeServer) commandGetAllLocations(user *providers.AuthenticatedUser)
 	for _, v := range s.locations {
 		location := &knownLocation{
 			Name:    v.ID(),
+			Icon:    v.Icon(),
 			Devices: make([]string, 0),
 		}
 

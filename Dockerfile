@@ -1,5 +1,20 @@
 ARG BUILD_IMAGE
 ARG RUN_IMAGE
+ARG NODE_IMAGE
+FROM $NODE_IMAGE as node
+
+ENV UI=https://github.com/nicknesk/gohome-prototype-react
+
+WORKDIR /
+
+RUN apk update && apk add git && \
+    git clone ${UI} dashboard && \
+    cd dashboard && \
+    npm i && \
+    npm run build
+
+##################################################################################################
+
 FROM $BUILD_IMAGE as build
 
 
@@ -9,6 +24,7 @@ ENV PROVIDERS=https://github.com/go-home-io/providers.git \
 WORKDIR ${HOME_DIR}
 
 COPY . .
+COPY --from=node /dashboard/build/* ./public/
 
 RUN apk update && apk add make git gcc libc-dev ca-certificates && \
     make utilities-build && \
@@ -16,8 +32,7 @@ RUN apk update && apk add make git gcc libc-dev ca-certificates && \
     mkdir -p src/github.com/go-home-io && \
     cd src/github.com/go-home-io && \
     git clone ${PROVIDERS} && \
-    cd ${HOME_DIR} && \
-    make dep
+    cd ${HOME_DIR}
 
 ARG GOARCH
 ENV GOARCH=${GOARCH}
@@ -27,6 +42,7 @@ ENV VERSION=${TRAVIS_TAG}
 
 ARG GOARM
 RUN mkdir -p /app && \
+    VERSION=${VERSION} GOARM=${GOARM} GOARCH=${GOARCH} make generate
     VERSION=${VERSION} GOARM=${GOARM} GOARCH=${GOARCH} make BIN_FOLDER=/app build
 
 ARG LINT

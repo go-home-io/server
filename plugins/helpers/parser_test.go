@@ -157,6 +157,12 @@ func TestParse(t *testing.T) {
 			expectedResult: "on",
 		},
 		{
+			expression: "'generic'",
+			params: map[string]interface{}{},
+			property:       111,
+			expectedResult: "generic",
+		},
+		{
 			expression: "fmt('r:%v,g:%v,b:%v', state.Color.R, state.Color.G, state.Color.B)",
 			params: map[string]interface{}{"state": &device.LightState{
 				On: true,

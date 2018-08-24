@@ -1,14 +1,15 @@
 package security
 
 import (
-	"testing"
-	"github.com/go-home-io/server/plugins/user"
-	"github.com/go-home-io/server/mocks"
-	"os"
-	"fmt"
-	"github.com/go-home-io/server/utils"
-	"io/ioutil"
 	"encoding/base64"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"testing"
+
+	"github.com/go-home-io/server/mocks"
+	"github.com/go-home-io/server/plugins/user"
+	"github.com/go-home-io/server/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -34,6 +35,14 @@ func getAuthHeader(usr, pwd string) map[string][]string {
 
 	return map[string][]string{"Authorization": {
 		fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(pair)))}}
+}
+
+func getCookieHeader(usr, pwd string) map[string][]string {
+	pair := fmt.Sprintf("%s:%s", usr, pwd)
+
+	return map[string][]string{"Cookie": {
+		fmt.Sprintf("Wrong=Data;X-Authorization;X-Authorization=Basic %s",
+			base64.StdEncoding.EncodeToString([]byte(pair)))}}
 }
 
 func getFileRecord(usr, pwd string) string {
@@ -85,8 +94,7 @@ func TestNoBase64Header(t *testing.T) {
 func TestIncorrectAuthHeader(t *testing.T) {
 	prov := basicAuthProvider{}
 	prov.Init(getInitData(nil, nil))
-	_, err := prov.Authorize(map[string][]string{"Authorization":
-	{"Basic " + base64.StdEncoding.EncodeToString([]byte("Wrong header"))}})
+	_, err := prov.Authorize(map[string][]string{"Authorization": {"Basic " + base64.StdEncoding.EncodeToString([]byte("Wrong header"))}})
 	if err.Error() != "wrong header" {
 		t.Fail()
 	}
@@ -126,7 +134,7 @@ func TestIncorrectFIleFormat(t *testing.T) {
 func TestUserFromSecret(t *testing.T) {
 	prov := basicAuthProvider{}
 	prov.Init(getInitData(nil, map[string]string{"user1": "123"}))
-	usr, err := prov.Authorize(getAuthHeader("user1", "123"))
+	usr, err := prov.Authorize(getCookieHeader("user1", "123"))
 	if err != nil || usr != "user1" {
 		t.Fail()
 	}

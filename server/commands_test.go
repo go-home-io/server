@@ -24,7 +24,7 @@ func TestDeviceOperation(t *testing.T) {
 	}, nil, nil)
 	state := newServerState(s)
 	state.KnownDevices = map[string]*knownDevice{
-		"dev1":   {ID: "dev1", Commands: []string{enums.CmdOn.String()}, Worker: "1"},
+		"dev1":   {ID: "dev1", Commands: []string{enums.CmdOn.String(), enums.CmdSetBrightness.String()}, Worker: "1"},
 		"device": {ID: "device", Commands: []string{enums.CmdOn.String()}, Worker: "2"},
 		"g1":     {ID: "g1", Type: enums.DevGroup, Commands: []string{enums.CmdOn.String()}, Worker: "1"},
 	}
@@ -66,6 +66,12 @@ func TestDeviceOperation(t *testing.T) {
 
 	worker1 = false
 	worker2 = false
+
+	err = srv.commandInvokeDeviceCommand(user, "dev1", "set-brightness", []byte("20"))
+
+	if err != nil || !worker1 {
+		t.Fail()
+	}
 
 	err = srv.commandInvokeDeviceCommand(user, "device", "on", []byte(""))
 	if err == nil || worker2 {

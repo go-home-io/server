@@ -1,14 +1,13 @@
 # Go params
 GO_BIN_FOLDER=$(GOPATH)/bin
-GOCMD=GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER) go
+GOCMD=GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER) GO111MODULE=on go
 
 GOGET=$(GOCMD) get
-#GOBUILD=$(GOCMD) build -race
 GOBUILD=$(GOCMD) build -ldflags="-s -w"
 GOGENERATE=$(GOCMD) generate
 
 METALINER=$(GO_BIN_FOLDER)/gometalinter.v2
-DEP=$(GO_BIN_FOLDER)/dep ensure
+DEP=$(GOCMD) mod tidy
 GLIDE=$(GO_BIN_FOLDER)/glide install
 GOVERALLS=$(GO_BIN_FOLDER)/goveralls
 
@@ -39,10 +38,10 @@ define build_plugins_task =
 	done;
 endef
 
-define restore_dependencies =
+define validate_dependencies =
 	set -e
 	echo "======================================="
-	echo "Restoring server"
+	echo "Validating server"
 	echo "======================================="
 	$(DEP)
 	cd $(PLUGINS_LOCATION)
@@ -52,7 +51,7 @@ define restore_dependencies =
 				if [ -d "$${plugin}" ]; then
 					cd $${plugin}
 					echo "======================================="
-					echo "Restoring $${plugin}"
+					echo "Validating $${plugin}"
 					echo "======================================="
 					if [ -f ./glide.yaml ]; then
 						$(GLIDE)
@@ -90,9 +89,10 @@ define lint_all =
 endef
 
 utilities-build:
-	$(GOGET) github.com/Masterminds/glide
-	$(GOGET) github.com/golang/dep/cmd/dep
+#	$(GOGET) github.com/Masterminds/glide
+#	$(GOGET) github.com/golang/dep/cmd/dep
 	$(GOGET) github.com/alvaroloes/enumer
+	$(GOGET) github.com/rakyll/statik
 
 utilities-ci:
 	$(GOGET) gopkg.in/alecthomas/gometalinter.v2
@@ -112,8 +112,8 @@ generate:
 	@cd $(PLUGINS_LOCATION)
 	$(GOGENERATE) -v ./...
 
-run-server: build
-	$(BIN_NAME) --configs=${CURDIR}/config --plugins=${CURDIR}/bin/plugins
+run-server:
+	$(BIN_NAME) -c provider:fs -c location:${CURDIR}/configs -p ${CURDIR}/bin/plugins
 
 run-worker: build
 	$(BIN_NAME) -c provider:fs -c location:${CURDIR}/configs -p ${CURDIR}/bin/plugins -w
@@ -121,7 +121,7 @@ run-worker: build
 test:
 	@set -e
 	$(GOCMD) test -failfast --covermode=count -coverprofile=$(BIN_FOLDER)/cover.out.tmp ./...
-	@cat $(BIN_FOLDER)/cover.out.tmp | grep -v "fake_" | grep -v "_enumer" | grep -v "mocks" | grep -v "server/api_" > $(BIN_FOLDER)/cover.out
+	@cat $(BIN_FOLDER)/cover.out.tmp | grep -v "fake_" | grep -v "_enumer" | grep -v "mocks" | grep -v "public" | grep -v "statik" | grep -v "server/api_" > $(BIN_FOLDER)/cover.out
 	@rm -f $(BIN_FOLDER)/cover.out.tmp
 
 test-local: test
@@ -135,7 +135,7 @@ build-plugins:
 .ONESHELL:
 SHELL = /bin/sh
 dep:
-	$(restore_dependencies)
+	$(validate_dependencies)
 
 .ONESHELL:
 SHELL = /bin/sh

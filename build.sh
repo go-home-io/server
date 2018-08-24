@@ -18,6 +18,7 @@ docker_build(){
           --build-arg TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST} \
           --build-arg BUILD_IMAGE=${BUILD_IMAGE} \
           --build-arg RUN_IMAGE=${RUN_IMAGE} \
+          --build-arg NODE_IMAGE=${NODE_IMAGE} \
           --build-arg LINT=${LINT} \
           --build-arg GOARCH=${GOARCH} \
           --build-arg GOARM=${GOARM} \
@@ -45,8 +46,9 @@ build_arm32v6_cached(){
 }
 
 build_amd64(){
-    BUILD_IMAGE=golang:1.11beta1-alpine3.8
+    BUILD_IMAGE=golang:1.11rc2-alpine3.8
     RUN_IMAGE=alpine:3.8
+    NODE_IMAGE=node:8.11.4-alpine
     LINT=false
     ARCH=amd64
     GOARCH=amd64
@@ -56,8 +58,9 @@ build_amd64(){
 }
 
 build_arm32v6(){
-    BUILD_IMAGE=arm32v6/golang:1.11beta1-alpine3.8
+    BUILD_IMAGE=arm32v6/golang:1.11rc2-alpine3.8
     RUN_IMAGE=arm32v6/alpine:3.8
+    NODE_IMAGE=arm32v6/node:8.11.4-alpine
     LINT=false
     ARCH=arm32v6
     GOARCH=arm
@@ -91,6 +94,7 @@ case ${op} in
 ci*)
     BUILD_IMAGE=golang:1.11beta1-alpine3.8
     RUN_IMAGE=alpine:3.8
+    NODE_IMAGE=node:8.11.4-alpine
     LINT=true
     ARCH=ci
 

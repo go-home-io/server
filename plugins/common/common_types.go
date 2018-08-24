@@ -1,11 +1,33 @@
 // Package common contains shared data available for all plugins.
 package common
 
+import "image/color"
+
 // Color defines color parameter type.
 type Color struct {
-	R uint8 `json:"r" validate:"required" yaml:"r"`
-	G uint8 `json:"g" validate:"required" yaml:"g"`
-	B uint8 `json:"b" validate:"required" yaml:"b"`
+	R uint8 `json:"r" yaml:"r"`
+	G uint8 `json:"g" yaml:"g"`
+	B uint8 `json:"b" yaml:"b"`
+}
+
+// NewColor creates a color from a system color
+func NewColor(color color.Color) Color {
+	r, g, b, _ := color.RGBA()
+	return Color{
+		R: uint8(r),
+		G: uint8(g),
+		B: uint8(b),
+	}
+}
+
+// Color returns system color
+func (c *Color) Color() color.Color {
+	return color.RGBA{
+		R: c.R,
+		G: c.G,
+		B: c.B,
+		A: 0,
+	}
 }
 
 // Int defines simple integer parameter type.

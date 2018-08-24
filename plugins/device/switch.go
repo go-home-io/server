@@ -14,7 +14,8 @@ type ISwitch interface {
 
 // SwitchState returns information about known switch.
 type SwitchState struct {
-	On bool `json:"on"`
+	On    bool    `json:"on"`
+	Power float64 `json:"power"`
 }
 
 // TypeSwitch is a syntax sugar around ISwitch type.

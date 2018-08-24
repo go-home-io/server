@@ -38,14 +38,23 @@ const (
 	PropWindDirection
 	// PropWindSpeed describes wind speed.
 	PropWindSpeed
+	// PropClick describes single click button.
+	PropClick
+	// PropDoubleClick describes double click button.
+	PropDoubleClick
+	// PropPress describes long press button.
+	PropPress
+	// PropSensorType describes possible sensor type.
+	PropSensorType
 )
 
 // AllowedProperties contains set of all possible allowed properties per device type.
 var AllowedProperties = map[DeviceType][]Property{
 	DevHub:    {PropNumDevices},
 	DevLight:  {PropOn, PropColor, PropTransitionTime, PropBrightness, PropScenes},
-	DevSwitch: {PropOn},
-	DevSensor: {PropOn, PropBatteryLevel, PropPower, PropTemperature},
+	DevSwitch: {PropOn, PropPower},
+	DevSensor: {PropSensorType, PropOn, PropBatteryLevel, PropPower, PropTemperature, PropHumidity,
+		PropClick, PropDoubleClick, PropPress},
 	DevWeather: {PropTemperature, PropSunrise, PropSunset, PropHumidity, PropPressure,
 		PropVisibility, PropWindDirection, PropWindSpeed},
 }

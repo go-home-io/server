@@ -79,6 +79,7 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 	w := deviceWrapper{
 		Ctor:      ctor,
 		isPolling: false,
+		State:     make(map[string]interface{}),
 	}
 
 	w.Spec = ctor.DeviceInterface.(device.IDevice).GetSpec()
@@ -279,6 +280,7 @@ func (w *deviceWrapper) validateDeviceSpec(ctor *wrapperConstruct) {
 
 // Updates internal device state which is stored in wrapper.
 func (w *deviceWrapper) setState(deviceState interface{}) bool {
+
 	if nil == deviceState ||
 		reflect.ValueOf(deviceState).Kind() == reflect.Ptr && reflect.ValueOf(deviceState).IsNil() {
 		return false
@@ -297,7 +299,6 @@ func (w *deviceWrapper) setState(deviceState interface{}) bool {
 		rv = rv.Elem()
 	}
 
-	w.State = make(map[string]interface{}, rt.NumField())
 	for ii := 0; ii < rt.NumField(); ii++ {
 		field := rt.Field(ii)
 		jsonKey := field.Tag.Get("json")
@@ -312,11 +313,8 @@ func (w *deviceWrapper) setState(deviceState interface{}) bool {
 			continue
 		}
 
-		if !enums.SliceContainsProperty(w.Spec.SupportedProperties, prop) {
-			continue
-		}
-
-		if !enums.SliceContainsProperty(allowedProps, prop) {
+		if !enums.SliceContainsProperty(w.Spec.SupportedProperties, prop) ||
+			!enums.SliceContainsProperty(allowedProps, prop) {
 			continue
 		}
 
@@ -435,9 +433,7 @@ func (w *deviceWrapper) startDeviceListeners() {
 func (w *deviceWrapper) processUpdate(state interface{}) {
 	w.Ctor.Logger.Debug("Received update for the device", common.LogDeviceTypeToken,
 		w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
-
 	w.setState(state)
-
 	w.Ctor.StatusUpdatesChan <- &UpdateEvent{
 		ID: w.ID(),
 	}
@@ -445,8 +441,7 @@ func (w *deviceWrapper) processUpdate(state interface{}) {
 
 // Processing discovery message from hub provider plugin.
 func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
-	w.Ctor.Logger.Info("Discovered a new device", common.LogDeviceTypeToken,
-		w.Ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
+	w.Ctor.Logger.Info("Discovered a new device", common.LogDeviceTypeToken, d.Type.String())
 
 	subLoadData := &device.InitDataDevice{
 		Logger:                w.Ctor.Logger,
@@ -477,18 +472,23 @@ func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
 		Cron:              w.Ctor.Cron,
 		DeviceConfigName:  w.Ctor.DeviceConfigName,
 		DeviceState:       d.State,
-		LoadData:          w.Ctor.LoadData,
+		LoadData:          subLoadData,
 		Logger:            w.Ctor.Logger,
 		Secret:            w.Ctor.Secret,
 		WorkerID:          w.Ctor.WorkerID,
 		DiscoveryChan:     w.Ctor.DiscoveryChan,
 		StatusUpdatesChan: w.Ctor.StatusUpdatesChan,
 		UOM:               w.Ctor.UOM,
+		Validator:         w.Ctor.Validator,
 	}
 
 	wrapper := NewDeviceWrapper(ctor)
 
 	w.Ctor.DiscoveryChan <- &NewDeviceDiscoveredEvent{
 		Provider: wrapper,
+	}
+
+	subLoadData.DeviceStateUpdateChan <- &device.StateUpdateData{
+		State: d.State,
 	}
 }

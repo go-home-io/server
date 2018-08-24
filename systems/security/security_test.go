@@ -2,6 +2,7 @@ package security
 
 import (
 	"testing"
+
 	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/providers"
 )
@@ -45,8 +46,8 @@ func getFakeProvider(usr string) providers.ISecurityProvider {
 				Name: "2",
 				Rules: []providers.SecRoleRule{
 					{
-						System:    providers.SecSystemDevice.String(),
-						Verbs:     []providers.SecVerb{providers.SecVerbCommand,
+						System: providers.SecSystemDevice.String(),
+						Verbs: []providers.SecVerb{providers.SecVerbCommand,
 							providers.SecVerbHistory, providers.SecVerbGet},
 						Resources: []string{"res*"},
 					},
@@ -178,7 +179,7 @@ func TestIncorrectUsers(t *testing.T) {
 func TestUserNotFound(t *testing.T) {
 	prov := getFakeProvider("")
 	_, err := prov.GetUser(nil)
-	if err == nil  {
+	if err == nil {
 		t.Fail()
 	}
 }

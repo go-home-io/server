@@ -28,7 +28,9 @@ func PropertyFixYaml(x interface{}, p enums.Property) (interface{}, error) {
 	switch p {
 	case enums.PropColor:
 		return convertProperty(x, &common.Color{})
-	case enums.PropOn:
+	case enums.PropScenes, enums.PropSensorType:
+		return x, nil
+	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
 		r, ok := x.(bool)
 		if !ok {
 			return nil, errors.New("error converting bool")
@@ -38,7 +40,7 @@ func PropertyFixYaml(x interface{}, p enums.Property) (interface{}, error) {
 	case enums.PropBrightness:
 		return convertValueProperty(x, &common.Percent{})
 	default:
-		return convertProperty(x, &common.Float{})
+		return convertValueProperty(x, &common.Float{})
 	}
 }
 
@@ -46,7 +48,7 @@ func PropertyFixYaml(x interface{}, p enums.Property) (interface{}, error) {
 // For example we don't care about scenes updates, so it's always true.
 func PropertyDeepEqual(x, y interface{}, p enums.Property) bool {
 	switch p {
-	case enums.PropScenes:
+	case enums.PropScenes, enums.PropSensorType:
 		// No updates for scenes
 		return true
 	default:
@@ -98,7 +100,7 @@ func UnmarshalProperty(x interface{}, p enums.Property) (interface{}, error) {
 	}
 
 	switch p {
-	case enums.PropOn:
+	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
 		return x.(bool), nil
 	case enums.PropBrightness:
 		return convertProperty(x, &common.Percent{})

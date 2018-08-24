@@ -21,6 +21,10 @@ func (f *fakeGroups) Devices() []string {
 	return f.devices
 }
 
+func (f *fakeGroups) Icon() string {
+	return ""
+}
+
 func (f *fakeGroups) InvokeCommand(enums.Command, map[string]interface{}) {
 	if nil != f.callback {
 		f.callback()

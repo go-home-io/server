@@ -128,6 +128,7 @@ func (s *serverState) Discovery(msg *bus.DiscoveryMessage) {
 func (s *serverState) Update(msg *bus.DeviceUpdateMessage) {
 	s.Logger.Debug("Received update for the device", common.LogDeviceTypeToken, msg.DeviceType.String(),
 		common.LogSystemToken, logSystem, common.LogDeviceNameToken, msg.DeviceID)
+
 	s.deviceMutex.Lock()
 	defer s.deviceMutex.Unlock()
 	firstOccurrence := false

@@ -42,6 +42,7 @@ func (c *fsConfig) Load() chan []byte {
 		if f.IsDir() {
 			return nil
 		}
+
 		fileList = append(fileList, path)
 		return nil
 	})

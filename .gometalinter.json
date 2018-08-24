@@ -32,7 +32,9 @@
     "fake_([a-zA-Z]+)",
     "mocks",
     "([a-zA-Z]+)_test.go",
-    "([a-zA-Z]+)_enumer.go"
+    "([a-zA-Z]+)_enumer.go",
+    "statik",
+    "public"
   ],
   "Deadline": "2m",
   "Cyclo": 13

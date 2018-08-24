@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mholt/archiver"
 	"github.com/vkorn/go-bintray/bintray"
 )
 
@@ -61,18 +62,27 @@ func main() {
 		ext := filepath.Ext(v)
 		name := v[0 : len(v)-len(ext)]
 		name = strings.Trim(name[len(targetFolder):], "/")
+		newName := fmt.Sprintf("%s/%s-%s.so", targetFolder, name, version)
+
 		name = strings.Replace(name, "/", "_", -1)
 		name = fmt.Sprintf("%s-%s.so", name, version)
-		logger.Println("Uploading " + name)
 
-		newName := fmt.Sprintf("%s/%s", targetFolder, name)
 		err = os.Rename(v, newName)
 		if err != nil {
 			logger.Fatal("Rename error: " + err.Error())
 		}
 
+		archName := fmt.Sprintf("%s/%s.tar.gz", targetFolder, name)
+
+		err = archiver.TarGz.Make(archName, []string{newName})
+		if err != nil {
+			logger.Fatal("Failed to archive the file: " + err.Error())
+		}
+
+		logger.Println("Uploading " + archName)
+
 		err = c.UploadFile("", arch, pkg, version,
-			"", "", newName, "?override=1", false)
+			"", "", archName, "?override=1", false)
 
 		if err != nil {
 			logger.Fatal("Upload error: " + err.Error())

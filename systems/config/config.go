@@ -28,10 +28,6 @@ type ConstructConfig struct {
 
 // NewConfigProvider constructs a new config provider.
 func NewConfigProvider(ctor *ConstructConfig) IConfigProvider {
-	if 0 == len(ctor.Options) {
-		return returnFsProvider(ctor)
-	}
-
 	requesterProvider, ok := ctor.Options[common.LogProviderToken]
 	if !ok || requesterProvider == "fs" {
 		return returnFsProvider(ctor)
