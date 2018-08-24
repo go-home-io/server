@@ -162,5 +162,5 @@ lint:
 	$(lint_all)
 
 .ONESHELL:
-dep_ensure:
+dep-ensure:
 	$(validate_dependencies)

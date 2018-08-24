@@ -57,7 +57,7 @@ ARG BINTRAY_API_USER
 ARG BINTRAY_API_KEY
 RUN if [ "${LINT}" != "false" ]; then \
         set -e && \
-        mkdir bin && \
+        mkdir -p bin && \
         make utilities-ci && \
         make lint && \
         make test && \

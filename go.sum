@@ -68,8 +68,8 @@ github.com/vkorn/go-bintray v0.0.0-20180801131521-627b4bc5e556 h1:a9WEoutqyHDVkI
 github.com/vkorn/go-bintray v0.0.0-20180801131521-627b4bc5e556/go.mod h1:BjbVAtTTx2WCtCdrGzRqV7ANJ5GgvhynQt0WZmVWBJU=
 golang.org/x/crypto v0.0.0-20180820150726-614d502a4dac h1:7d7lG9fHOLdL6jZPtnV4LpI41SbohIJ1Atq7U991dMg=
 golang.org/x/crypto v0.0.0-20180820150726-614d502a4dac/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
-golang.org/x/net v0.0.0-20180821023952-922f4815f713 h1:rMJUcaDGbG+X967I4zGKCq5laYqcGKJmpB+3jhpOhPw=
-golang.org/x/net v0.0.0-20180821023952-922f4815f713/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+golang.org/x/net v0.0.0-20180824045131-faa378e6dbae h1:wghBFWo7bWmJJ1nmDDkVEIOBJBT/KMgVsM1iqi/csro=
+golang.org/x/net v0.0.0-20180824045131-faa378e6dbae/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f h1:wMNYb4v58l5UBM7MYRLPG6ZhfOqbKu7X5eyFl8ZhKvA=
 golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sys v0.0.0-20180821140842-3b58ed4ad339 h1:0w2EXzxbB03VAzqwe3csbadu4CPhMRtxCz/rjw9gkic=

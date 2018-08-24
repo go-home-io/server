@@ -5,6 +5,9 @@ set -e
 op=$1
 IMAGE_NAME=gohomeio/server
 IMAGE_VERSION=${TRAVIS_TAG}
+GO_DOCKER=golang:1.11rc2-alpine3.8
+ALPINE_DOCKER=alpine:3.8
+NODE_DOCKER=node:8.11.4-alpine
 
 docker_login(){
     echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
@@ -46,9 +49,9 @@ build_arm32v6_cached(){
 }
 
 build_amd64(){
-    BUILD_IMAGE=golang:1.11rc2-alpine3.8
-    RUN_IMAGE=alpine:3.8
-    NODE_IMAGE=node:8.11.4-alpine
+    BUILD_IMAGE=${GO_DOCKER}
+    RUN_IMAGE=${ALPINE_DOCKER}
+    NODE_IMAGE=${NODE_DOCKER}
     LINT=false
     ARCH=amd64
     GOARCH=amd64
@@ -58,9 +61,9 @@ build_amd64(){
 }
 
 build_arm32v6(){
-    BUILD_IMAGE=arm32v6/golang:1.11rc2-alpine3.8
-    RUN_IMAGE=arm32v6/alpine:3.8
-    NODE_IMAGE=arm32v6/node:8.11.4-alpine
+    BUILD_IMAGE=arm32v6/${GO_DOCKER}
+    RUN_IMAGE=arm32v6/${ALPINE_DOCKER}
+    NODE_IMAGE=arm32v6/${NODE_DOCKER}
     LINT=false
     ARCH=arm32v6
     GOARCH=arm
@@ -92,9 +95,9 @@ build_manifest(){
 
 case ${op} in
 ci*)
-    BUILD_IMAGE=golang:1.11beta1-alpine3.8
-    RUN_IMAGE=alpine:3.8
-    NODE_IMAGE=node:8.11.4-alpine
+    BUILD_IMAGE=${GO_DOCKER}
+    RUN_IMAGE=${ALPINE_DOCKER}
+    NODE_IMAGE=${NODE_DOCKER}
     LINT=true
     ARCH=ci
 

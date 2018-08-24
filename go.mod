@@ -36,7 +36,7 @@ require (
 	github.com/ulikunitz/xz v0.5.4 // indirect
 	github.com/vkorn/go-bintray v0.0.0-20180801131521-627b4bc5e556
 	golang.org/x/crypto v0.0.0-20180820150726-614d502a4dac
-	golang.org/x/net v0.0.0-20180821023952-922f4815f713 // indirect
+	golang.org/x/net v0.0.0-20180824045131-faa378e6dbae // indirect
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
 	golang.org/x/sys v0.0.0-20180821140842-3b58ed4ad339 // indirect
 	golang.org/x/text v0.3.0 // indirect
