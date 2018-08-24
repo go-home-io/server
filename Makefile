@@ -7,8 +7,8 @@ GOBUILD=$(GOCMD) build -ldflags="-s -w"
 GOGENERATE=$(GOCMD) generate
 
 METALINER=$(GO_BIN_FOLDER)/gometalinter.v2
-DEP=$(GOCMD) mod tidy
-GLIDE=$(GO_BIN_FOLDER)/glide install
+MOD=$(GOCMD) mod tidy
+MOD_RESTORE=$(GOGET) -v -d ./...
 GOVERALLS=$(GO_BIN_FOLDER)/goveralls
 
 PLUGINS_LOCATION=$(GOPATH)/src/github.com/go-home-io/providers/
@@ -43,7 +43,7 @@ define validate_dependencies =
 	echo "======================================="
 	echo "Validating server"
 	echo "======================================="
-	$(DEP)
+	$(MOD)
 	cd $(PLUGINS_LOCATION)
 	for plugin_type in *; do
 		if [ -d "$${plugin_type}" ]; then
@@ -53,11 +53,30 @@ define validate_dependencies =
 					echo "======================================="
 					echo "Validating $${plugin}"
 					echo "======================================="
-					if [ -f ./glide.yaml ]; then
-						$(GLIDE)
-					else
-						$(DEP)
-					fi
+					$(MOD)
+					cd $(PLUGINS_LOCATION)
+				fi;
+			done;
+		fi;
+	done;
+endef
+
+define restore_dependencies =
+	set -e
+	echo "======================================="
+	echo "Validating server"
+	echo "======================================="
+	$(MOD_RESTORE)
+	cd $(PLUGINS_LOCATION)
+	for plugin_type in *; do
+		if [ -d "$${plugin_type}" ]; then
+			for plugin in $${plugin_type}/*; do
+				if [ -d "$${plugin}" ]; then
+					cd $${plugin}
+					echo "======================================="
+					echo "Validating $${plugin}"
+					echo "======================================="
+					$(MOD_RESTORE)
 					cd $(PLUGINS_LOCATION)
 				fi;
 			done;
@@ -89,8 +108,6 @@ define lint_all =
 endef
 
 utilities-build:
-#	$(GOGET) github.com/Masterminds/glide
-#	$(GOGET) github.com/golang/dep/cmd/dep
 	$(GOGET) github.com/alvaroloes/enumer
 	$(GOGET) github.com/rakyll/statik
 
@@ -127,6 +144,8 @@ test:
 test-local: test
 	$(GOCMD) tool cover --html=$(BIN_FOLDER)/cover.out
 
+git: dep_ensure generate lint test-local
+
 .ONESHELL:
 SHELL = /bin/sh
 build-plugins:
@@ -135,9 +154,13 @@ build-plugins:
 .ONESHELL:
 SHELL = /bin/sh
 dep:
-	$(validate_dependencies)
+	$(restore_dependencies)
 
 .ONESHELL:
 SHELL = /bin/sh
 lint:
 	$(lint_all)
+
+.ONESHELL:
+dep_ensure:
+	$(validate_dependencies)
