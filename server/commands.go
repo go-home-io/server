@@ -151,7 +151,7 @@ func (s *GoHomeServer) commandGetAllGroups(user *providers.AuthenticatedUser) []
 		}
 
 		group := &knownGroup{
-			ID: v.ID,
+			ID:      v.ID,
 			Name:    v.Name,
 			Devices: make([]string, 0),
 		}

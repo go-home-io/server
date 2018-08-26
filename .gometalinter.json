@@ -22,8 +22,8 @@
     "goconst",
     "unparam",
     "misspell",
+    "gosec",
     "lll",
-    "gas",
     "safesql"
   ],
   "Vendor": true,

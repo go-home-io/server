@@ -7,9 +7,9 @@ GOGET_NO_MOD=GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER) GO111
 GOBUILD=$(GOCMD) build -ldflags="-s -w"
 GOGENERATE=$(GOCMD) generate
 
-METALINER=$(GO_BIN_FOLDER)/gometalinter.v2
+METALINER=$(GO_BIN_FOLDER)/gometalinter
 MOD=$(GOCMD) mod tidy
-MOD_RESTORE=$(GOGET) -v -d ./...
+MOD_RESTORE=$(GOGET) -v -d ./... && $(GOCMD) mod vendor
 GOVERALLS=$(GO_BIN_FOLDER)/goveralls
 
 PLUGINS_LOCATION=$(GOPATH)/src/github.com/go-home-io/providers/
@@ -113,8 +113,8 @@ utilities-build:
 	$(GOGET) github.com/rakyll/statik
 
 utilities-ci:
-	$(GOGET_NO_MOD) gopkg.in/alecthomas/gometalinter.v2
-	$(METALINER) --install
+	$(GOGET_NO_MOD) github.com/alecthomas/gometalinter
+	GO111MODULE=on $(METALINER) --install
 	$(GOGET) github.com/mattn/goveralls
 
 utilities: utilities-build utilities-ci
@@ -145,7 +145,7 @@ test:
 test-local: test
 	$(GOCMD) tool cover --html=$(BIN_FOLDER)/cover.out
 
-git: dep_ensure generate lint test-local
+git: dep-ensure generate lint test-local
 
 .ONESHELL:
 SHELL = /bin/sh

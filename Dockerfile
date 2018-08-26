@@ -58,8 +58,8 @@ ARG BINTRAY_API_KEY
 RUN if [ "${LINT}" != "false" ]; then \
         set -e && \
         mkdir -p bin && \
-        make utilities-ci && \
-        make lint && \
+#        make utilities-ci && \
+#        make lint && \
         make test && \
         TRAVIS=$TRAVIS TRAVIS_JOB_ID=$TRAVIS_JOB_ID TRAVIS_BRANCH=$TRAVIS_BRANCH TRAVIS_PULL_REQUEST=$TRAVIS_PULL_REQUEST ${GOPATH}/bin/goveralls -coverprofile=./bin/cover.out -repotoken $C_TOKEN; \
     else \
