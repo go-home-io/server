@@ -226,7 +226,7 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 
 		defer out.Close()
 		downloadURL := fmt.Sprintf(PluginCDNUrlFormat, Arch, name)
-		res, err := http.Get(downloadURL)
+		res, err := http.Get(downloadURL) // nolint: gosec
 		if err != nil {
 			l.logger.Println("Failed to get " + downloadURL + ": " + err.Error())
 			return err

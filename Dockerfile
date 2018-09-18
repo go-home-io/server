@@ -26,7 +26,7 @@ WORKDIR ${HOME_DIR}
 COPY . .
 COPY --from=node /dashboard/build/* ./public/
 
-RUN apk update && apk add make git gcc libc-dev ca-certificates && \
+RUN apk update && apk add make git gcc libc-dev ca-certificates curl && \
     make utilities-build && \
     cd ${GOPATH} && \
     mkdir -p src/github.com/go-home-io && \

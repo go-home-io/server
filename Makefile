@@ -7,7 +7,6 @@ GOGET_NO_MOD=GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER) GO111
 GOBUILD=$(GOCMD) build -ldflags="-s -w"
 GOGENERATE=$(GOCMD) generate
 
-METALINER=$(GO_BIN_FOLDER)/gometalinter
 MOD=$(GOCMD) mod tidy
 MOD_RESTORE=$(GOGET) -v -d ./... && $(GOCMD) mod vendor
 GOVERALLS=$(GO_BIN_FOLDER)/goveralls
@@ -16,6 +15,9 @@ PLUGINS_LOCATION=$(GOPATH)/src/github.com/go-home-io/providers/
 BIN_FOLDER=${CURDIR}/bin
 BIN_NAME=$(BIN_FOLDER)/go-home
 PLUGINS_BINS=$(BIN_FOLDER)/plugins
+
+#METALINER=$(GO_BIN_FOLDER)/gometalinter
+METALINER=$(BIN_FOLDER)/gometalinter
 
 .PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test
 
@@ -90,7 +92,7 @@ define lint_all =
 	echo "======================================="
 	echo "Linting server"
 	echo "======================================="
-	$(METALINER) --enable=megacheck --sort=linter ./...
+	$(METALINER) --enable=megacheck --config=${CURDIR}/.gometalinter.json --sort=linter ./...
 	cd $(PLUGINS_LOCATION)
 	for plugin_type in *; do
     		if [ -d "$${plugin_type}" ]; then
@@ -113,8 +115,9 @@ utilities-build:
 	$(GOGET) github.com/rakyll/statik
 
 utilities-ci:
-	$(GOGET_NO_MOD) github.com/alecthomas/gometalinter
-	$(METALINER) --install
+	#$(GOGET_NO_MOD) github.com/alecthomas/gometalinter
+	#$(METALINER) --install --update
+	curl -L https://git.io/vp6lP | sh
 	$(GOGET) github.com/mattn/goveralls
 
 utilities: utilities-build utilities-ci

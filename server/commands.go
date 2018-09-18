@@ -178,12 +178,13 @@ func (s *GoHomeServer) commandGetAllGroups(user *providers.AuthenticatedUser) []
 	}
 
 	sort.Slice(response, func(i, j int) bool {
-		return response[i].Name < response[i].Name
+		return response[i].Name < response[j].Name
 	})
 	return response
 }
 
 // Returns all allowed for the user locations.
+// nolint: gocyclo
 func (s *GoHomeServer) commandGetAllLocations(user *providers.AuthenticatedUser) []*knownLocation {
 	devices := s.commandGetAllDevices(user)
 	groups := s.commandGetAllGroups(user)
@@ -252,7 +253,7 @@ func (s *GoHomeServer) commandGetAllLocations(user *providers.AuthenticatedUser)
 			return false
 		}
 
-		return response[i].Name < response[i].Name
+		return response[i].Name < response[j].Name
 	})
 	return response
 }
