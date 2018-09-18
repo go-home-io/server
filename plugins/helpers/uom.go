@@ -53,6 +53,8 @@ func convertImperialToMetric(value float64, property enums.Property) float64 {
 		return value / 1.609344
 	case enums.PropPressure:
 		return value / 0.0689476
+	case enums.PropArea:
+		return value / 10.7639
 	}
 
 	return value
@@ -67,6 +69,8 @@ func convertMetricToImperial(value float64, property enums.Property) float64 {
 		return 1.609344 * value
 	case enums.PropPressure:
 		return value * 0.0689476
+	case enums.PropArea:
+		return value * 10.7639
 	}
 
 	return value

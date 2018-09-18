@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/go-home-io/server/plugins/common"
@@ -92,6 +93,44 @@ func TestUnmarshalProperty(t *testing.T) {
 
 		if !PropertyDeepEqual(p, out[i], i) {
 			t.Error("Equal failed on " + i.String())
+			t.Fail()
+		}
+	}
+}
+
+// Tests number fix properties.
+func TestPropertyFixNum(t *testing.T) {
+	in := []struct {
+		prop enums.Property
+		val  interface{}
+		out  interface{}
+	}{
+		{
+			prop: enums.PropBatteryLevel,
+			val:  float64(10),
+			out:  uint8(10),
+		},
+		{
+			prop: enums.PropTransitionTime,
+			val:  float64(10),
+			out:  uint16(10),
+		},
+		{
+			prop: enums.PropDuration,
+			val:  float64(10),
+			out:  int(10),
+		},
+		{
+			prop: enums.PropArea,
+			val:  float64(10),
+			out:  float64(10),
+		},
+	}
+
+	for _, v := range in {
+		r := PropertyFixNum(v.val, v.prop)
+		if !reflect.DeepEqual(r, v.out) {
+			t.Error("Failed on " + v.prop.String())
 			t.Fail()
 		}
 	}

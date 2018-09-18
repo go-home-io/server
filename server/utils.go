@@ -16,7 +16,7 @@ import (
 func respondOk(writer http.ResponseWriter) {
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "application/json")
-	io.WriteString(writer, `{ "status": "OK" }`)
+	io.WriteString(writer, `{ "status": "OK" }`) // nolint: gosec
 }
 
 // Generic API respond.
@@ -28,7 +28,7 @@ func respond(writer http.ResponseWriter, data interface{}) {
 		return
 	}
 
-	writer.Write(d)
+	writer.Write(d) // nolint: gosec
 }
 
 // Validates whether error is not null and responds different status
@@ -41,16 +41,16 @@ func respondOkError(writer http.ResponseWriter, err error) {
 	}
 }
 
-// Return HTTP_FORBIDDEN status.
+// Return HTTP_UNAUTH status.
 func respondUnAuth(writer http.ResponseWriter) {
-	http.Error(writer, "Forbidden", http.StatusForbidden)
+	http.Error(writer, "Forbidden", http.StatusUnauthorized)
 }
 
 // Plain HTTP_500 API response.
 func respondError(writer http.ResponseWriter, err string) {
 	writer.WriteHeader(http.StatusInternalServerError)
 	writer.Header().Set("Content-Type", "application/json")
-	io.WriteString(writer, fmt.Sprintf(`{ "status": "ERROR", "problem": "%s"}`, err))
+	io.WriteString(writer, fmt.Sprintf(`{ "status": "ERROR", "problem": "%s"}`, err)) // nolint: gosec
 }
 
 // Logger middleware for the API.
@@ -109,7 +109,10 @@ func prepareCidrs() {
 
 	cidrs = make([]*net.IPNet, len(maxCidrBlocks))
 	for i, maxCidrBlock := range maxCidrBlocks {
-		_, cidr, _ := net.ParseCIDR(maxCidrBlock)
+		_, cidr, err := net.ParseCIDR(maxCidrBlock)
+		if err != nil {
+			continue
+		}
 		cidrs[i] = cidr
 	}
 }
@@ -120,8 +123,12 @@ func isRequestInternal(r *http.Request) bool {
 	forwardedFor := r.Header.Get("X-Forwarded-For")
 	if realIP == "" && forwardedFor == "" {
 		var remoteIP string
+		var err error
 		if strings.ContainsRune(r.RemoteAddr, ':') {
-			remoteIP, _, _ = net.SplitHostPort(r.RemoteAddr)
+			remoteIP, _, err = net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				return false
+			}
 		} else {
 			remoteIP = r.RemoteAddr
 		}

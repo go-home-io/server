@@ -56,7 +56,10 @@ func (s *GoHomeServer) getCurrentState(writer http.ResponseWriter, request *http
 // Executes device command if it's allowed for the user.
 func (s *GoHomeServer) deviceCommand(writer http.ResponseWriter, request *http.Request) {
 	vars := mux.Vars(request)
-	b, _ := ioutil.ReadAll(request.Body)
+	b, err := ioutil.ReadAll(request.Body)
+	if err != nil {
+		respondError(writer, "Failed to read body")
+	}
 	respondOkError(writer, s.commandInvokeDeviceCommand(getContextUser(request),
 		vars[string(urlDeviceID)], vars[string(urlCommandName)], b))
 }

@@ -137,6 +137,6 @@ func getFsProvider(ctor *ConstructSecret) *fsSecret {
 	}
 
 	s := &fsSecret{}
-	s.Init(data)
+	s.Init(data) // nolint: gosec
 	return s
 }

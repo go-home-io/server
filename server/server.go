@@ -57,7 +57,7 @@ func NewServer(settings providers.ISettingsProvider) (providers.IServerProvider,
 	server := GoHomeServer{
 		Logger:        settings.SystemLogger(),
 		Settings:      settings,
-		MessageParser: bus.NewServerMessageParser(settings.SystemLogger()),
+		MessageParser: bus.NewMasterMessageParser(settings.SystemLogger()),
 
 		incomingChan: make(chan busPlugin.RawMessage, 100),
 	}

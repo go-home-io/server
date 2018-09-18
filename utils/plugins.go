@@ -86,7 +86,7 @@ func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interfa
 	p, err := plugin.Open(fileName)
 	if err != nil {
 		// We want to delete failed plugin
-		os.Remove(fileName)
+		os.Remove(fileName) // nolint: gosec
 		return nil, err
 	}
 
@@ -213,7 +213,11 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 	archName := fmt.Sprintf("%s.tar.gz", actualName)
 	if _, err := os.Stat(archName); err != nil {
 		l.logger.Println("Downloading " + name)
-		os.MkdirAll(filepath.Dir(actualName), os.ModePerm)
+		err = os.MkdirAll(filepath.Dir(actualName), os.ModePerm)
+		if err != nil {
+			l.logger.Println("Failed to load " + name + ": " + err.Error())
+			return err
+		}
 		out, err := os.Create(archName)
 		if err != nil {
 			l.logger.Println("Failed to load " + name + ": " + err.Error())
@@ -237,8 +241,7 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 
 	err := archiver.TarGz.Open(archName, filepath.Dir(actualName))
 	if err != nil {
-		os.Remove(archName)
-
+		os.Remove(archName) // nolint: gosec
 		return err
 	}
 

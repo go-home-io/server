@@ -7,9 +7,9 @@ import (
 	"fmt"
 )
 
-const _CommandName = "onofftoggleset-colorset-sceneset-brightnessset-transition-time"
+const _CommandName = "onofftoggleset-colorset-sceneset-brightnessset-transition-timepausedockfind-meset-fan-speed"
 
-var _CommandIndex = [...]uint8{0, 2, 5, 11, 20, 29, 43, 62}
+var _CommandIndex = [...]uint8{0, 2, 5, 11, 20, 29, 43, 62, 67, 71, 78, 91}
 
 func (i Command) String() string {
 	if i < 0 || i >= Command(len(_CommandIndex)-1) {
@@ -18,7 +18,7 @@ func (i Command) String() string {
 	return _CommandName[_CommandIndex[i]:_CommandIndex[i+1]]
 }
 
-var _CommandValues = []Command{0, 1, 2, 3, 4, 5, 6}
+var _CommandValues = []Command{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 var _CommandNameToValueMap = map[string]Command{
 	_CommandName[0:2]:   0,
@@ -28,6 +28,10 @@ var _CommandNameToValueMap = map[string]Command{
 	_CommandName[20:29]: 4,
 	_CommandName[29:43]: 5,
 	_CommandName[43:62]: 6,
+	_CommandName[62:67]: 7,
+	_CommandName[67:71]: 8,
+	_CommandName[71:78]: 9,
+	_CommandName[78:91]: 10,
 }
 
 // CommandString retrieves an enum value from the enum constants string name.

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"strings"
 
 	"github.com/go-home-io/server/plugins/common"
@@ -76,7 +77,7 @@ func (b *basicAuthProvider) Authorize(headers map[string][]string) (username str
 // Reads htpsswds file.
 func (b *basicAuthProvider) readFile(name string) bool {
 	b.presetPasswords = make(map[string]string)
-	bytes, err := ioutil.ReadFile(name)
+	bytes, err := ioutil.ReadFile(name) // nolint: gosec
 	if err != nil {
 		return false
 	}
@@ -135,7 +136,12 @@ func getAuthFromCookie(cookies []string) string {
 				continue
 			}
 
-			return parts[1]
+			esc, err := url.QueryUnescape(parts[1])
+			if err != nil {
+				continue
+			}
+
+			return esc
 		}
 	}
 

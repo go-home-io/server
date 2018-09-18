@@ -15,7 +15,6 @@
     "ineffassign",
     "dupl",
     "golint",
-    "gotype",
     "goimports",
     "varcheck",
     "interfacer",
@@ -34,7 +33,8 @@
     "([a-zA-Z]+)_test.go",
     "([a-zA-Z]+)_enumer.go",
     "statik",
-    "public"
+    "public",
+    "/usr/local/go"
   ],
   "Deadline": "2m",
   "Cyclo": 13

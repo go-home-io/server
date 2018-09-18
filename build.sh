@@ -5,7 +5,7 @@ set -e
 op=$1
 IMAGE_NAME=gohomeio/server
 IMAGE_VERSION=${TRAVIS_TAG}
-GO_DOCKER=golang:1.11rc2-alpine3.8
+GO_DOCKER=golang:1.11.0-alpine3.8
 ALPINE_DOCKER=alpine:3.8
 NODE_DOCKER=node:8.11.4-alpine
 

@@ -444,11 +444,11 @@ func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
 	w.Ctor.Logger.Info("Discovered a new device", common.LogDeviceTypeToken, d.Type.String())
 
 	subLoadData := &device.InitDataDevice{
+		UOM:                   w.Ctor.UOM,
 		Logger:                w.Ctor.Logger,
 		Secret:                w.Ctor.Secret,
 		DeviceDiscoveredChan:  w.Ctor.LoadData.DeviceDiscoveredChan,
 		DeviceStateUpdateChan: make(chan *device.StateUpdateData, 10),
-		UOM:                   w.Ctor.UOM,
 	}
 
 	loadedDevice, ok := d.Interface.(device.IDevice)

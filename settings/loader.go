@@ -256,8 +256,7 @@ func (s *settingsProvider) loadDevicesAndGoHomeDefinitions(provs []*rawProvider)
 	providersLeft := make([]*rawProvider, 0)
 
 	for _, v := range provs {
-		var err error
-		sys, _ := systems.SystemTypeString(v.System)
+		sys, err := systems.SystemTypeString(v.System)
 		if err != nil {
 			providersLeft = append(providersLeft, v)
 			continue

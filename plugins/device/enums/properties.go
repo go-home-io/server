@@ -46,6 +46,14 @@ const (
 	PropPress
 	// PropSensorType describes possible sensor type.
 	PropSensorType
+	// PropVacStatus describes status for the device.
+	PropVacStatus
+	// PropArea describes device operated area area.
+	PropArea
+	// PropDuration describes device operation duration.
+	PropDuration
+	// PropFanSpeed describes fan speed.
+	PropFanSpeed
 )
 
 // AllowedProperties contains set of all possible allowed properties per device type.
@@ -57,6 +65,7 @@ var AllowedProperties = map[DeviceType][]Property{
 		PropClick, PropDoubleClick, PropPress},
 	DevWeather: {PropTemperature, PropSunrise, PropSunset, PropHumidity, PropPressure,
 		PropVisibility, PropWindDirection, PropWindSpeed},
+	DevVacuum: {PropVacStatus, PropBatteryLevel, PropArea, PropDuration, PropFanSpeed},
 }
 
 // SliceContainsProperty checks whether slice contains certain property.

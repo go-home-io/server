@@ -2,6 +2,7 @@ package bus
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/go-home-io/server/plugins/bus"
 	"github.com/go-home-io/server/plugins/common"
@@ -50,8 +51,8 @@ func NewWorkerMessageParser(logger common.ILoggerProvider) IWorkerMessageParserP
 	}
 }
 
-// NewServerMessageParser constructs parser for server.
-func NewServerMessageParser(logger common.ILoggerProvider) IMasterMessageParserProvider {
+// NewMasterMessageParser constructs parser for server.
+func NewMasterMessageParser(logger common.ILoggerProvider) IMasterMessageParserProvider {
 	return &messageParser{
 		logger:                  logger,
 		discoveryMessageChan:    make(chan *DiscoveryMessage, 5),
@@ -80,7 +81,7 @@ func (w *messageParser) GetDeviceUpdateMessageChan() chan *DeviceUpdateMessage {
 	return w.deviceUpdateMessageChan
 }
 
-// ProcessIncomingMessage parses incomming service bus message.
+// ProcessIncomingMessage parses incoming service bus message.
 func (w *messageParser) ProcessIncomingMessage(r *bus.RawMessage) {
 	var err error
 	b, err := parseRawMessage(r)
@@ -105,7 +106,6 @@ func (w *messageParser) ProcessIncomingMessage(r *bus.RawMessage) {
 // nolint: dupl
 func (w *messageParser) processWorkerMessage(b *MessageWithType, r *bus.RawMessage) error {
 	var err error
-
 	switch b.Type {
 	case bus.MsgDeviceAssignment:
 		var d DeviceAssignmentMessage
@@ -122,6 +122,7 @@ func (w *messageParser) processWorkerMessage(b *MessageWithType, r *bus.RawMessa
 	default:
 		w.logger.Warn("Received unknown message type", "type", b.Type.String(),
 			common.LogSystemToken, logSystem)
+		err = errors.New("unknown message type")
 	}
 
 	return err
@@ -148,6 +149,7 @@ func (w *messageParser) processServerMessage(b *MessageWithType, r *bus.RawMessa
 	default:
 		w.logger.Warn("Received unknown message type", "type", b.Type.String(),
 			common.LogSystemToken, logSystem)
+		err = errors.New("unknown message type")
 	}
 
 	return err

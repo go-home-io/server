@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
@@ -11,6 +12,11 @@ import (
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems/bus"
 	"github.com/gobwas/glob"
+)
+
+const (
+	// Default location name.
+	defaultLocationName = "Default"
 )
 
 // InternalCommandInvokeDeviceCommand invokes devices operations.
@@ -166,10 +172,14 @@ func (s *GoHomeServer) commandGetAllGroups(user *providers.AuthenticatedUser) []
 		}
 
 		if 0 != len(group.Devices) {
+			sort.Strings(group.Devices)
 			response = append(response, group)
 		}
 	}
 
+	sort.Slice(response, func(i, j int) bool {
+		return response[i].Name < response[i].Name
+	})
 	return response
 }
 
@@ -180,8 +190,6 @@ func (s *GoHomeServer) commandGetAllLocations(user *providers.AuthenticatedUser)
 	response := make([]*knownLocation, 0)
 	devicesProcessed := make([]string, 0)
 	var defaultLocation *knownLocation
-
-	const DefaultLocation = "Default"
 
 	for _, v := range s.locations {
 		location := &knownLocation{
@@ -201,10 +209,11 @@ func (s *GoHomeServer) commandGetAllLocations(user *providers.AuthenticatedUser)
 		}
 
 		if 0 != len(location.Devices) {
+			sort.Strings(location.Devices)
 			response = append(response, location)
 		}
 
-		if DefaultLocation == location.Name {
+		if defaultLocationName == location.Name {
 			defaultLocation = location
 		}
 	}
@@ -224,7 +233,7 @@ func (s *GoHomeServer) commandGetAllLocations(user *providers.AuthenticatedUser)
 
 	if nil == defaultLocation {
 		defaultLocation = &knownLocation{
-			Name:    DefaultLocation,
+			Name:    defaultLocationName,
 			Devices: make([]string, 0),
 		}
 
@@ -232,7 +241,19 @@ func (s *GoHomeServer) commandGetAllLocations(user *providers.AuthenticatedUser)
 	}
 
 	defaultLocation.Devices = append(defaultLocation.Devices, devicesLeft...)
+	sort.Strings(defaultLocation.Devices)
 
+	sort.Slice(response, func(i, j int) bool {
+		if defaultLocationName == response[i].Name {
+			return true
+		}
+
+		if defaultLocationName == response[j].Name {
+			return false
+		}
+
+		return response[i].Name < response[i].Name
+	})
 	return response
 }
 

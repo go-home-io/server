@@ -112,7 +112,7 @@ func loadBasicAuthStorage(ctor *ConstructSecurityProvider) (user.IUserStorage, c
 	}
 
 	prov := &basicAuthProvider{}
-	prov.Init(initData)
+	prov.Init(initData) // nolint: gosec
 	return prov, loggerProvider
 }
 

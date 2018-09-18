@@ -96,6 +96,6 @@ func getFsProvider(ctor *ConstructConfig) *fsConfig {
 	}
 
 	cfg := &fsConfig{}
-	cfg.Init(data)
+	cfg.Init(data) // nolint: gosec
 	return cfg
 }

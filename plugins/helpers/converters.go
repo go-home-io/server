@@ -28,19 +28,45 @@ func PropertyFixYaml(x interface{}, p enums.Property) (interface{}, error) {
 	switch p {
 	case enums.PropColor:
 		return convertProperty(x, &common.Color{})
-	case enums.PropScenes, enums.PropSensorType:
+	case enums.PropScenes, enums.PropSensorType, enums.PropVacStatus:
 		return x, nil
 	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
 		r, ok := x.(bool)
 		if !ok {
 			return nil, errors.New("error converting bool")
 		}
-
 		return r, nil
-	case enums.PropBrightness:
+	case enums.PropBrightness, enums.PropBatteryLevel, enums.PropFanSpeed:
 		return convertValueProperty(x, &common.Percent{})
+	case enums.PropDuration:
+		return convertValueProperty(x, &common.Int{})
 	default:
 		return convertValueProperty(x, &common.Float{})
+	}
+}
+
+// UnmarshalProperty returns type used by property from it's map[{interface}]interface{}
+// or interface{} representation distributed through FanOut channel.
+func UnmarshalProperty(x interface{}, p enums.Property) (interface{}, error) {
+	if nil == x {
+		return x, nil
+	}
+
+	switch p {
+	case enums.PropColor:
+		return convertProperty(x, &common.Color{})
+	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
+		r, ok := x.(bool)
+		if !ok {
+			return nil, errors.New("error converting bool")
+		}
+		return r, nil
+	case enums.PropBrightness, enums.PropBatteryLevel, enums.PropFanSpeed:
+		return convertProperty(x, &common.Percent{})
+	case enums.PropDuration:
+		return convertProperty(x, &common.Int{})
+	default:
+		return convertProperty(x, &common.Float{})
 	}
 }
 
@@ -63,9 +89,9 @@ func CommandPropertyFixYaml(x interface{}, c enums.Command) (interface{}, error)
 	}
 
 	switch c {
-	case enums.CmdOn, enums.CmdOff, enums.CmdToggle:
+	case enums.CmdOn, enums.CmdOff, enums.CmdToggle, enums.CmdFindMe, enums.CmdDock, enums.CmdPause:
 		return nil, nil
-	case enums.CmdSetBrightness:
+	case enums.CmdSetBrightness, enums.CmdSetFanSpeed:
 		return convertValueProperty(x, &common.Percent{})
 	case enums.CmdSetTransitionTime:
 		return convertValueProperty(x, &common.Int{})
@@ -74,6 +100,24 @@ func CommandPropertyFixYaml(x interface{}, c enums.Command) (interface{}, error)
 	}
 
 	return x, nil
+}
+
+// PropertyFixNum fixes float64 values after templating.
+func PropertyFixNum(x interface{}, p enums.Property) interface{} {
+	if nil == x {
+		return x
+	}
+
+	switch p {
+	case enums.PropBatteryLevel, enums.PropBrightness, enums.PropFanSpeed:
+		return uint8(x.(float64))
+	case enums.PropTransitionTime:
+		return uint16(x.(float64))
+	case enums.PropDuration:
+		return int(x.(float64))
+	}
+
+	return x
 }
 
 // Converts to default value-based property.
@@ -90,23 +134,4 @@ func convertProperty(from, to interface{}) (interface{}, error) {
 	}
 	err = yaml.Unmarshal(data, to)
 	return reflect.ValueOf(to).Elem().Interface(), err
-}
-
-// UnmarshalProperty returns type used by property from it's map[{interface}]interface{}
-// or interface{} representation distributed through FanOut channel.
-func UnmarshalProperty(x interface{}, p enums.Property) (interface{}, error) {
-	if nil == x {
-		return x, nil
-	}
-
-	switch p {
-	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
-		return x.(bool), nil
-	case enums.PropBrightness:
-		return convertProperty(x, &common.Percent{})
-	case enums.PropColor:
-		return convertProperty(x, &common.Color{})
-	default:
-		return convertProperty(x, &common.Float{})
-	}
 }

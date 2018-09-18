@@ -14,8 +14,10 @@ func PropertySave(property enums.Property, value interface{}) (interface{}, erro
 		return nil, nil
 	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
 		return value, nil
-	case enums.PropBrightness:
+	case enums.PropBrightness, enums.PropBatteryLevel, enums.PropFanSpeed:
 		return value.(common.Percent).Value, nil
+	case enums.PropDuration:
+		return value.(common.Int).Value, nil
 	case enums.PropColor:
 		data, err := json.Marshal(value)
 		if err != nil {
@@ -23,6 +25,8 @@ func PropertySave(property enums.Property, value interface{}) (interface{}, erro
 		}
 
 		return string(data), nil
+	case enums.PropVacStatus:
+		return value, nil
 
 	default:
 		return value.(common.Float).Value, nil

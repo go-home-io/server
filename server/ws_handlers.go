@@ -48,7 +48,7 @@ func (s *GoHomeServer) processWSConnection(conn *websocket.Conn, usr *providers.
 
 				kd := s.state.GetDevice(msg.ID)
 				if kd.Get(usr) {
-					conn.WriteJSON(kd)
+					conn.WriteJSON(kd) // nolint: gosec
 				}
 			}
 		}
@@ -69,7 +69,7 @@ func (s *GoHomeServer) processIncomingWSMessages(conn *websocket.Conn, stop chan
 
 		// Ping request comes as a un-wrapped string
 		if 4 == len(message) {
-			conn.WriteMessage(mt, []byte("pong"))
+			conn.WriteMessage(mt, []byte("pong")) // nolint: gosec
 			continue
 		}
 
@@ -86,6 +86,6 @@ func (s *GoHomeServer) processIncomingWSMessages(conn *websocket.Conn, stop chan
 			continue
 		}
 
-		s.commandInvokeDeviceCommand(usr, cmd.ID, cmd.Cmd, data)
+		s.commandInvokeDeviceCommand(usr, cmd.ID, cmd.Cmd, data) // nolint: gosec
 	}
 }

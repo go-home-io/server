@@ -114,7 +114,7 @@ utilities-build:
 
 utilities-ci:
 	$(GOGET_NO_MOD) github.com/alecthomas/gometalinter
-	GO111MODULE=on $(METALINER) --install
+	$(METALINER) --install
 	$(GOGET) github.com/mattn/goveralls
 
 utilities: utilities-build utilities-ci

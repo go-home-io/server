@@ -60,7 +60,7 @@ func (c *fsConfig) Load() chan []byte {
 				continue
 			}
 
-			reader, err := os.Open(v)
+			reader, err := os.Open(v) // nolint: gosec
 			if err != nil {
 				c.logger.Error("Failed to load config file", err, common.LogFileToken, v)
 				c.closeReader(reader, v)

@@ -37,9 +37,9 @@ func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 	loadData := &device.InitDataDevice{
 		Logger:                pluginLogger,
 		Secret:                ctor.Settings.Secrets(),
+		UOM:                   ctor.UOM,
 		DeviceDiscoveredChan:  make(chan *device.DiscoveredDevices, 3),
 		DeviceStateUpdateChan: make(chan *device.StateUpdateData, 10),
-		UOM:                   ctor.UOM,
 	}
 
 	expectedType, err := getExpectedType(ctor.DeviceType)
@@ -104,6 +104,8 @@ func getExpectedType(deviceType enums.DeviceType) (reflect.Type, error) {
 		return device.TypeSensor, nil
 	case enums.DevWeather:
 		return device.TypeWeather, nil
+	case enums.DevVacuum:
+		return device.TypeVacuum, nil
 	}
 
 	return nil, errors.New("unknown device type")
@@ -120,6 +122,8 @@ func loadDevice(deviceInterface interface{}, deviceType enums.DeviceType) (inter
 		return deviceInterface.(device.ISensor).Load()
 	case enums.DevWeather:
 		return deviceInterface.(device.IWeather).Load()
+	case enums.DevVacuum:
+		return deviceInterface.(device.IVacuum).Load()
 	}
 
 	return nil, errors.New("unknown device type")

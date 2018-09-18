@@ -91,15 +91,20 @@ func (w *workerState) start() {
 	for {
 		select {
 		case update := <-w.statusUpdatesChan:
+			w.mutex.Lock()
 			wrapper, ok := w.devices[update.ID]
+			w.mutex.Unlock()
 			if !ok {
 				w.Logger.Warn("Received unknown device update", common.LogSystemToken, logSystem,
 					common.LogDeviceNameToken, update.ID)
 				break
 			}
 
+			w.mutex.Lock()
 			go w.Settings.ServiceBus().Publish(busPlugin.ChDeviceUpdates, wrapper.GetUpdateMessage())
+			w.mutex.Unlock()
 		case discover := <-w.discoveryChan:
+			w.mutex.Lock()
 			id := discover.Provider.ID()
 			if _, ok := w.devices[id]; ok {
 				w.Logger.Warn("Received duplicate discovery for the same device",
@@ -107,6 +112,7 @@ func (w *workerState) start() {
 			}
 
 			w.devices[id] = discover.Provider
+			w.mutex.Unlock()
 		}
 	}
 }

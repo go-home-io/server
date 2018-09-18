@@ -121,7 +121,7 @@ func TestWithinActiveWindowInvokes(t *testing.T) {
 
 	w.triggered(nil)
 
-	if 0 == called {
+	if w.isInActiveTimeWindow() && 0 == called {
 		t.Error("third call")
 		t.Fail()
 	}

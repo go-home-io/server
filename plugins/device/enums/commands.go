@@ -23,6 +23,14 @@ const (
 	CmdSetBrightness
 	// CmdSetTransitionTime describes transition time changing command.
 	CmdSetTransitionTime
+	// CmdPause describes pausing the device.
+	CmdPause
+	// CmdDock describes sending device to a dock station.
+	CmdDock
+	// CmdFindMe describes sending find me command.
+	CmdFindMe
+	// CmdSetFanSpeed describes setting fan speed command.
+	CmdSetFanSpeed
 )
 
 // AllowedCommands contains set of all possible allowed commands per device type.
@@ -31,6 +39,7 @@ var AllowedCommands = map[DeviceType][]Command{
 	DevLight:  {CmdToggle, CmdOn, CmdOff, CmdSetColor, CmdSetTransitionTime, CmdSetBrightness, CmdSetScene},
 	DevSwitch: {CmdToggle, CmdOn, CmdOff},
 	DevSensor: {},
+	DevVacuum: {CmdOn, CmdOff, CmdPause, CmdDock, CmdFindMe, CmdSetFanSpeed},
 }
 
 // SliceContainsCommand checks whether slice contains certain command.
