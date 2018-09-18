@@ -17,7 +17,7 @@ BIN_NAME=$(BIN_FOLDER)/go-home
 PLUGINS_BINS=$(BIN_FOLDER)/plugins
 
 #METALINER=$(GO_BIN_FOLDER)/gometalinter
-METALINER=$(BIN_FOLDER)/gometalinter
+METALINER=PATH=${PATH}:$(BIN_FOLDER) $(BIN_FOLDER)/gometalinter
 
 .PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test
 

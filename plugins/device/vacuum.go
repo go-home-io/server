@@ -23,10 +23,10 @@ type IVacuum interface {
 // VacuumState describes vacuum state.
 type VacuumState struct {
 	VacStatus    enums.VacStatus `json:"vac_status"`
-	BatteryLevel uint8           `json:"battery_level"`
-	Area         float64         `json:"area"`
 	Duration     int             `json:"duration"`
+	BatteryLevel uint8           `json:"battery_level"`
 	FanSpeed     uint8           `json:"fan_speed"`
+	Area         float64         `json:"area"`
 }
 
 // TypeVacuum is a syntax sugar around IVacuum type.
