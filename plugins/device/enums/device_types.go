@@ -22,6 +22,8 @@ const (
 	DevWeather
 	// DevVacuum describes vacuum device.
 	DevVacuum
+	// DevCamera describes camera device.
+	DevCamera
 )
 
 // SliceContainsDeviceType is a helper Slice.contains.

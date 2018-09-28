@@ -136,8 +136,10 @@ generate:
 run-server:
 	$(BIN_NAME) -c provider:fs -c location:${CURDIR}/configs -p ${CURDIR}/bin/plugins
 
-run-worker: build
+run-only-worker:
 	$(BIN_NAME) -c provider:fs -c location:${CURDIR}/configs -p ${CURDIR}/bin/plugins -w
+
+run-worker: build run-only-worker
 
 test:
 	@set -e

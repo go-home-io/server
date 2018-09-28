@@ -28,7 +28,7 @@ func PropertyFixYaml(x interface{}, p enums.Property) (interface{}, error) {
 	switch p {
 	case enums.PropColor:
 		return convertProperty(x, &common.Color{})
-	case enums.PropScenes, enums.PropSensorType, enums.PropVacStatus:
+	case enums.PropScenes, enums.PropSensorType, enums.PropVacStatus, enums.PropPicture:
 		return x, nil
 	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
 		r, ok := x.(bool)
@@ -53,6 +53,8 @@ func UnmarshalProperty(x interface{}, p enums.Property) (interface{}, error) {
 	}
 
 	switch p {
+	case enums.PropScenes, enums.PropSensorType, enums.PropVacStatus, enums.PropPicture:
+		return x, nil
 	case enums.PropColor:
 		return convertProperty(x, &common.Color{})
 	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
@@ -74,6 +76,9 @@ func UnmarshalProperty(x interface{}, p enums.Property) (interface{}, error) {
 // For example we don't care about scenes updates, so it's always true.
 func PropertyDeepEqual(x, y interface{}, p enums.Property) bool {
 	switch p {
+	case enums.PropPicture:
+		// Picture is pre-processed.
+		return false
 	case enums.PropScenes, enums.PropSensorType:
 		// No updates for scenes
 		return true

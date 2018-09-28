@@ -9,20 +9,26 @@ import (
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
 	"github.com/go-home-io/server/systems/logger"
+	"github.com/gobwas/glob"
 	"gopkg.in/yaml.v2"
 )
 
 // Storage provider.
 type provider struct {
 	sync.Mutex
-	plugin         storage.IStorage
-	logger         common.ILoggerProvider
-	storeHeartbeat bool
+	plugin   storage.IStorage
+	logger   common.ILoggerProvider
+	settings *settings
 }
 
 // Provider settings.
 type settings struct {
-	StoreHeartbeat bool `yaml:"storeHeartbeat"`
+	StoreHeartbeat bool     `yaml:"storeHeartbeat"`
+	Exclude        []string `yaml:"exclude"`
+	Include        []string `yaml:"include"`
+
+	excludeExp []glob.Glob
+	includeExp []glob.Glob
 }
 
 // ConstructStorage has data required for a new storage provider.
@@ -37,7 +43,7 @@ type ConstructStorage struct {
 // NewEmptyStorageProvider returns an empty storage provider.
 // It is used if no configuration was supplied.
 func NewEmptyStorageProvider() providers.IStorageProvider {
-	return &provider{}
+	return &provider{settings: &settings{}}
 }
 
 // NewStorageProvider returns a new storage provider.
@@ -56,6 +62,27 @@ func NewStorageProvider(ctor *ConstructStorage) providers.IStorageProvider {
 		log.Error("Failed to read settings, will not store heartbeat", err)
 	}
 
+	settings.excludeExp = make([]glob.Glob, 0)
+	settings.includeExp = make([]glob.Glob, 0)
+
+	for _, v := range settings.Exclude {
+		g, err := glob.Compile(v)
+		if err != nil {
+			log.Warn("Failed to compile exclude expression")
+			continue
+		}
+		settings.excludeExp = append(settings.excludeExp, g)
+	}
+
+	for _, v := range settings.Include {
+		g, err := glob.Compile(v)
+		if err != nil {
+			log.Warn("Failed to compile include expression")
+			continue
+		}
+		settings.includeExp = append(settings.excludeExp, g)
+	}
+
 	pluginLoadRequest := &providers.PluginLoadRequest{
 		InitData: &storage.InitDataStorage{
 			Logger: log,
@@ -68,8 +95,8 @@ func NewStorageProvider(ctor *ConstructStorage) providers.IStorageProvider {
 	}
 
 	prov := &provider{
-		logger:         log,
-		storeHeartbeat: settings.StoreHeartbeat,
+		logger:   log,
+		settings: settings,
 	}
 
 	pluginInterface, err := ctor.Loader.LoadPlugin(pluginLoadRequest)
@@ -89,7 +116,7 @@ func (s *provider) State(msg *common.MsgDeviceUpdate) {
 
 // Heartbeat stores a new heartbeat entry if configured.
 func (s *provider) Heartbeat(deviceID string) {
-	if !s.storeHeartbeat {
+	if !s.settings.StoreHeartbeat {
 		return
 	}
 
@@ -138,7 +165,7 @@ func (s *provider) History(deviceID string) map[enums.Property]map[int64]interfa
 func (s *provider) processDeviceUpdate(msg *common.MsgDeviceUpdate) {
 	s.Lock()
 	defer s.Unlock()
-	if nil == s.plugin {
+	if nil == s.plugin || !s.needToSave(msg.Type, msg.ID) {
 		return
 	}
 
@@ -167,9 +194,39 @@ func (s *provider) processDeviceUpdate(msg *common.MsgDeviceUpdate) {
 func (s *provider) processHeartbeat(deviceID string) {
 	s.Lock()
 	defer s.Unlock()
+
 	if nil == s.plugin {
 		return
 	}
 
 	s.plugin.Heartbeat(deviceID)
+}
+
+func (s *provider) needToSave(deviceType enums.DeviceType, deviceID string) bool {
+	switch deviceType {
+	case enums.DevCamera:
+		return s.needToSaveExcluded(deviceID)
+	default:
+		return s.needToSaveIncluded(deviceID)
+	}
+}
+
+func (s *provider) needToSaveExcluded(deviceID string) bool {
+	for _, v := range s.settings.includeExp {
+		if v.Match(deviceID) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (s *provider) needToSaveIncluded(deviceID string) bool {
+	for _, v := range s.settings.excludeExp {
+		if v.Match(deviceID) {
+			return false
+		}
+	}
+
+	return true
 }

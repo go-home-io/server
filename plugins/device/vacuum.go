@@ -11,13 +11,13 @@ import (
 type IVacuum interface {
 	IDevice
 	Load() (*VacuumState, error)
+	Update() (*VacuumState, error)
 	On() error
 	Off() error
 	Pause() error
 	Dock() error
 	FindMe() error
 	SetFanSpeed(common.Percent) error
-	Update() (*VacuumState, error)
 }
 
 // VacuumState describes vacuum state.

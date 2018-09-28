@@ -31,6 +31,8 @@ const (
 	CmdFindMe
 	// CmdSetFanSpeed describes setting fan speed command.
 	CmdSetFanSpeed
+	// CmdTakePicture describes taking a picture.
+	CmdTakePicture
 )
 
 // AllowedCommands contains set of all possible allowed commands per device type.
@@ -40,6 +42,7 @@ var AllowedCommands = map[DeviceType][]Command{
 	DevSwitch: {CmdToggle, CmdOn, CmdOff},
 	DevSensor: {},
 	DevVacuum: {CmdOn, CmdOff, CmdPause, CmdDock, CmdFindMe, CmdSetFanSpeed},
+	DevCamera: {CmdTakePicture},
 }
 
 // SliceContainsCommand checks whether slice contains certain command.

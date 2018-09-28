@@ -21,6 +21,8 @@ const (
 	LogRoleNameToken = "role"
 	// LogUserNameToken describes user name log entry.
 	LogUserNameToken = "user"
+	// LogURLToken describes URL log entry.
+	LogURLToken = "url"
 )
 
 const (

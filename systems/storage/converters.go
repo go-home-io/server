@@ -12,7 +12,7 @@ func PropertySave(property enums.Property, value interface{}) (interface{}, erro
 	switch property {
 	case enums.PropScenes, enums.PropSensorType:
 		return nil, nil
-	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
+	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress, enums.PropPicture:
 		return value, nil
 	case enums.PropBrightness, enums.PropBatteryLevel, enums.PropFanSpeed:
 		return value.(common.Percent).Value, nil

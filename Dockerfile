@@ -7,11 +7,11 @@ ENV UI=https://github.com/nicknesk/gohome-prototype-react
 
 WORKDIR /
 
-RUN apk update && apk add git && \
+RUN apk update && apk add git make && \
     git clone ${UI} dashboard && \
     cd dashboard && \
-    npm i && \
-    npm run build
+    make dep && \
+    make build
 
 ##################################################################################################
 

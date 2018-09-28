@@ -39,7 +39,10 @@ build_arm32v6_cached(){
     ARCH=arm32v6
     docker run -e BINTRAY_API_USER=${BINTRAY_API_USER} -e BINTRAY_API_KEY=${BINTRAY_API_KEY} \
         -e VERSION=${IMAGE_VERSION} -e GOARCH=arm -e GOARM=6  \
-        --rm -v /home/pi/go-home-io:/mount --name=build -a stdin -a stdout -it go-home-cahe /bin/sh -c "./build.rpi.cache.sh"
+        -v /home/pi/go-home-io:/mount \
+        -v /home/pi/go-home-io/dashboard:/node \
+        -a stdin -a stdout --name=build \
+        --rm -it go-home-cahe /bin/sh -c "./build.rpi.cache.sh"
 
     sudo rm -rf /home/pi/go-home-io/app/plugins
     sudo cp -f src/github.com/go-home-io/server/Dockerfile.rpi /home/pi/go-home-io/app/Dockerfile

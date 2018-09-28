@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/providers"
@@ -335,9 +336,10 @@ func (s *settingsProvider) loadDeviceProvider(provider *rawProvider) (*providers
 	}
 
 	if selector.Name == "" {
-		s.logger.Warn("Ignoring device since name is null", common.LogDeviceTypeToken, provider.Provider,
+		s.logger.Warn("Generating random name since it's not configured. "+
+			"History will not be preserver between master restarts", common.LogDeviceTypeToken, provider.Provider,
 			common.LogSystemToken, provider.System)
-		return nil, nil
+		selector.Name = namesgenerator.GetRandomName(0)
 	}
 
 	selector.Name = strings.ToLower(selector.Name)

@@ -10,14 +10,6 @@ import (
 	"github.com/go-home-io/server/plugins/storage"
 )
 
-// Tests that empty storage is not causing panic.
-func TestNewEmptyStorageProvider(t *testing.T) {
-	p := NewEmptyStorageProvider()
-	p.History("test")
-	p.Heartbeat("test")
-	p.State(nil)
-}
-
 type fakePlugin struct {
 	invokes int
 }
@@ -42,6 +34,14 @@ func (f *fakePlugin) History(ID string, hrs int) map[string]map[int64]interface{
 	}
 
 	return nil
+}
+
+// Tests that empty storage is not causing panic.
+func TestNewEmptyStorageProvider(t *testing.T) {
+	p := NewEmptyStorageProvider()
+	p.History("test")
+	p.Heartbeat("test")
+	p.State(nil)
 }
 
 // Tests that failed plugin is not causing panic.
@@ -126,6 +126,94 @@ storeHeartbeat: true`),
 	time.Sleep(1 * time.Second)
 
 	if 2 != pl.invokes {
+		t.Fail()
+	}
+}
+
+// Tests proper device exclusion.
+func TestExcluding(t *testing.T) {
+	pl := &fakePlugin{}
+	ctor := &ConstructStorage{
+		Logger:    mocks.FakeNewLogger(nil),
+		RawConfig: []byte(`
+exclude:
+  - test?`),
+		Loader:    mocks.FakeNewPluginLoader(pl),
+		Provider:  "test",
+		Secret:    mocks.FakeNewSecretStore(nil, true),
+	}
+
+	p := NewStorageProvider(ctor)
+
+	update := &common.MsgDeviceUpdate{
+		State:     map[enums.Property]interface{}{enums.PropOn: true},
+		ID:        "test1",
+		FirstSeen: true,
+		Name:      "test",
+		Type:      enums.DevWeather,
+	}
+
+	p.State(update)
+	time.Sleep(1 * time.Second)
+	if pl.invokes != 0 {
+		t.Fail()
+	}
+}
+
+// Tests proper device ignore.
+func TestIgnores(t *testing.T){
+	pl := &fakePlugin{}
+	ctor := &ConstructStorage{
+		Logger:    mocks.FakeNewLogger(nil),
+		RawConfig: []byte(""),
+		Loader:    mocks.FakeNewPluginLoader(pl),
+		Provider:  "test",
+		Secret:    mocks.FakeNewSecretStore(nil, true),
+	}
+
+	p := NewStorageProvider(ctor)
+
+	update := &common.MsgDeviceUpdate{
+		State:     map[enums.Property]interface{}{enums.PropOn: true},
+		ID:        "test1",
+		FirstSeen: true,
+		Name:      "test",
+		Type:      enums.DevCamera,
+	}
+
+	p.State(update)
+	time.Sleep(1 * time.Second)
+	if pl.invokes != 0 {
+		t.Fail()
+	}
+}
+
+// Tests proper device inclusion.
+func TestIncluding(t *testing.T){
+	pl := &fakePlugin{}
+	ctor := &ConstructStorage{
+		Logger:    mocks.FakeNewLogger(nil),
+		RawConfig: []byte(`
+include:
+  - test?`),
+		Loader:    mocks.FakeNewPluginLoader(pl),
+		Provider:  "test",
+		Secret:    mocks.FakeNewSecretStore(nil, true),
+	}
+
+	p := NewStorageProvider(ctor)
+
+	update := &common.MsgDeviceUpdate{
+		State:     map[enums.Property]interface{}{enums.PropOn: true},
+		ID:        "test1",
+		FirstSeen: true,
+		Name:      "test",
+		Type:      enums.DevCamera,
+	}
+
+	p.State(update)
+	time.Sleep(1 * time.Second)
+	if pl.invokes != 1 {
 		t.Fail()
 	}
 }

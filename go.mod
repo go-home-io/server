@@ -3,8 +3,11 @@ module github.com/go-home-io/server
 require (
 	bou.ke/monkey v1.0.1
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
+	github.com/corona10/goimagehash v0.2.0
 	github.com/creasty/defaults v1.2.1
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/disintegration/imaging v1.5.0
+	github.com/docker/docker v1.13.1
 	github.com/dsnet/compress v0.0.0-20171208185109-cc9eb1d7ad76 // indirect
 	github.com/enr/go-commons v0.0.0-20150504121636-bcd3f40eeea8 // indirect
 	github.com/fortytw2/leaktest v1.2.0
@@ -22,6 +25,7 @@ require (
 	github.com/hpcloud/tail v1.0.0 // indirect
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/mholt/archiver v1.1.3-0.20180818163635-089cf0d1f58c
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nwaples/rardecode v0.0.0-20171029023500-e06696f847ae // indirect
 	github.com/onsi/ginkgo v1.6.0 // indirect
 	github.com/onsi/gomega v1.4.1 // indirect
@@ -36,6 +40,7 @@ require (
 	github.com/ulikunitz/xz v0.5.4 // indirect
 	github.com/vkorn/go-bintray v0.0.0-20180801131521-627b4bc5e556
 	golang.org/x/crypto v0.0.0-20180820150726-614d502a4dac
+	golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81 // indirect
 	golang.org/x/net v0.0.0-20180824045131-faa378e6dbae // indirect
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
 	golang.org/x/sys v0.0.0-20180821140842-3b58ed4ad339 // indirect

@@ -59,6 +59,8 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 		DiscoveryChan:     ctor.DiscoveryChan,
 		StatusUpdatesChan: ctor.StatusUpdatesChan,
 		UOM:               ctor.UOM,
+		processor:         nil,
+		RawConfig:         ctor.RawConfig,
 	}
 
 	hubWrapper := NewDeviceWrapper(hubCtor)
@@ -101,6 +103,8 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 			DiscoveryChan:     ctor.DiscoveryChan,
 			StatusUpdatesChan: ctor.StatusUpdatesChan,
 			UOM:               ctor.UOM,
+			processor:         newDeviceProcessor(v.Type, ctor.RawConfig),
+			RawConfig:         ctor.RawConfig,
 		}
 
 		w := NewDeviceWrapper(spawnedCtor)

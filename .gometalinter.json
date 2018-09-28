@@ -34,8 +34,9 @@
     "([a-zA-Z]+)_enumer.go",
     "statik",
     "public",
-    "/usr/local/go"
+    "/usr/local/go",
+    "../"
   ],
-  "Deadline": "2m",
+  "Deadline": "5m",
   "Cyclo": 13
 }

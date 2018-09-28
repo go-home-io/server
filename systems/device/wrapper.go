@@ -50,6 +50,8 @@ type wrapperConstruct struct {
 	IsRootDevice     bool
 	Validator        providers.IValidatorProvider
 	UOM              enums.UOM
+	processor        IProcessor
+	RawConfig        string
 
 	StatusUpdatesChan chan *UpdateEvent
 	DiscoveryChan     chan *NewDeviceDiscoveredEvent
@@ -72,6 +74,7 @@ type deviceWrapper struct {
 	commands     map[enums.Command]reflect.Value
 
 	isPolling bool
+	processor IProcessor
 }
 
 // NewDeviceWrapper constructs a new device wrapper.
@@ -80,6 +83,7 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 		Ctor:      ctor,
 		isPolling: false,
 		State:     make(map[string]interface{}),
+		processor: ctor.processor,
 	}
 
 	w.Spec = ctor.DeviceInterface.(device.IDevice).GetSpec()
@@ -279,8 +283,8 @@ func (w *deviceWrapper) validateDeviceSpec(ctor *wrapperConstruct) {
 }
 
 // Updates internal device state which is stored in wrapper.
+// nolint: gocyclo
 func (w *deviceWrapper) setState(deviceState interface{}) bool {
-
 	if nil == deviceState ||
 		reflect.ValueOf(deviceState).Kind() == reflect.Ptr && reflect.ValueOf(deviceState).IsNil() {
 		return false
@@ -319,9 +323,19 @@ func (w *deviceWrapper) setState(deviceState interface{}) bool {
 		}
 
 		val := w.getFieldValueOrNil(rv.Field(ii))
-		if val != nil {
-			w.State[jsonKey] = val
+		if val == nil {
+			continue
 		}
+
+		if nil != w.processor {
+			ok, v := w.processor.IsPropertyGood(prop, val)
+			val = v
+			if !ok {
+				continue
+			}
+		}
+
+		w.State[jsonKey] = val
 	}
 
 	return true
@@ -480,6 +494,8 @@ func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
 		StatusUpdatesChan: w.Ctor.StatusUpdatesChan,
 		UOM:               w.Ctor.UOM,
 		Validator:         w.Ctor.Validator,
+		processor:         newDeviceProcessor(d.Type, w.Ctor.RawConfig),
+		RawConfig:         w.Ctor.RawConfig,
 	}
 
 	wrapper := NewDeviceWrapper(ctor)
