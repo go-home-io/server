@@ -11,6 +11,7 @@ RUN apk update && apk add git make && \
     git clone ${UI} dashboard && \
     cd dashboard && \
     make dep && \
+    make utilities-ci && \
     make build
 
 ##################################################################################################

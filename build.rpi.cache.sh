@@ -10,6 +10,7 @@ NODE_MOUNT_POINT=/node
 cd ${NODE_MOUNT_POINT}
 rm -rf build
 make dep
+make utilities-ci
 make build
 
 cp -r ${GOPATH}/* ${MOUNT_POINT}
