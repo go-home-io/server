@@ -465,8 +465,8 @@ func TestPingMessageNoReBalance(t *testing.T) {
 		t.Fail()
 	}
 
-	if 0 != len(published) {
-		t.Errorf("Bus was called")
+	if 1 != len(published) {
+		t.Errorf("Bus was not called")
 		t.Fail()
 	}
 }

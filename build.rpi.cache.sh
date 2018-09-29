@@ -16,6 +16,7 @@ make build
 cp -r ${GOPATH}/* ${MOUNT_POINT}
 mkdir -p ${MOUNT_POINT}/app
 cd ${MOUNT_POINT}/src/github.com/go-home-io/server
+mkdir public
 cp -r ${NODE_MOUNT_POINT}/build/* ./public/
 
 GOPATH=${MOUNT_POINT} VERSION=${VERSION} GOARM=${GOARM} GOARCH=${GOARCH} make dep

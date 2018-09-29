@@ -40,8 +40,20 @@ func (s *GoHomeServer) InternalCommandInvokeDeviceCommand(
 
 		s.Logger.Debug("Invoking device operation", common.LogSystemToken, logSystem,
 			common.LogDeviceNameToken, v.ID, common.LogDeviceCommandToken, cmd.String())
-		s.Settings.ServiceBus().PublishToWorker(v.Worker,
-			bus.NewDeviceCommandMessage(v.ID, cmd, data))
+
+		if v.Type == enums.DevGroup {
+			g, ok := s.groups[v.ID]
+			if !ok {
+				s.Logger.Warn("Received unknown group", common.LogSystemToken, logSystem,
+					common.LogDeviceNameToken, v.ID, common.LogDeviceCommandToken, cmd.String())
+				continue
+			}
+
+			g.InvokeCommand(cmd, data)
+		} else {
+			s.Settings.ServiceBus().PublishToWorker(v.Worker,
+				bus.NewDeviceCommandMessage(v.ID, cmd, data))
+		}
 	}
 
 }

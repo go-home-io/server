@@ -152,6 +152,9 @@ test-local: test
 
 git: dep-ensure generate lint test-local
 
+build-rpi-cache-docker:
+	docker build -t go-home-cahe -f Dockerfile.rpi.cache .
+
 .ONESHELL:
 SHELL = /bin/sh
 build-plugins:

@@ -10,3 +10,8 @@ func (s *GoHomeServer) ping(writer http.ResponseWriter, _ *http.Request) {
 	}
 	respondOk(writer)
 }
+
+// Responds with known workers
+func (s *GoHomeServer) getWorkers(writer http.ResponseWriter, _ *http.Request) {
+	respond(writer, s.state.GetWorkers())
+}

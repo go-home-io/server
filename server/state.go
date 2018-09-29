@@ -22,15 +22,16 @@ type IServerStateProvider interface {
 	Update(msg *bus.DeviceUpdateMessage)
 	GetAllDevices() []*knownDevice
 	GetDevice(string) *knownDevice
+	GetWorkers() []*knownWorker
 }
 
 // Worker properties.
 type knownWorker struct {
-	ID               string
-	LastSeen         int64
-	WorkerProperties map[string]string
-	Devices          []*bus.DeviceAssignment
-	MaxDevices       int
+	ID               string                  `json:"id"`
+	LastSeen         int64                   `json:"last_seen"`
+	WorkerProperties map[string]string       `json:"worker_properties"`
+	Devices          []*bus.DeviceAssignment `json:"-"`
+	MaxDevices       int                     `json:"max_devices"`
 }
 
 // Connected workers' state.
@@ -81,12 +82,13 @@ func (s *serverState) Discovery(msg *bus.DiscoveryMessage) {
 			if msg.IsFirstStart {
 				s.Logger.Info("Received discovery from a known worker with no changes, re-sending device data",
 					common.LogWorkerToken, msg.NodeID, common.LogSystemToken, logSystem)
-				s.Settings.ServiceBus().PublishToWorker(msg.NodeID, bus.NewDeviceAssignmentMessage(wk.Devices,
-					s.Settings.MasterSettings().UOM))
 			} else {
 				s.Logger.Debug("Received discovery from a known worker",
 					common.LogWorkerToken, msg.NodeID, common.LogSystemToken, logSystem)
 			}
+
+			s.Settings.ServiceBus().PublishToWorker(msg.NodeID, bus.NewDeviceAssignmentMessage(wk.Devices,
+				s.Settings.MasterSettings().UOM))
 			syncProperties = false
 			reBalanceNeeded = false
 
@@ -174,6 +176,19 @@ func (s *serverState) GetDevice(deviceID string) *knownDevice {
 	s.deviceMutex.Lock()
 	defer s.deviceMutex.Unlock()
 	return s.KnownDevices[deviceID]
+}
+
+// GetWorkers returns known workers.
+func (s *serverState) GetWorkers() []*knownWorker {
+	s.workerMutex.Lock()
+	defer s.workerMutex.Unlock()
+
+	workers := make([]*knownWorker, 0)
+	for _, v := range s.KnownWorkers {
+		workers = append(workers, v)
+	}
+
+	return workers
 }
 
 // Processes device state updates.
@@ -394,17 +409,16 @@ func (s *serverState) pickWorker(device *providers.RawDevice) []string {
 func (s *serverState) checkStaleWorkers() {
 	s.workerMutex.Lock()
 
-	now := utils.TimeNow()
 	toDelete := make([]string, 0)
 
 	for name, v := range s.KnownWorkers {
-		if now-v.LastSeen > 2*60 {
+		if utils.IsLongTimeNoSee(v.LastSeen) {
 			toDelete = append(toDelete, name)
 		}
 	}
 
 	for _, name := range toDelete {
-		s.Logger.Info("Removing stale worker", common.LogSystemToken, logSystem,
+		s.Logger.Warn("Removing stale worker", common.LogSystemToken, logSystem,
 			common.LogWorkerToken, name)
 		delete(s.KnownWorkers, name)
 	}

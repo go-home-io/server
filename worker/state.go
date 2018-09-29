@@ -1,15 +1,19 @@
 package worker
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"sync"
 
 	busPlugin "github.com/go-home-io/server/plugins/bus"
 	"github.com/go-home-io/server/plugins/common"
+	"github.com/go-home-io/server/plugins/helpers"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
 	"github.com/go-home-io/server/systems/api"
 	"github.com/go-home-io/server/systems/bus"
 	"github.com/go-home-io/server/systems/device"
+	"github.com/go-home-io/server/utils"
 )
 
 // IWorkerStateProvider state abstraction.
@@ -33,7 +37,9 @@ type workerState struct {
 	statusUpdatesChan chan *device.UpdateEvent
 	discoveryChan     chan *device.NewDeviceDiscoveredEvent
 
-	failedDevices *bus.DeviceAssignmentMessage
+	lastAssignment     []string
+	lastAssignmentTime int64
+	failedDevices      *bus.DeviceAssignmentMessage
 }
 
 // Creating a new worker state object.
@@ -44,10 +50,17 @@ func newWorkerState(settings providers.ISettingsProvider) *workerState {
 
 		mutex: &sync.Mutex{},
 
+		lastAssignment: make([]string, 0),
+
 		devices:           make(map[string]device.IDeviceWrapperProvider),
 		extendedAPIs:      make([]providers.IExtendedAPIProvider, 0),
 		discoveryChan:     make(chan *device.NewDeviceDiscoveredEvent, 5),
 		statusUpdatesChan: make(chan *device.UpdateEvent, 30),
+	}
+
+	_, err := settings.Cron().AddFunc("@every 15s", w.checkStaleMaster)
+	if err != nil {
+		panic("Failed to start staled workers job")
 	}
 
 	go w.start()
@@ -57,6 +70,24 @@ func newWorkerState(settings providers.ISettingsProvider) *workerState {
 // DevicesAssignmentMessage processes a device assignment message, received from server.
 // Worker should stop existing device-listening processes and re-load a new set.
 func (w *workerState) DevicesAssignmentMessage(msg *bus.DeviceAssignmentMessage) {
+	w.lastAssignmentTime = utils.TimeNow()
+	w.mutex.Lock()
+	tmpSum := make([]string, 0)
+	for _, v := range msg.Devices {
+		t := md5.Sum([]byte(v.Config))
+		tmpSum = append(tmpSum, hex.EncodeToString(t[:]))
+	}
+
+	if helpers.SliceEqualsString(w.lastAssignment, tmpSum) {
+		w.mutex.Unlock()
+		w.Logger.Debug("Received device assignment is the same", common.LogSystemToken, logSystem)
+		return
+	}
+
+	w.lastAssignment = make([]string, len(tmpSum))
+	copy(w.lastAssignment, tmpSum)
+	w.mutex.Unlock()
+
 	w.Logger.Info("Received device assignment message", common.LogSystemToken, logSystem)
 	w.unloadDevices()
 	go w.loadDevices(msg)
@@ -76,6 +107,18 @@ func (w *workerState) DevicesCommandMessage(msg *bus.DeviceCommandMessage) {
 	}
 
 	wrapper.InvokeCommand(msg.Command, msg.Payload)
+}
+
+func (w *workerState) checkStaleMaster() {
+	w.mutex.Lock()
+	if 0 != len(w.lastAssignment) && utils.IsLongTimeNoSee(w.lastAssignmentTime) {
+		w.Logger.Warn("Didn't get anything from master for a long time. Unloading devices",
+			common.LogSystemToken, logSystem)
+		w.lastAssignment = make([]string, 0)
+		go w.unloadDevices()
+	}
+
+	w.mutex.Unlock()
 }
 
 // Starting worker state internal processes.

@@ -14,6 +14,11 @@ func TimeNow() int64 {
 	return time.Now().UTC().Unix()
 }
 
+// IsLongTimeNoSee checks whether worker/master wasn't seen for a long time.
+func IsLongTimeNoSee(lastSeen int64) bool {
+	return TimeNow()-lastSeen > 2*60
+}
+
 // VerifyDeviceProvider transforms device provider from yaml config into actual type.
 func VerifyDeviceProvider(configType string) enums.DeviceType {
 	parts := strings.SplitN(configType, "/", 2)

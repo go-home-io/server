@@ -76,6 +76,13 @@ func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interfa
 	}
 
 	fileName := l.getActualFileName(pKey)
+	defer func() {
+		if recover() != nil {
+			os.Remove(fileName) // nolint: gosec
+			l.logger.Fatal("Error opening plugin, corrupted?")
+		}
+	}()
+
 	if _, err := os.Stat(fileName); err != nil {
 		err = l.downloadFile(pKey, fileName)
 		if err != nil {

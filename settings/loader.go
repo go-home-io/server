@@ -135,6 +135,14 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 	}
 
 	allProviders = settings.loadDevicesAndGoHomeDefinitions(allProviders)
+	if settings.isWorker && nil == settings.wSettings {
+		settings.logger.Fatal("Didn't get workers settings", errors.New("config provider returned nothing"))
+	}
+
+	if !settings.isWorker && nil == settings.mSettings {
+		settings.logger.Fatal("Didn't get master settings", errors.New("config provider returned nothing"))
+	}
+
 	allProviders = settings.loadLoggerProvider(allProviders)
 
 	for _, v := range allProviders {
@@ -596,6 +604,7 @@ func (s *settingsProvider) loadUIProviders(provider *rawProvider) {
 	if s.isWorker {
 		return
 	}
+
 	c := &providers.RawDeviceSelector{}
 	err := yaml.Unmarshal(provider.Config, c)
 	if err != nil {
