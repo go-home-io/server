@@ -1,4 +1,5 @@
-package proxy
+// Package main contains proxy utility.
+package main
 
 import (
 	"fmt"

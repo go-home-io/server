@@ -1,5 +1,5 @@
 // Package main contains build utils.
-package bintray
+package main
 
 import (
 	"fmt"
