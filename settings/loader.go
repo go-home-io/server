@@ -40,6 +40,7 @@ const (
 // StartUpOptions defines arguments allowed by the system.
 type StartUpOptions struct {
 	PluginsFolder string `short:"p" long:"plugins" description:"Plugins location."`
+	PluginsProxy  string `short:"x" long:"pluginsProxy" description:"Plugins download proxy"`
 	IsWorker      bool   `short:"w" long:"worker" description:"Flag indicating working instance."`
 
 	Config map[string]string `short:"c" long:"config" description:"Config files provider. Defaults to local FS."`
@@ -97,6 +98,7 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 
 	pluginsCtor := &utils.ConstructPluginLoader{
 		PluginsFolder: options.PluginsFolder,
+		PluginsProxy:  options.PluginsProxy,
 		Validator:     settings.validator,
 	}
 	settings.pluginLoader = utils.NewPluginLoader(pluginsCtor)

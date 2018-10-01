@@ -34,6 +34,8 @@ type DeviceAssignment struct {
 	Config string           `json:"c"`
 	Name   string           `json:"n"`
 	IsAPI  bool             `json:"a"`
+
+	LoadFinished bool `json:"-"`
 }
 
 // DeviceAssignmentMessage used by server to send a new set of devices to worker.

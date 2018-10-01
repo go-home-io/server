@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"sync"
+	"time"
 
 	busPlugin "github.com/go-home-io/server/plugins/bus"
 	"github.com/go-home-io/server/plugins/common"
@@ -109,6 +110,7 @@ func (w *workerState) DevicesCommandMessage(msg *bus.DeviceCommandMessage) {
 	wrapper.InvokeCommand(msg.Command, msg.Payload)
 }
 
+// Periodic checks to determine whether master is active.
 func (w *workerState) checkStaleMaster() {
 	w.mutex.Lock()
 	if 0 != len(w.lastAssignment) && utils.IsLongTimeNoSee(w.lastAssignmentTime) {
@@ -180,6 +182,8 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 	}
 
 	for _, a := range devices {
+		a.LoadFinished = false
+
 		if a.IsAPI {
 			ctor := &api.ConstructAPI{
 				Name:       a.Name,
@@ -197,6 +201,7 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 				defer wg.Done()
 
 				wrapper, err := api.NewExtendedAPIProvider(ctor)
+				dev.LoadFinished = true
 				if err != nil {
 					failed.Devices = append(failed.Devices, dev)
 					return
@@ -222,6 +227,7 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 		go func(dev *bus.DeviceAssignment) {
 			defer wg.Done()
 			wrappers, err := device.LoadDevice(ctor)
+			dev.LoadFinished = true
 			if err != nil {
 				failed.Devices = append(failed.Devices, dev)
 				return
@@ -234,7 +240,11 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 		}(a)
 	}
 
-	wg.Wait()
+	if !waitWithTimeout(&wg, 10*time.Second) {
+		w.Logger.Warn("Got timeout while waiting for devices load")
+		analyzeFailedToLoadDevices(devices, failed)
+	}
+
 	if len(failed.Devices) > 0 {
 		w.failedDevices = failed
 		w.Logger.Warn("Failed to reload some device, will retry later", common.LogSystemToken, logSystem)
@@ -245,6 +255,31 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 	w.Logger.Info("Done re-loading devices", common.LogSystemToken, logSystem)
 }
 
+// Analyzes failed to load due to timeout devices.
+func analyzeFailedToLoadDevices(devices []*bus.DeviceAssignment, failed *bus.DeviceAssignmentMessage) {
+	for _, a := range devices {
+		if !a.LoadFinished {
+			failed.Devices = append(failed.Devices, a)
+		}
+	}
+}
+
+// Waits with timeout.
+func waitWithTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		wg.Wait()
+	}()
+	select {
+	case <-c:
+		return true
+	case <-time.After(timeout):
+		return false
+	}
+}
+
+// Retries loading failed devices.
 func (w *workerState) retryLoad() {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()

@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/go-home-io/server/plugins/common"
@@ -38,7 +39,7 @@ func PropertyFixYaml(x interface{}, p enums.Property) (interface{}, error) {
 		return r, nil
 	case enums.PropBrightness, enums.PropBatteryLevel, enums.PropFanSpeed:
 		return convertValueProperty(x, &common.Percent{})
-	case enums.PropDuration:
+	case enums.PropDuration, enums.PropDistance:
 		return convertValueProperty(x, &common.Int{})
 	default:
 		return convertValueProperty(x, &common.Float{})
@@ -65,10 +66,33 @@ func UnmarshalProperty(x interface{}, p enums.Property) (interface{}, error) {
 		return r, nil
 	case enums.PropBrightness, enums.PropBatteryLevel, enums.PropFanSpeed:
 		return convertProperty(x, &common.Percent{})
-	case enums.PropDuration:
+	case enums.PropDuration, enums.PropDistance:
 		return convertProperty(x, &common.Int{})
 	default:
 		return convertProperty(x, &common.Float{})
+	}
+}
+
+// PlainProperty converts common.* data into plain properties to use with mappers.
+func PlainProperty(x interface{}, p enums.Property) interface{} {
+	if nil == x {
+		return x
+	}
+
+	switch p {
+	case enums.PropScenes, enums.PropSensorType, enums.PropVacStatus, enums.PropPicture:
+		return x
+	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
+		return x
+	case enums.PropColor:
+		c := x.(common.Color)
+		return fmt.Sprintf("r:%d,g:%d,b:%d", c.R, c.G, c.B)
+	case enums.PropBrightness, enums.PropBatteryLevel, enums.PropFanSpeed:
+		return x.(common.Percent).Value
+	case enums.PropDuration, enums.PropDistance:
+		return x.(common.Int).Value
+	default:
+		return x.(common.Float).Value
 	}
 }
 
@@ -118,7 +142,7 @@ func PropertyFixNum(x interface{}, p enums.Property) interface{} {
 		return uint8(x.(float64))
 	case enums.PropTransitionTime:
 		return uint16(x.(float64))
-	case enums.PropDuration:
+	case enums.PropDuration, enums.PropDistance:
 		return int(x.(float64))
 	}
 

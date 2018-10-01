@@ -98,6 +98,54 @@ func TestUnmarshalProperty(t *testing.T) {
 	}
 }
 
+// Tests property converters.
+func TestPlainProperty(t *testing.T) {
+	data := []struct {
+		in   interface{}
+		prop enums.Property
+		out  interface{}
+	}{
+		{
+			in:   enums.VacDocked,
+			prop: enums.PropVacStatus,
+			out:  enums.VacDocked,
+		},
+		{
+			in:   true,
+			prop: enums.PropOn,
+			out:  true,
+		},
+		{
+			in:   common.Color{R: 10, G: 20, B: 30},
+			prop: enums.PropColor,
+			out:  "r:10,g:20,b:30",
+		},
+		{
+			in:   common.Percent{Value: 10},
+			prop: enums.PropBatteryLevel,
+			out:  uint8(10),
+		},
+		{
+			in:   common.Int{Value: 20},
+			prop: enums.PropDuration,
+			out:  20,
+		},
+		{
+			in:   common.Float{Value: 30},
+			prop: enums.PropTemperature,
+			out:  30.0,
+		},
+	}
+
+	for _, v := range data {
+		out := PlainProperty(v.in, v.prop)
+		if !reflect.DeepEqual(out, v.out) {
+			t.Error("Failed " + v.prop.String())
+			t.Fail()
+		}
+	}
+}
+
 // Tests number fix properties.
 func TestPropertyFixNum(t *testing.T) {
 	in := []struct {

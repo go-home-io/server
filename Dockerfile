@@ -64,7 +64,7 @@ RUN if [ "${LINT}" != "false" ]; then \
         make test && \
         TRAVIS=$TRAVIS TRAVIS_JOB_ID=$TRAVIS_JOB_ID TRAVIS_BRANCH=$TRAVIS_BRANCH TRAVIS_PULL_REQUEST=$TRAVIS_PULL_REQUEST ${GOPATH}/bin/goveralls -coverprofile=./bin/cover.out -repotoken $C_TOKEN; \
     else \
-        BINTRAY_API_KEY=${BINTRAY_API_KEY} BINTRAY_API_USER=${BINTRAY_API_USER} go run build/main.go /app/plugins ${VERSION} ${GOARCH}; \
+        BINTRAY_API_KEY=${BINTRAY_API_KEY} BINTRAY_API_USER=${BINTRAY_API_USER} go run cmd/bintray/upload.go /app/plugins ${VERSION} ${GOARCH}; \
     fi;
 
 ##################################################################################################

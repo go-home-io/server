@@ -42,7 +42,7 @@ func TestCameraProcessorCtor(t *testing.T) {
 func TestCameraProcessorRegularProperty(t *testing.T) {
 	c := getCamera()
 	ok, out := c.IsPropertyGood(enums.PropArea, 20)
-	if !ok || out != 20 {
+	if !ok || len(out) != 1 || out[enums.PropArea] != 20 {
 		t.Fail()
 	}
 }
@@ -68,7 +68,7 @@ func TestNewImage(t *testing.T) {
 		t.FailNow()
 	}
 
-	outB, err := base64.StdEncoding.DecodeString(out.(string))
+	outB, err := base64.StdEncoding.DecodeString(out[enums.PropPicture].(string))
 	if err != nil {
 		t.Error("Received wrong base64 data")
 		t.FailNow()
@@ -101,5 +101,16 @@ func TestSameImage(t *testing.T) {
 	if ok {
 		t.Error("Second validation failed")
 		t.Fail()
+	}
+}
+
+// Tests whether all extra properties correctly processed.
+func TestExtraProperties(t *testing.T){
+	c := getCamera()
+	for _, v := range c.GetExtraSupportPropertiesSpec() {
+		if !c.IsExtraProperty(v) {
+			t.Error("Failed extra property " + v.String())
+			t.Fail()
+		}
 	}
 }

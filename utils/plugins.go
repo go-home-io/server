@@ -30,20 +30,22 @@ const (
 )
 
 // Arch describes build architecture.
-var Arch string
+var Arch string = "amd64"
 
 // Version describes build version.
-var Version string
+var Version string = "0.0.5"
 
 // ConstructPluginLoader contains params required for creating a new plugin loader instance.
 type ConstructPluginLoader struct {
 	PluginsFolder string
+	PluginsProxy  string
 	Validator     providers.IValidatorProvider
 }
 
 // Plugins loader.
 type pluginLoader struct {
 	pluginsFolder string
+	pluginsProxy  string
 	validator     providers.IValidatorProvider
 	logger        *log.Logger
 
@@ -59,6 +61,7 @@ func NewPluginLoader(ctor *ConstructPluginLoader) providers.IPluginLoaderProvide
 
 	loader := pluginLoader{
 		pluginsFolder: loc,
+		pluginsProxy:  ctor.PluginsProxy,
 		validator:     ctor.Validator,
 		loadedPlugins: make(map[string]func() (interface{}, interface{}, error)),
 		logger:        log.New(os.Stdout, "plugins", log.LstdFlags),
@@ -72,9 +75,11 @@ func NewPluginLoader(ctor *ConstructPluginLoader) providers.IPluginLoaderProvide
 func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interface{}, error) {
 	pKey := getPluginKey(request.SystemType, request.PluginProvider)
 	if method, ok := l.loadedPlugins[pKey]; ok {
+		l.logger.Printf("Loading plugin %s from cache", pKey)
 		return l.loadPlugin(request, method)
 	}
 
+	l.logger.Printf("Loading plugin %s", pKey)
 	fileName := l.getActualFileName(pKey)
 	defer func() {
 		if recover() != nil {
@@ -93,7 +98,7 @@ func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interfa
 	p, err := plugin.Open(fileName)
 	if err != nil {
 		// We want to delete failed plugin
-		os.Remove(fileName) // nolint: gosec
+		//os.Remove(fileName) // nolint: gosec
 		return nil, err
 	}
 
@@ -216,6 +221,9 @@ func (l *pluginLoader) getActualFileName(pluginKey string) string {
 func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 	name := strings.Replace(pluginKey, "/", "_", -1)
 	name = fmt.Sprintf("%s-%s.so.tar.gz", name, Version)
+	if "" != l.pluginsProxy {
+		return l.downloadFileThroughProxy(name)
+	}
 
 	archName := fmt.Sprintf("%s.tar.gz", actualName)
 	if _, err := os.Stat(archName); err != nil {
@@ -235,7 +243,8 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 		downloadURL := fmt.Sprintf(PluginCDNUrlFormat, Arch, name)
 		res, err := http.Get(downloadURL) // nolint: gosec
 		if err != nil {
-			l.logger.Println("Failed to get " + downloadURL + ": " + err.Error())
+			os.Remove(archName) // nolint: gosec
+			l.logger.Println("Failed to get " + downloadURL)
 			return err
 		}
 
@@ -243,13 +252,26 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 		_, err = io.Copy(out, res.Body)
 		if err != nil {
 			l.logger.Println("Failed to save " + name + ": " + err.Error())
+			os.Remove(archName) // nolint: gosec
+			return err
 		}
 	}
 
 	err := archiver.TarGz.Open(archName, filepath.Dir(actualName))
 	if err != nil {
+		l.logger.Println("Failed to un-archive " + name + ": " + err.Error())
 		os.Remove(archName) // nolint: gosec
 		return err
+	}
+
+	return nil
+}
+
+// Downloads plugin from bintray through proxy.
+func (l *pluginLoader) downloadFileThroughProxy(name string) error {
+	r, err := http.Get(fmt.Sprintf("%s/%s/%s", l.pluginsProxy, Arch, name))
+	if err != nil || r.StatusCode != http.StatusOK {
+		l.logger.Printf("Failed to download %s through proxy", name)
 	}
 
 	return nil

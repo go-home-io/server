@@ -95,6 +95,10 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 		}
 	}
 
+	if nil != w.processor {
+		w.Spec.SupportedProperties = append(w.Spec.SupportedProperties, w.processor.GetExtraSupportPropertiesSpec()...)
+	}
+
 	if !w.setState(ctor.DeviceState) {
 		ctor.Logger.Warn("Failed to fetch device state",
 			common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
@@ -283,7 +287,6 @@ func (w *deviceWrapper) validateDeviceSpec(ctor *wrapperConstruct) {
 }
 
 // Updates internal device state which is stored in wrapper.
-// nolint: gocyclo
 func (w *deviceWrapper) setState(deviceState interface{}) bool {
 	if nil == deviceState ||
 		reflect.ValueOf(deviceState).Kind() == reflect.Ptr && reflect.ValueOf(deviceState).IsNil() {
@@ -327,18 +330,33 @@ func (w *deviceWrapper) setState(deviceState interface{}) bool {
 			continue
 		}
 
-		if nil != w.processor {
-			ok, v := w.processor.IsPropertyGood(prop, val)
-			val = v
-			if !ok {
-				continue
-			}
-		}
-
-		w.State[jsonKey] = val
+		w.preProcessProperty(jsonKey, prop, val)
 	}
 
 	return true
+}
+
+// Processes property.
+func (w *deviceWrapper) preProcessProperty(jsonKey string, property enums.Property, value interface{}) {
+	if nil == w.processor {
+		w.State[jsonKey] = value
+		return
+	}
+
+	if w.processor.IsExtraProperty(property) {
+		return
+	}
+
+	ok, props := w.processor.IsPropertyGood(property, value)
+
+	if !ok {
+		delete(w.State, jsonKey)
+		return
+	}
+
+	for k, v := range props {
+		w.State[k.String()] = v
+	}
 }
 
 // Returns actual value or nil.

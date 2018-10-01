@@ -1,5 +1,5 @@
 // Package main contains build utils.
-package main
+package bintray
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ const (
 
 // Uploads plugins to bintray.
 func main() {
-	logger := log.New(os.Stdout, "build", log.LstdFlags)
+	logger := log.New(os.Stdout, "bintray", log.LstdFlags)
 	targetFolder := os.Args[1]
 	version := os.Args[2]
 	arch := os.Args[3]

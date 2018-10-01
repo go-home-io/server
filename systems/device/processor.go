@@ -4,7 +4,9 @@ import "github.com/go-home-io/server/plugins/device/enums"
 
 // IProcessor defines device post-processor.
 type IProcessor interface {
-	IsPropertyGood(enums.Property, interface{}) (bool, interface{})
+	IsExtraProperty(enums.Property) bool
+	GetExtraSupportPropertiesSpec() []enums.Property
+	IsPropertyGood(enums.Property, interface{}) (bool, map[enums.Property]interface{})
 }
 
 // Constructs a new device processor if required for the device.

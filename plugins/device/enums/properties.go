@@ -56,6 +56,8 @@ const (
 	PropFanSpeed
 	// PropPicture describes camera's current picture.
 	PropPicture
+	// PropDistance describes distance.
+	PropDistance
 )
 
 // AllowedProperties contains set of all possible allowed properties per device type.
@@ -68,7 +70,7 @@ var AllowedProperties = map[DeviceType][]Property{
 	DevWeather: {PropTemperature, PropSunrise, PropSunset, PropHumidity, PropPressure,
 		PropVisibility, PropWindDirection, PropWindSpeed},
 	DevVacuum: {PropVacStatus, PropBatteryLevel, PropArea, PropDuration, PropFanSpeed},
-	DevCamera: {PropPicture},
+	DevCamera: {PropPicture, PropDistance},
 }
 
 // SliceContainsProperty checks whether slice contains certain property.

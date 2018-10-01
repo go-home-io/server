@@ -48,7 +48,6 @@ func (s *GoHomeServer) InternalCommandInvokeDeviceCommand(
 					common.LogDeviceNameToken, v.ID, common.LogDeviceCommandToken, cmd.String())
 				continue
 			}
-
 			g.InvokeCommand(cmd, data)
 		} else {
 			s.Settings.ServiceBus().PublishToWorker(v.Worker,

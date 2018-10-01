@@ -144,7 +144,7 @@ run-worker: build run-only-worker
 test:
 	@set -e
 	$(GOCMD) test -failfast --covermode=count -coverprofile=$(BIN_FOLDER)/cover.out.tmp ./...
-	@cat $(BIN_FOLDER)/cover.out.tmp | grep -v "fake_" | grep -v "_enumer" | grep -v "mocks" | grep -v "public" | grep -v "statik" | grep -v "server/api_" > $(BIN_FOLDER)/cover.out
+	@cat $(BIN_FOLDER)/cover.out.tmp | grep -v "fake_" | grep -v "_enumer" | grep -v "mocks" | grep -v "public" | grep -v "statik" | grep -v "server/api_" | grep -v "cmd/" > $(BIN_FOLDER)/cover.out
 	@rm -f $(BIN_FOLDER)/cover.out.tmp
 
 test-local: test

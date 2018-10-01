@@ -248,6 +248,43 @@ func TestInternalInvokeCommand(t *testing.T) {
 	}
 }
 
+// Tests group invoke.
+func TestInternalInvokeCommandGroup(t *testing.T) {
+	numCalled := 0
+	s := getFakeSettings(func(name string, msg ...interface{}) {
+		numCalled++
+	}, nil, nil)
+	state := newServerState(s)
+	state.KnownDevices = map[string]*knownDevice{
+		"dev1":   {ID: "dev1", Commands: []string{enums.CmdOn.String()}, Worker: "1"},
+		"dev2":   {ID: "dev2", Type: enums.DevGroup, Commands: []string{enums.CmdOn.String()}, Worker: "1"},
+		"device": {ID: "device", Commands: []string{enums.CmdOn.String()}, Worker: "2"},
+	}
+
+	srv := &GoHomeServer{
+		state:    state,
+		Logger:   mocks.FakeNewLogger(nil),
+		Settings: s,
+	}
+
+	srv.InternalCommandInvokeDeviceCommand(glob.MustCompile("dev[1-2]*"), enums.CmdOn, nil)
+	if 1 != numCalled {
+		t.Fail()
+	}
+
+	groupCalled := 0
+	fg := mocks.FakeNewGroupProvider("dev2", nil, func() {
+		groupCalled++
+	})
+	numCalled = 0
+	srv.groups = map[string]providers.IGroupProvider{"dev2": fg}
+
+	srv.InternalCommandInvokeDeviceCommand(glob.MustCompile("dev[1-2]*"), enums.CmdOn, nil)
+	if 1 != numCalled || 1 != groupCalled {
+		t.Fail()
+	}
+}
+
 // Tests groups invocation.
 func TestGetGroups(t *testing.T) {
 	user := &providers.AuthenticatedUser{
