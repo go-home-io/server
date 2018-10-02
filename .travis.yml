@@ -13,11 +13,12 @@ jobs:
     - stage: ci
       script:
         - ./build.sh ci
-    - stage: docker-arm
+    - stage: docker-amd
       if: tag IS present
       script:
         - ./build.sh docker
-    - stage: docker-rpi
+    - stage: docker-arm
       if: tag IS present
       script:
+        - "travis_wait 30 sleep 1800 &"
         - curl --fail --connect-timeout 60 --max-time 1800 ${RPI_BUILD_URL}/${TRAVIS_TAG}/${RPI_BUILD_KEY}

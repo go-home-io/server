@@ -23,6 +23,8 @@ const (
 	fileName = "fileName"
 	// Arch name API key.
 	archName = "arch"
+	// Temp folder name
+	tempDir = "/tmp/plugins"
 )
 
 // Proxy Bintray downloading attempt.
@@ -41,6 +43,11 @@ func main() {
 		done:         make(chan *downloadResponse, 20),
 		stop:         make(chan bool, 1),
 		downloading:  make(map[string][]chan bool, 50),
+	}
+
+	err := os.MkdirAll(tempDir, os.ModePerm)
+	if err != nil {
+		logger.Fatalf("Failed to create temp folder %s", tempDir)
 	}
 
 	router := mux.NewRouter()
@@ -141,8 +148,9 @@ func (p *proxy) handle(writer http.ResponseWriter, request *http.Request) {
 // Downloads the file.
 func (p *proxy) download(file string, arch string, callback chan *downloadResponse) {
 	archName := strings.Replace(file, "_", "/", -1)
-	archName = fmt.Sprintf("%s/%s", p.pluginFolder, archName)
 	pluginName := strings.Replace(archName, ".tar.gz", "", -1)
+	archName = fmt.Sprintf("%s/%s", tempDir, archName)
+
 	dr := &downloadResponse{
 		archNameKey: fmt.Sprintf("%s_%s", arch, file),
 		success:     false,
@@ -183,10 +191,28 @@ func (p *proxy) download(file string, arch string, callback chan *downloadRespon
 		}
 	}
 
-	err := archiver.TarGz.Open(archName, filepath.Dir(pluginName))
+	tmpPlugin := fmt.Sprintf("%s/%s", tempDir, pluginName)
+	err := archiver.TarGz.Open(archName, filepath.Dir(archName))
 	if err != nil {
 		p.logger.Println("Failed to un-archive " + file + ": " + err.Error())
-		os.Remove(archName) // nolint: gosec
+		os.Remove(tmpPlugin) // nolint: gosec
+		os.Remove(archName)  // nolint: gosec
+		callback <- dr
+		return
+	}
+
+	pluginName = fmt.Sprintf("%s/%s", p.pluginFolder, pluginName)
+	err = os.MkdirAll(filepath.Dir(pluginName), os.ModePerm)
+	if err != nil {
+		p.logger.Println("Failed to create target folder for " + file + ": " + err.Error())
+		callback <- dr
+		return
+	}
+
+	err = os.Rename(tmpPlugin, pluginName)
+	if err != nil {
+		p.logger.Println("Failed to move " + file + ": " + err.Error())
+		os.Remove(pluginName) // nolint: gosec
 		callback <- dr
 		return
 	}
