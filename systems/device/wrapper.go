@@ -19,9 +19,9 @@ import (
 
 // IDeviceWrapperProvider interface for any loaded devices.
 type IDeviceWrapperProvider interface {
+	providers.ILoadedProvider
 	ID() string
 	Name() string
-	Unload()
 	InvokeCommand(enums.Command, map[string]interface{})
 	GetUpdateMessage() *bus.DeviceUpdateMessage
 }

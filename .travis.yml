@@ -13,6 +13,8 @@ jobs:
     - stage: ci
       script:
         - ./build.sh ci
+      after_script:
+        - curl -d "repo=github.com/go-home-io/server" https://goreportcard.com/checks
     - stage: docker-amd
       if: tag IS present
       script:

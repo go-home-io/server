@@ -209,10 +209,22 @@ func (p *proxy) download(file string, arch string, callback chan *downloadRespon
 		return
 	}
 
-	err = copyFile(tmpPlugin, pluginName)
+	// To avoid load tries from go-home servers
+	tmpPluginName := pluginName + "_tmp"
+	err = copyFile(tmpPlugin, tmpPluginName)
 	if err != nil {
 		p.logger.Println("Failed to move " + file + ": " + err.Error())
-		os.Remove(pluginName) // nolint: gosec
+		os.Remove(tmpPluginName) // nolint: gosec
+		callback <- dr
+		return
+	}
+
+	// Much faster than copy on a shared PV.
+	err = os.Rename(tmpPluginName, pluginName)
+	if err != nil {
+		p.logger.Println("Failed to move from temp to final " + file + ": " + err.Error())
+		os.Remove(tmpPluginName) // nolint: gosec
+		os.Remove(pluginName)    // nolint: gosec
 		callback <- dr
 		return
 	}

@@ -3,6 +3,7 @@ package worker
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"sync"
 	"time"
 
@@ -25,8 +26,12 @@ type IWorkerStateProvider interface {
 	DevicesCommandMessage(*bus.DeviceCommandMessage)
 }
 
-// Timeout before terminating device load.
-var deviceLoadTimeout = 50 * time.Second
+var (
+	// Timeout before terminating device load.
+	deviceLoadTimeout = 50 * time.Second
+	// Timeout before unload fail panic.
+	deviceUnloadTimeout = 5 * time.Second
+)
 
 // Worker state definition.
 type workerState struct {
@@ -201,29 +206,7 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 				Validator:  w.Settings.Validator(),
 			}
 
-			go func(dev *bus.DeviceAssignment) {
-				defer wg.Done()
-
-				wrapper, err := api.NewExtendedAPIProvider(ctor)
-				dev.LoadFinished = true
-
-				if err == nil && a.CancelLoading {
-					wrapper.Unload()
-					return
-				}
-
-				if a.CancelLoading {
-					return
-				}
-
-				if err != nil {
-					failed.Devices = append(failed.Devices, dev)
-					return
-				}
-
-				w.extendedAPIs = append(w.extendedAPIs, wrapper)
-			}(a)
-
+			go w.tryAPIAssignmentLoad(a, ctor, &wg, failed)
 			continue
 		}
 
@@ -238,32 +221,7 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 			UOM:               msg.UOM,
 		}
 
-		go func(dev *bus.DeviceAssignment) {
-			defer wg.Done()
-			wrappers, err := device.LoadDevice(ctor)
-			dev.LoadFinished = true
-
-			if err == nil && a.CancelLoading {
-				for _, v := range wrappers {
-					v.Unload()
-					return
-				}
-			}
-
-			if a.CancelLoading {
-				return
-			}
-
-			if err != nil {
-				failed.Devices = append(failed.Devices, dev)
-				return
-			}
-
-			for _, v := range wrappers {
-				w.devices[v.ID()] = v
-				go w.Settings.ServiceBus().Publish(busPlugin.ChDeviceUpdates, v.GetUpdateMessage())
-			}
-		}(a)
+		go w.tryDeviceAssignmentLoad(a, ctor, &wg, failed)
 	}
 
 	if !waitWithTimeout(&wg, deviceLoadTimeout) {
@@ -279,6 +237,75 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 	}
 
 	w.Logger.Info("Done re-loading devices", common.LogSystemToken, logSystem)
+}
+
+// Tries to load API providers.
+func (w *workerState) tryAPIAssignmentLoad(a *bus.DeviceAssignment, ctor *api.ConstructAPI,
+	wg *sync.WaitGroup, failed *bus.DeviceAssignmentMessage) {
+	defer wg.Done()
+
+	wrapper, err := api.NewExtendedAPIProvider(ctor)
+	a.LoadFinished = true
+
+	if err == nil && a.CancelLoading {
+		go w.tryUnload(wrapper)
+		return
+	}
+
+	if a.CancelLoading {
+		return
+	}
+
+	if err != nil {
+		failed.Devices = append(failed.Devices, a)
+		return
+	}
+
+	w.extendedAPIs = append(w.extendedAPIs, wrapper)
+}
+
+// Tries to unload provider.
+func (w *workerState) tryUnload(p ...providers.ILoadedProvider) {
+	wg := sync.WaitGroup{}
+	wg.Add(len(p))
+	for _, v := range p {
+		go func(w *sync.WaitGroup, pr providers.ILoadedProvider) {
+			defer wg.Done()
+			v.Unload()
+		}(&wg, v)
+	}
+
+	if !waitWithTimeout(&wg, deviceUnloadTimeout) {
+		w.Logger.Fatal("Failed to unload provider, have to terminate", errors.New("unload failed"))
+	}
+}
+
+// Tries to load device providers.
+func (w *workerState) tryDeviceAssignmentLoad(a *bus.DeviceAssignment, ctor *device.ConstructDevice,
+	wg *sync.WaitGroup, failed *bus.DeviceAssignmentMessage) {
+	defer wg.Done()
+	wrappers, err := device.LoadDevice(ctor)
+	a.LoadFinished = true
+
+	if err == nil && a.CancelLoading {
+		for _, v := range wrappers {
+			go w.tryUnload(v)
+		}
+	}
+
+	if a.CancelLoading {
+		return
+	}
+
+	if err != nil {
+		failed.Devices = append(failed.Devices, a)
+		return
+	}
+
+	for _, v := range wrappers {
+		w.devices[v.ID()] = v
+		go w.Settings.ServiceBus().Publish(busPlugin.ChDeviceUpdates, v.GetUpdateMessage())
+	}
 }
 
 // Analyzes failed to load due to timeout devices.
@@ -322,12 +349,12 @@ func (w *workerState) unloadDevices() {
 	w.Logger.Debug("Unloading devices", common.LogSystemToken, logSystem)
 	w.failedDevices = nil
 	for k, v := range w.devices {
-		v.Unload()
+		go w.tryUnload(v)
 		delete(w.devices, k)
 	}
 
 	for _, v := range w.extendedAPIs {
-		v.Unload()
+		go w.tryUnload(v)
 	}
 
 	w.extendedAPIs = make([]providers.IExtendedAPIProvider, 0)
