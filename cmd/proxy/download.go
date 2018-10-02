@@ -209,7 +209,7 @@ func (p *proxy) download(file string, arch string, callback chan *downloadRespon
 		return
 	}
 
-	err = os.Rename(tmpPlugin, pluginName)
+	err = copyFile(tmpPlugin, pluginName)
 	if err != nil {
 		p.logger.Println("Failed to move " + file + ": " + err.Error())
 		os.Remove(pluginName) // nolint: gosec
@@ -219,4 +219,34 @@ func (p *proxy) download(file string, arch string, callback chan *downloadRespon
 
 	dr.success = true
 	callback <- dr
+}
+
+// Copying files for cross-device.
+func copyFile(src string, dst string) (err error) {
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+
+	defer source.Close()
+
+	destination, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(destination, source)
+	if closeErr := destination.Close(); err == nil {
+
+		err = closeErr
+	}
+	if err != nil {
+		return err
+	}
+
+	sInfo, err := os.Stat(src)
+	if err == nil {
+		err = os.Chmod(dst, sInfo.Mode())
+	}
+	return err
 }

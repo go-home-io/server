@@ -17,7 +17,6 @@ func TestNewWorker(t *testing.T) {
 	busCalled := false
 	settings := mocks.FakeNewSettings(nil, true, nil, nil)
 	settings.(mocks.IFakeSettings).AddSBCallback(func(i ...interface{}) {
-		println(i[0].(*bus.DiscoveryMessage).NodeID)
 		if i[0].(*bus.DiscoveryMessage).NodeID != settings.NodeID() {
 			t.Error("Node ID failed")
 			t.Fail()
