@@ -8,6 +8,11 @@ import (
 	"github.com/go-home-io/server/systems"
 )
 
+type IFakeSettings interface {
+	AddLoader(returnOj interface{})
+	AddSBCallback(func(...interface{}))
+}
+
 type fakeSettings struct {
 	isWorker bool
 	logger   common.ILoggerProvider
@@ -17,6 +22,7 @@ type fakeSettings struct {
 	security providers.ISecurityProvider
 	fanOut   providers.IInternalFanOutProvider
 	storage  providers.IStorageProvider
+	loader   providers.IPluginLoaderProvider
 }
 
 func (f *fakeSettings) Storage() providers.IStorageProvider {
@@ -60,7 +66,7 @@ func (f *fakeSettings) Cron() providers.ICronProvider {
 }
 
 func (f *fakeSettings) PluginLoader() providers.IPluginLoaderProvider {
-	return nil
+	return f.loader
 }
 
 func (f *fakeSettings) Validator() providers.IValidatorProvider {
@@ -68,7 +74,7 @@ func (f *fakeSettings) Validator() providers.IValidatorProvider {
 }
 
 func (f *fakeSettings) WorkerSettings() *providers.WorkerSettings {
-	return nil
+	return &providers.WorkerSettings{}
 }
 
 func (f *fakeSettings) MasterSettings() *providers.MasterSettings {
@@ -98,8 +104,16 @@ func (f *fakeSettings) FanOut() providers.IInternalFanOutProvider {
 	return f.fanOut
 }
 
+func (f *fakeSettings) AddLoader(returnOj interface{}) {
+	f.loader = FakeNewPluginLoader(returnOj)
+}
+
+func (f *fakeSettings) AddSBCallback(cb func(...interface{})) {
+	f.bus.(*fakeServiceBus).publishCallback = cb
+}
+
 func FakeNewSettings(sbPublish func(string, ...interface{}), isWorker bool,
-	devices []*providers.RawDevice, logCallback func(string)) *fakeSettings {
+	devices []*providers.RawDevice, logCallback func(string)) providers.ISettingsProvider {
 	return &fakeSettings{
 		isWorker: isWorker,
 		bus:      FakeNewServiceBus(sbPublish),

@@ -35,7 +35,8 @@ type DeviceAssignment struct {
 	Name   string           `json:"n"`
 	IsAPI  bool             `json:"a"`
 
-	LoadFinished bool `json:"-"`
+	LoadFinished  bool `json:"-"`
+	CancelLoading bool `json:"-"`
 }
 
 // DeviceAssignmentMessage used by server to send a new set of devices to worker.
@@ -59,9 +60,9 @@ type DeviceUpdateMessage struct {
 // DeviceCommandMessage used by server to invoke device command on a worker.
 type DeviceCommandMessage struct {
 	MessageWithType
-	DeviceID string
-	Command  enums.Command
-	Payload  map[string]interface{}
+	DeviceID string                 `json:"i"`
+	Command  enums.Command          `json:"c"`
+	Payload  map[string]interface{} `json:"p"`
 }
 
 // NewDiscoveryMessage constructs discovery message.

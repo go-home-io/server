@@ -4,13 +4,20 @@ services:
   - docker
 git:
   depth: 3
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y curl
 install: true
 jobs:
   include:
     - stage: ci
       script:
         - ./build.sh ci
-    - stage: docker
+    - stage: docker-arm
       if: tag IS present
       script:
         - ./build.sh docker
+    - stage: docker-rpi
+      if: tag IS present
+      script:
+        - curl --fail --connect-timeout 60 --max-time 1800 ${RPI_BUILD_URL}/${TRAVIS_TAG}/${RPI_BUILD_KEY}

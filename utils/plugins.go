@@ -30,10 +30,10 @@ const (
 )
 
 // Arch describes build architecture.
-var Arch string = "amd64"
+var Arch string
 
 // Version describes build version.
-var Version string = "0.0.5"
+var Version string
 
 // ConstructPluginLoader contains params required for creating a new plugin loader instance.
 type ConstructPluginLoader struct {
@@ -98,7 +98,7 @@ func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interfa
 	p, err := plugin.Open(fileName)
 	if err != nil {
 		// We want to delete failed plugin
-		//os.Remove(fileName) // nolint: gosec
+		os.Remove(fileName) // nolint: gosec
 		return nil, err
 	}
 
@@ -272,6 +272,7 @@ func (l *pluginLoader) downloadFileThroughProxy(name string) error {
 	r, err := http.Get(fmt.Sprintf("%s/%s/%s", l.pluginsProxy, Arch, name))
 	if err != nil || r.StatusCode != http.StatusOK {
 		l.logger.Printf("Failed to download %s through proxy", name)
+		return errors.New("proxy download failed")
 	}
 
 	return nil

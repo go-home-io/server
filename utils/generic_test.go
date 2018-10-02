@@ -16,6 +16,17 @@ func TestTimeNow(t *testing.T) {
 	}
 }
 
+// Test no see.
+func TestIsLongTimeNoSee(t *testing.T) {
+	if IsLongTimeNoSee(TimeNow() - LongTimeNoSee + 1) {
+		t.Fail()
+	}
+
+	if !IsLongTimeNoSee(TimeNow() - LongTimeNoSee - 1) {
+		t.Fail()
+	}
+}
+
 // Tests correct device provider parsing.
 func TestVerifyDeviceProvider(t *testing.T) {
 	in := []string{"hub/hue", "light/zengge", "wrong/device",

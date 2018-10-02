@@ -25,6 +25,9 @@ type IWorkerStateProvider interface {
 	DevicesCommandMessage(*bus.DeviceCommandMessage)
 }
 
+// Timeout before terminating device load.
+var deviceLoadTimeout = 50 * time.Second
+
 // Worker state definition.
 type workerState struct {
 	Settings providers.ISettingsProvider
@@ -183,6 +186,7 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 
 	for _, a := range devices {
 		a.LoadFinished = false
+		a.CancelLoading = false
 
 		if a.IsAPI {
 			ctor := &api.ConstructAPI{
@@ -202,6 +206,16 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 
 				wrapper, err := api.NewExtendedAPIProvider(ctor)
 				dev.LoadFinished = true
+
+				if err == nil && a.CancelLoading {
+					wrapper.Unload()
+					return
+				}
+
+				if a.CancelLoading {
+					return
+				}
+
 				if err != nil {
 					failed.Devices = append(failed.Devices, dev)
 					return
@@ -228,6 +242,18 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 			defer wg.Done()
 			wrappers, err := device.LoadDevice(ctor)
 			dev.LoadFinished = true
+
+			if err == nil && a.CancelLoading {
+				for _, v := range wrappers {
+					v.Unload()
+					return
+				}
+			}
+
+			if a.CancelLoading {
+				return
+			}
+
 			if err != nil {
 				failed.Devices = append(failed.Devices, dev)
 				return
@@ -240,7 +266,7 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 		}(a)
 	}
 
-	if !waitWithTimeout(&wg, 10*time.Second) {
+	if !waitWithTimeout(&wg, deviceLoadTimeout) {
 		w.Logger.Warn("Got timeout while waiting for devices load")
 		analyzeFailedToLoadDevices(devices, failed)
 	}
@@ -260,6 +286,7 @@ func analyzeFailedToLoadDevices(devices []*bus.DeviceAssignment, failed *bus.Dev
 	for _, a := range devices {
 		if !a.LoadFinished {
 			failed.Devices = append(failed.Devices, a)
+			a.CancelLoading = true
 		}
 	}
 }

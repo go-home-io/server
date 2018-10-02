@@ -75,7 +75,6 @@ func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 		DeviceType:        ctor.DeviceType,
 		DeviceInterface:   i,
 		IsRootDevice:      true,
-		Cron:              ctor.Settings.Cron(),
 		DeviceConfigName:  ctor.ConfigName,
 		DeviceState:       deviceState,
 		LoadData:          loadData,

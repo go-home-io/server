@@ -42,7 +42,7 @@ build_arm32v6_cached(){
         -v /home/pi/go-home-io:/mount \
         -v /home/pi/go-home-io/dashboard:/node \
         -a stdin -a stdout --name=build \
-        --rm -it go-home-cahe /bin/sh -c "/build.rpi.cache.sh"
+        --rm go-home-cahe /bin/sh -c "/build.rpi.cache.sh"
 
     sudo rm -rf /home/pi/go-home-io/app/plugins
     sudo cp -f src/github.com/go-home-io/server/Dockerfile.rpi /home/pi/go-home-io/app/Dockerfile

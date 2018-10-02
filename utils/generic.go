@@ -16,7 +16,7 @@ func TimeNow() int64 {
 
 // IsLongTimeNoSee checks whether worker/master wasn't seen for a long time.
 func IsLongTimeNoSee(lastSeen int64) bool {
-	return TimeNow()-lastSeen > 2*60
+	return TimeNow()-lastSeen > LongTimeNoSee
 }
 
 // VerifyDeviceProvider transforms device provider from yaml config into actual type.
@@ -70,3 +70,6 @@ func GetDefaultConfigsDir() string {
 
 // ConfigDir allows to re-write default config directory.
 var ConfigDir = ""
+
+// LongTimeNoSee defines for how long worker/master is treated as a live server.
+var LongTimeNoSee int64 = 2 * 60

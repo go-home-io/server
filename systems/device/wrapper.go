@@ -45,7 +45,6 @@ type wrapperConstruct struct {
 	Logger           common.ILoggerProvider
 	Secret           common.ISecretProvider
 	WorkerID         string
-	Cron             providers.ICronProvider
 	LoadData         *device.InitDataDevice
 	IsRootDevice     bool
 	Validator        providers.IValidatorProvider
@@ -69,7 +68,7 @@ type deviceWrapper struct {
 	Spec        *device.Spec
 	CommandsStr []string
 
-	jobID        int
+	stopChan     chan bool
 	updateMethod reflect.Value
 	commands     map[enums.Command]reflect.Value
 
@@ -84,6 +83,7 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 		isPolling: false,
 		State:     make(map[string]interface{}),
 		processor: ctor.processor,
+		stopChan:  make(chan bool, 5),
 	}
 
 	w.Spec = ctor.DeviceInterface.(device.IDevice).GetSpec()
@@ -104,23 +104,13 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 			common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
 	}
 
-	interval := int(w.Spec.UpdatePeriod / time.Second)
-	if interval > 0 {
+	if w.Spec.UpdatePeriod.Seconds() > 0 {
 		w.isPolling = true
-		if interval < 10 {
-			interval = 10
-		}
-
+		go w.periodicUpdates(w.Spec.UpdatePeriod)
 		w.updateMethod = reflect.ValueOf(ctor.DeviceInterface).MethodByName("Update")
-		var err error
-		w.jobID, err = ctor.Cron.AddFunc(fmt.Sprintf("@every %ds", interval), w.pullUpdate)
-		if err != nil {
-			ctor.Logger.Warn("Failed to schedule device updates",
-				common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
-		}
-
-		ctor.Logger.Debug(fmt.Sprintf("Polling rate for the device is %d seconds", interval),
-			common.LogDeviceTypeToken, ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
+		ctor.Logger.Debug(fmt.Sprintf("Polling rate for the device is %d seconds",
+			int(w.Spec.UpdatePeriod.Seconds())), common.LogDeviceTypeToken,
+			ctor.DeviceType.String(), common.LogDeviceNameToken, w.ID())
 	}
 
 	w.validateDeviceSpec(ctor)
@@ -160,13 +150,13 @@ func (w *deviceWrapper) Name() string {
 
 // Unload stops all background activities.
 func (w *deviceWrapper) Unload() {
+	// Stopping all three threads.
+	w.stopChan <- true
+	w.stopChan <- true
+	w.stopChan <- true
+
 	w.Ctor.DeviceInterface.(device.IDevice).Unload()
-	if 0 != w.jobID {
-		w.Ctor.Cron.RemoveFunc(w.jobID)
-	}
-
 	close(w.Ctor.LoadData.DeviceStateUpdateChan)
-
 	if w.Ctor.IsRootDevice {
 		close(w.Ctor.LoadData.DeviceDiscoveredChan)
 	}
@@ -376,6 +366,23 @@ func (w *deviceWrapper) getFieldValueOrNil(valField reflect.Value) interface{} {
 	return val
 }
 
+// Calls for updates.
+func (w *deviceWrapper) periodicUpdates(duration time.Duration) {
+	if !w.isPolling {
+		return
+	}
+
+	tick := time.Tick(duration)
+	for {
+		select {
+		case <-w.stopChan:
+			return
+		case <-tick:
+			go w.pullUpdate()
+		}
+	}
+}
+
 // Performs data pull from device provider plugin.
 func (w *deviceWrapper) pullUpdate() {
 	if !w.isPolling {
@@ -436,6 +443,8 @@ func (w *deviceWrapper) pullDeviceUpdate() {
 func (w *deviceWrapper) startHubListeners() {
 	for {
 		select {
+		case <-w.stopChan:
+			return
 		case discovery, ok := <-w.Ctor.LoadData.DeviceDiscoveredChan:
 			if !ok {
 				return
@@ -456,8 +465,16 @@ func (w *deviceWrapper) startHubListeners() {
 // Starts listeners of incoming messages.
 // Only hub listens for discovery.
 func (w *deviceWrapper) startDeviceListeners() {
-	for update := range w.Ctor.LoadData.DeviceStateUpdateChan {
-		w.processUpdate(update.State)
+	for {
+		select {
+		case <-w.stopChan:
+			return
+		case update, ok := <-w.Ctor.LoadData.DeviceStateUpdateChan:
+			if !ok {
+				return
+			}
+			w.processUpdate(update.State)
+		}
 	}
 }
 
@@ -501,7 +518,6 @@ func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
 		DeviceType:        d.Type,
 		DeviceInterface:   d.Interface,
 		IsRootDevice:      false,
-		Cron:              w.Ctor.Cron,
 		DeviceConfigName:  w.Ctor.DeviceConfigName,
 		DeviceState:       d.State,
 		LoadData:          subLoadData,
