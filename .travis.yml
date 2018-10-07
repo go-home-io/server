@@ -23,4 +23,4 @@ jobs:
       if: tag IS present
       script:
         - "travis_wait 45 sleep 2700 &"
-        - curl --fail --connect-timeout 60 --max-time 2700 https://${RPI_BUILD_URL}/${TRAVIS_TAG}/${RPI_BUILD_KEY}
+        - curl --fail --connect-timeout 60 --max-time 2700 http://${RPI_BUILD_URL}/${TRAVIS_TAG}/${RPI_BUILD_KEY}
