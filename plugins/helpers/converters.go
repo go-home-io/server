@@ -11,6 +11,70 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Internal property type.
+type propertyType int
+
+const (
+	propFloat propertyType = iota
+	propColor
+	propString
+	propStringSlice
+	propEnum
+	propBool
+	propPercent
+	propInt
+)
+
+// Converts device property to its type.
+func getPropertyType(p enums.Property) propertyType {
+	switch p {
+	case enums.PropColor:
+		return propColor
+	case enums.PropScenes:
+		return propStringSlice
+	case enums.PropSensorType, enums.PropVacStatus:
+		return propEnum
+	case enums.PropPicture, enums.PropUser:
+		return propString
+	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
+		return propBool
+	case enums.PropBrightness, enums.PropBatteryLevel, enums.PropFanSpeed:
+		return propPercent
+	case enums.PropDuration, enums.PropDistance:
+		return propInt
+	}
+
+	return propFloat
+}
+
+// Fixing properties.
+func propertyFix(x interface{}, p enums.Property,
+	f func(interface{}, interface{}) (interface{}, error)) (interface{}, error) {
+	if nil == x {
+		return x, nil
+	}
+
+	switch getPropertyType(p) {
+	case propColor:
+		return convertProperty(x, &common.Color{})
+	case propStringSlice, propEnum, propString:
+		return x, nil
+	case propBool:
+		r, ok := x.(bool)
+		if !ok {
+			return nil, errors.New("error converting bool")
+		}
+		return r, nil
+	case propPercent:
+		return f(x, &common.Percent{})
+	case propInt:
+		return f(x, &common.Int{})
+	default:
+		return f(x, &common.Float{})
+	}
+
+}
+
 // PropertyFixYaml help with issues of unknown configs' data structure.
 // For example default
 // field	interface{}
@@ -22,55 +86,13 @@ import (
 // will be un-marshaled as map[interface{}] interface{}.
 // Which prevents normal deep compare.
 func PropertyFixYaml(x interface{}, p enums.Property) (interface{}, error) {
-	if nil == x {
-		return x, nil
-	}
-
-	switch p {
-	case enums.PropColor:
-		return convertProperty(x, &common.Color{})
-	case enums.PropScenes, enums.PropSensorType, enums.PropVacStatus, enums.PropPicture:
-		return x, nil
-	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
-		r, ok := x.(bool)
-		if !ok {
-			return nil, errors.New("error converting bool")
-		}
-		return r, nil
-	case enums.PropBrightness, enums.PropBatteryLevel, enums.PropFanSpeed:
-		return convertValueProperty(x, &common.Percent{})
-	case enums.PropDuration, enums.PropDistance:
-		return convertValueProperty(x, &common.Int{})
-	default:
-		return convertValueProperty(x, &common.Float{})
-	}
+	return propertyFix(x, p, convertValueProperty)
 }
 
 // UnmarshalProperty returns type used by property from it's map[{interface}]interface{}
 // or interface{} representation distributed through FanOut channel.
 func UnmarshalProperty(x interface{}, p enums.Property) (interface{}, error) {
-	if nil == x {
-		return x, nil
-	}
-
-	switch p {
-	case enums.PropScenes, enums.PropSensorType, enums.PropVacStatus, enums.PropPicture:
-		return x, nil
-	case enums.PropColor:
-		return convertProperty(x, &common.Color{})
-	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
-		r, ok := x.(bool)
-		if !ok {
-			return nil, errors.New("error converting bool")
-		}
-		return r, nil
-	case enums.PropBrightness, enums.PropBatteryLevel, enums.PropFanSpeed:
-		return convertProperty(x, &common.Percent{})
-	case enums.PropDuration, enums.PropDistance:
-		return convertProperty(x, &common.Int{})
-	default:
-		return convertProperty(x, &common.Float{})
-	}
+	return propertyFix(x, p, convertProperty)
 }
 
 // PlainProperty converts common.* data into plain properties to use with mappers.
@@ -79,20 +101,36 @@ func PlainProperty(x interface{}, p enums.Property) interface{} {
 		return x
 	}
 
-	switch p {
-	case enums.PropScenes, enums.PropSensorType, enums.PropVacStatus, enums.PropPicture:
-		return x
-	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
-		return x
-	case enums.PropColor:
+	switch getPropertyType(p) {
+	case propColor:
 		c := x.(common.Color)
 		return fmt.Sprintf("r:%d,g:%d,b:%d", c.R, c.G, c.B)
-	case enums.PropBrightness, enums.PropBatteryLevel, enums.PropFanSpeed:
+	case propStringSlice, propEnum, propString, propBool:
+		return x
+	case propPercent:
 		return x.(common.Percent).Value
-	case enums.PropDuration, enums.PropDistance:
+	case propInt:
 		return x.(common.Int).Value
 	default:
 		return x.(common.Float).Value
+	}
+}
+
+// PlainValueProperty converts value-based property to simple value.
+func PlainValueProperty(x interface{}, p enums.Property) interface{} {
+	if nil == x {
+		return x
+	}
+
+	switch getPropertyType(p) {
+	case propPercent:
+		return x.(common.Percent).Value
+	case propInt:
+		return x.(common.Int).Value
+	case propFloat:
+		return x.(common.Float).Value
+	default:
+		return x
 	}
 }
 

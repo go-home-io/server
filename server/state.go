@@ -206,9 +206,17 @@ func (s *serverState) processDeviceStateUpdate(dv *knownDevice, newState map[str
 			continue
 		}
 
-		t, err := helpers.PropertyFixYaml(v, prop)
-		if nil != err {
-			continue
+		t := v
+		val := v
+		if dv.Type != enums.DevGroup {
+			t, err = helpers.PropertyFixYaml(v, prop)
+			if nil != err {
+				s.Logger.Error("Failed to convert property", err,
+					common.LogDevicePropertyToken, prop.String(), common.LogDeviceNameToken, dv.ID)
+				continue
+			}
+		} else {
+			val = helpers.PlainValueProperty(v, prop)
 		}
 
 		if !firstOccurrence {
@@ -220,7 +228,7 @@ func (s *serverState) processDeviceStateUpdate(dv *knownDevice, newState map[str
 			msg.State[prop] = t
 		}
 
-		dv.State[k] = v
+		dv.State[k] = val
 	}
 
 	if dv.Type == enums.DevGroup {

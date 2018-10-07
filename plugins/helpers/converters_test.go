@@ -36,6 +36,17 @@ func TestProperties(t *testing.T) {
 			prop:  enums.PropBrightness,
 			cmd:   enums.CmdSetBrightness,
 		},
+		{
+			input: "test_user",
+			gold:  "test_user",
+			prop:  enums.PropUser,
+			cmd:   -1,
+		},
+		{
+			input: []string{"s1", "s2"},
+			gold:  []string{"s1", "s2"},
+			prop:  enums.PropScenes,
+		},
 	}
 
 	for _, v := range data {
@@ -139,6 +150,54 @@ func TestPlainProperty(t *testing.T) {
 
 	for _, v := range data {
 		out := PlainProperty(v.in, v.prop)
+		if !reflect.DeepEqual(out, v.out) {
+			t.Error("Failed " + v.prop.String())
+			t.Fail()
+		}
+	}
+}
+
+// Tests property converters.
+func TestPlainValueProperty(t *testing.T) {
+	data := []struct {
+		in   interface{}
+		prop enums.Property
+		out  interface{}
+	}{
+		{
+			in:   enums.VacDocked,
+			prop: enums.PropVacStatus,
+			out:  enums.VacDocked,
+		},
+		{
+			in:   true,
+			prop: enums.PropOn,
+			out:  true,
+		},
+		{
+			in:   common.Color{R: 10, G: 20, B: 30},
+			prop: enums.PropColor,
+			out:  common.Color{R: 10, G: 20, B: 30},
+		},
+		{
+			in:   common.Percent{Value: 10},
+			prop: enums.PropBatteryLevel,
+			out:  uint8(10),
+		},
+		{
+			in:   common.Int{Value: 20},
+			prop: enums.PropDuration,
+			out:  20,
+		},
+		{
+			in:   common.Float{Value: 30},
+			prop: enums.PropTemperature,
+			out:  30.0,
+		},
+	}
+
+	for _, v := range data {
+		out := PlainValueProperty(v.in, v.prop)
 		if !reflect.DeepEqual(out, v.out) {
 			t.Error("Failed " + v.prop.String())
 			t.Fail()

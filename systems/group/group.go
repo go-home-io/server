@@ -149,7 +149,7 @@ func (p *provider) processDeviceUpdates(msg *common.MsgDeviceUpdate) {
 	found := false
 	for _, v := range p.devices {
 		if v.ID == msg.ID {
-			v.State = msg.State
+			copyState(v.State, msg.State)
 			v.Commands = kd.Commands
 			found = true
 			break
@@ -184,6 +184,8 @@ func (p *provider) processDeviceUpdates(msg *common.MsgDeviceUpdate) {
 	}
 
 	p.updateGroupState()
+	p.updateGroupCommands()
+
 	p.server.PushMasterDeviceUpdate(&providers.MasterDeviceUpdate{
 		Type:     enums.DevGroup,
 		Name:     p.Name,
@@ -217,9 +219,6 @@ func (p *provider) updateGroupState() {
 
 		p.State[k.String()] = s
 	}
-
-	p.updateGroupCommands()
-
 }
 
 // Updates available commands.
@@ -244,4 +243,11 @@ func (p *provider) updateGroupCommands() {
 // Converts ID.
 func getID(name string) string {
 	return fmt.Sprintf("group.%s", utils.NormalizeDeviceName(name))
+}
+
+// Copies state.
+func copyState(from, to map[enums.Property]interface{}) {
+	for k, v := range to {
+		from[k] = v
+	}
 }

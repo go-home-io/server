@@ -16,4 +16,6 @@ const (
 	SenButton
 	// SenLock describes lock sensor.
 	SenLock
+	// SenPresence describes presence sensor.
+	SenPresence
 )

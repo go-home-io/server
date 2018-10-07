@@ -7,9 +7,9 @@ import (
 	"fmt"
 )
 
-const _SensorTypeName = "genericmotiontemperaturebuttonlock"
+const _SensorTypeName = "genericmotiontemperaturebuttonlockpresence"
 
-var _SensorTypeIndex = [...]uint8{0, 7, 13, 24, 30, 34}
+var _SensorTypeIndex = [...]uint8{0, 7, 13, 24, 30, 34, 42}
 
 func (i SensorType) String() string {
 	if i < 0 || i >= SensorType(len(_SensorTypeIndex)-1) {
@@ -18,7 +18,7 @@ func (i SensorType) String() string {
 	return _SensorTypeName[_SensorTypeIndex[i]:_SensorTypeIndex[i+1]]
 }
 
-var _SensorTypeValues = []SensorType{0, 1, 2, 3, 4}
+var _SensorTypeValues = []SensorType{0, 1, 2, 3, 4, 5}
 
 var _SensorTypeNameToValueMap = map[string]SensorType{
 	_SensorTypeName[0:7]:   0,
@@ -26,6 +26,7 @@ var _SensorTypeNameToValueMap = map[string]SensorType{
 	_SensorTypeName[13:24]: 2,
 	_SensorTypeName[24:30]: 3,
 	_SensorTypeName[30:34]: 4,
+	_SensorTypeName[34:42]: 5,
 }
 
 // SensorTypeString retrieves an enum value from the enum constants string name.

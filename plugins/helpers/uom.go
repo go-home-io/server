@@ -52,7 +52,7 @@ func convertImperialToMetric(value float64, property enums.Property) float64 {
 	case enums.PropWindSpeed, enums.PropVisibility:
 		return value / 1.609344
 	case enums.PropPressure:
-		return value / 0.0689476
+		return value * 33.864
 	case enums.PropArea:
 		return value / 10.7639
 	}
@@ -68,7 +68,7 @@ func convertMetricToImperial(value float64, property enums.Property) float64 {
 	case enums.PropWindSpeed, enums.PropVisibility:
 		return 1.609344 * value
 	case enums.PropPressure:
-		return value * 0.0689476
+		return value / 33.864
 	case enums.PropArea:
 		return value * 10.7639
 	}

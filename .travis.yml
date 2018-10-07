@@ -22,5 +22,5 @@ jobs:
     - stage: docker-arm
       if: tag IS present
       script:
-        - "travis_wait 30 sleep 1800 &"
-        - curl --fail --connect-timeout 60 --max-time 1800 ${RPI_BUILD_URL}/${TRAVIS_TAG}/${RPI_BUILD_KEY}
+        - "travis_wait 45 sleep 2700 &"
+        - curl --fail --connect-timeout 60 --max-time 2700 https://${RPI_BUILD_URL}/${TRAVIS_TAG}/${RPI_BUILD_KEY}
