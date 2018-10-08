@@ -38,10 +38,11 @@ type workerState struct {
 	Settings providers.ISettingsProvider
 	Logger   common.ILoggerProvider
 
-	mutex *sync.Mutex
+	mutex     *sync.Mutex
+	dictMutex *sync.Mutex
 
 	devices      map[string]device.IDeviceWrapperProvider
-	extendedAPIs []providers.IExtendedAPIProvider
+	extendedAPIs map[string]providers.IExtendedAPIProvider
 
 	statusUpdatesChan chan *device.UpdateEvent
 	discoveryChan     chan *device.NewDeviceDiscoveredEvent
@@ -57,12 +58,13 @@ func newWorkerState(settings providers.ISettingsProvider) *workerState {
 		Settings: settings,
 		Logger:   settings.SystemLogger(),
 
-		mutex: &sync.Mutex{},
+		mutex:     &sync.Mutex{},
+		dictMutex: &sync.Mutex{},
 
 		lastAssignment: make([]string, 0),
 
 		devices:           make(map[string]device.IDeviceWrapperProvider),
-		extendedAPIs:      make([]providers.IExtendedAPIProvider, 0),
+		extendedAPIs:      make(map[string]providers.IExtendedAPIProvider),
 		discoveryChan:     make(chan *device.NewDeviceDiscoveredEvent, 5),
 		statusUpdatesChan: make(chan *device.UpdateEvent, 30),
 	}
@@ -262,7 +264,16 @@ func (w *workerState) tryAPIAssignmentLoad(a *bus.DeviceAssignment, ctor *api.Co
 		return
 	}
 
-	w.extendedAPIs = append(w.extendedAPIs, wrapper)
+	w.dictMutex.Lock()
+	defer w.dictMutex.Unlock()
+	_, ok := w.extendedAPIs[wrapper.ID()]
+	if ok {
+		w.Logger.Warn("Duplicated load for API, unloading", common.LogSystemToken, logSystem)
+		go w.tryUnload(wrapper)
+		return
+	}
+
+	w.extendedAPIs[wrapper.ID()] = wrapper
 }
 
 // Tries to unload provider.
@@ -300,6 +311,26 @@ func (w *workerState) tryDeviceAssignmentLoad(a *bus.DeviceAssignment, ctor *dev
 
 	if err != nil {
 		failed.Devices = append(failed.Devices, a)
+		return
+	}
+
+	alreadyPresent := false
+
+	w.dictMutex.Lock()
+	defer w.dictMutex.Unlock()
+	for _, v := range wrappers {
+		_, ok := w.devices[v.ID()]
+		if ok {
+			alreadyPresent = true
+			break
+		}
+	}
+
+	if alreadyPresent {
+		w.Logger.Warn("Duplicated load for devices, unloading", common.LogSystemToken, logSystem)
+		for _, v := range wrappers {
+			go w.tryUnload(v)
+		}
 		return
 	}
 
@@ -347,6 +378,9 @@ func (w *workerState) retryLoad() {
 func (w *workerState) unloadDevices() {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
+	w.dictMutex.Lock()
+	defer w.dictMutex.Unlock()
+
 	w.Logger.Debug("Unloading devices", common.LogSystemToken, logSystem)
 	w.failedDevices = nil
 	for k, v := range w.devices {
@@ -354,11 +388,10 @@ func (w *workerState) unloadDevices() {
 		delete(w.devices, k)
 	}
 
-	for _, v := range w.extendedAPIs {
+	for k, v := range w.extendedAPIs {
 		go w.tryUnload(v)
+		delete(w.extendedAPIs, k)
 	}
-
-	w.extendedAPIs = make([]providers.IExtendedAPIProvider, 0)
 
 	w.Logger.Debug("Done un-loading", common.LogSystemToken, logSystem)
 }

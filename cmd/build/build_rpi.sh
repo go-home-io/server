@@ -13,6 +13,7 @@ rm -rf app/plugins
 
 echo "Updating dashboard"
 cd dashboard
+git checkout .
 git pull
 cd ..
 
