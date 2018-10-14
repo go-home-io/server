@@ -56,6 +56,7 @@ func (s *GoHomeServer) processWSConnection(conn *websocket.Conn, usr *providers.
 }
 
 // Processes incoming WS messages.
+//noinspection GoUnhandledErrorResult
 func (s *GoHomeServer) processIncomingWSMessages(conn *websocket.Conn, stop chan bool,
 	usr *providers.AuthenticatedUser) {
 	defer conn.Close()

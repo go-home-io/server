@@ -1,12 +1,17 @@
 package trigger
 
 import (
-	"testing"
-	"github.com/go-home-io/server/mocks"
 	"fmt"
+	"testing"
 	"time"
-	"github.com/go-home-io/server/utils"
+
+	"github.com/go-home-io/server/mocks"
 	pluginTrigger "github.com/go-home-io/server/plugins/trigger"
+	"github.com/go-home-io/server/providers"
+	"github.com/go-home-io/server/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 // Fake plugin implementation.
@@ -33,34 +38,39 @@ func TestActiveWindowFormat(t *testing.T) {
 		logger: mocks.FakeNewLogger(nil),
 	}
 
-	w.loadActiveWindow("05:00PM")
-	if w.activeWindow {
-		t.Fail()
+	data := []struct {
+		in   string
+		gold bool
+	}{
+		{
+			in:   "05:00PM",
+			gold: false,
+		},
+		{
+			in:   "05-08",
+			gold: false,
+		},
+		{
+			in:   "17:14-18:14",
+			gold: false,
+		},
+		{
+			in:   "12:00PM-17",
+			gold: false,
+		},
+		{
+			in:   "2:00PM-4:45PM",
+			gold: true,
+		},
+		{
+			in:   "4:45PM-2:00PM",
+			gold: true,
+		},
 	}
 
-	w.loadActiveWindow("05-08")
-	if w.activeWindow {
-		t.Fail()
-	}
-
-	w.loadActiveWindow("17:14-18:14")
-	if w.activeWindow {
-		t.Fail()
-	}
-
-	w.loadActiveWindow("12:00PM-17")
-	if w.activeWindow {
-		t.Fail()
-	}
-
-	w.loadActiveWindow("2:00PM-4:45PM")
-	if !w.activeWindow {
-		t.Fail()
-	}
-
-	w.loadActiveWindow("4:45PM-2:00PM")
-	if !w.activeWindow {
-		t.Fail()
+	for _, v := range data {
+		w.loadActiveWindow(v.in)
+		assert.Equal(t, v.gold, w.activeWindow, v.in)
 	}
 }
 
@@ -70,77 +80,26 @@ func TestWithinActiveWindowInvokes(t *testing.T) {
 	w := wrapper{
 		logger: mocks.FakeNewLogger(nil),
 		server: mocks.FakeNewServer(func() {
-			called ++
-		}),
+			called++
+		}).(providers.IServerProvider),
 		deviceActions: []*triggerActionDevice{{}},
 	}
 
-	timeF := fmt.Sprintf("%s-%s", time.Now().Local().Add(-1 * time.Hour).Format(time.Kitchen),
-		time.Now().Local().Add(1 * time.Hour).Format(time.Kitchen))
-
-	w.loadActiveWindow(timeF)
-	if !w.activeWindow {
-		t.Error("firs window")
-		t.Fail()
+	data := []string{
+		fmt.Sprintf("%s-%s", time.Now().Local().Add(-1*time.Hour).Format(time.Kitchen),
+			time.Now().Local().Add(1*time.Hour).Format(time.Kitchen)),
+		fmt.Sprintf("%s-%s", time.Now().Local().Add(-1*time.Hour).Format(time.Kitchen),
+			time.Now().Local().Add(22*time.Hour).Format(time.Kitchen)),
+		fmt.Sprintf("11:00PM-%s", time.Now().Local().Add(1*time.Minute).Format(time.Kitchen)),
+		fmt.Sprintf("%s-11:00PM", time.Now().Local().Add(-1*time.Minute).Format(time.Kitchen)),
 	}
 
-	w.triggered(nil)
-
-	if 0 == called {
-		t.Error("firs call")
-		t.Fail()
-	}
-
-	called = 0
-
-	timeF = fmt.Sprintf("%s-%s", time.Now().Local().Add(-1 * time.Hour).Format(time.Kitchen),
-		time.Now().Local().Add(22 * time.Hour).Format(time.Kitchen))
-
-	w.loadActiveWindow(timeF)
-	if !w.activeWindow {
-		t.Error("second window")
-		t.Fail()
-	}
-
-	w.triggered(nil)
-
-	if 0 == called {
-		t.Error("second call")
-		t.Fail()
-	}
-
-	called = 0
-
-	timeF = fmt.Sprintf("11:00PM-%s", time.Now().Local().Add(1 * time.Hour).Format(time.Kitchen))
-
-	w.loadActiveWindow(timeF)
-	if !w.activeWindow {
-		t.Error("third window")
-		t.Fail()
-	}
-
-	w.triggered(nil)
-
-	if w.isInActiveTimeWindow() && 0 == called {
-		t.Error("third call")
-		t.Fail()
-	}
-
-	called = 0
-
-	timeF = fmt.Sprintf("%s-11:00PM", time.Now().Local().Add(-1 * time.Hour).Format(time.Kitchen))
-
-	w.loadActiveWindow(timeF)
-	if !w.activeWindow {
-		t.Error("forth window")
-		t.Fail()
-	}
-
-	w.triggered(nil)
-
-	if 0 == called {
-		t.Error("forth call")
-		t.Fail()
+	for _, v := range data {
+		called = 0
+		w.loadActiveWindow(v)
+		assert.True(t, w.activeWindow, "window %s", v)
+		w.triggered(nil)
+		assert.NotEqual(t, 0, called, "call %s", v)
 	}
 }
 
@@ -150,66 +109,55 @@ func TestOutsideOfActiveWindowInvokes(t *testing.T) {
 	w := wrapper{
 		logger: mocks.FakeNewLogger(nil),
 		server: mocks.FakeNewServer(func() {
-			called ++
-		}),
+			called++
+		}).(providers.IServerProvider),
 		deviceActions: []*triggerActionDevice{{}},
 	}
 
-	timeF := fmt.Sprintf("%s-%s", time.Now().Local().Add(-3 * time.Hour).Format(time.Kitchen),
-		time.Now().Local().Add(-2 * time.Hour).Format(time.Kitchen))
-
-	w.loadActiveWindow(timeF)
-	if !w.activeWindow {
-		t.Fail()
+	data := []string{
+		fmt.Sprintf("%s-%s", time.Now().Local().Add(-3*time.Hour).Format(time.Kitchen),
+			time.Now().Local().Add(-2*time.Hour).Format(time.Kitchen)),
+		fmt.Sprintf("%s-%s", time.Now().Local().Add(1*time.Hour).Format(time.Kitchen),
+			time.Now().Local().Add(-22*time.Hour).Format(time.Kitchen)),
 	}
 
-	w.triggered(nil)
-
-	if 0 != called {
-		t.Fail()
-	}
-
-	called = 0
-
-	timeF = fmt.Sprintf("%s-%s", time.Now().Local().Add(1 * time.Hour).Format(time.Kitchen),
-		time.Now().Local().Add(-22 * time.Hour).Format(time.Kitchen))
-
-	w.loadActiveWindow(timeF)
-	if !w.activeWindow {
-		t.Fail()
-	}
-
-	w.triggered(nil)
-
-	if 0 != called {
-		t.Fail()
+	for _, v := range data {
+		called = 0
+		w.loadActiveWindow(v)
+		assert.True(t, w.activeWindow, "window %s", v)
+		w.triggered(nil)
+		assert.Equal(t, 0, called, "call %s", v)
 	}
 }
 
-// Tests wrong yaml data parsing.
-func TestWrongData(t *testing.T) {
-	foundErrorActions := false
-	foundNoActions := false
-	foundCommand := false
-	foundUnMarshal := false
-	foundUnknownSystem := false
-	foundRegexpError := false
+type wdSuite struct {
+	suite.Suite
 
-	ctr := &ConstructTrigger{
+	ctr                *ConstructTrigger
+	foundErrorActions  bool
+	foundNoActions     bool
+	foundCommand       bool
+	foundUnMarshal     bool
+	foundUnknownSystem bool
+	foundRegexpError   bool
+}
+
+func (w *wdSuite) SetupTest() {
+	w.ctr = &ConstructTrigger{
 		Logger: mocks.FakeNewLogger(func(s string) {
 			switch s {
 			case "Failed to init trigger provider":
-				foundNoActions = true
+				w.foundNoActions = true
 			case "Failed to validate action":
-				foundErrorActions = true
+				w.foundErrorActions = true
 			case "Failed to validate action properties: unknown command":
-				foundCommand = true
+				w.foundCommand = true
 			case "Failed to unmarshal trigger config":
-				foundUnMarshal = true
+				w.foundUnMarshal = true
 			case "Unknown trigger system":
-				foundUnknownSystem = true
+				w.foundUnknownSystem = true
 			case "Failed to compile regexp":
-				foundRegexpError = true
+				w.foundRegexpError = true
 			}
 
 		}),
@@ -219,60 +167,77 @@ func TestWrongData(t *testing.T) {
 		FanOut:    mocks.FakeNewFanOut(),
 		Provider:  "test",
 	}
+}
 
-	ctr.RawConfig = []byte(`
+//noinspection GoUnhandledErrorResult
+func (w *wdSuite) newTrigger(data string) {
+	w.ctr.RawConfig = []byte(data)
+	NewTrigger(w.ctr)
+}
+
+// Tests no action in config.
+func (w *wdSuite) TestNoAction() {
+	data := `
 name: test
 actions:
   - system: device
-`)
-	NewTrigger(ctr)
-	if !foundErrorActions || !foundNoActions {
-		t.Error("action")
-		t.Fail()
-	}
+`
+	w.newTrigger(data)
+	assert.True(w.T(), w.foundErrorActions)
+	assert.True(w.T(), w.foundNoActions)
+}
 
-	ctr.RawConfig = []byte(`
+// Tests un-marshal error.
+func (w *wdSuite) TestUnMarshal() {
+	data := `
 name: test
 actions:
   - system: device
   entity: cab_led.light*
-`)
-	NewTrigger(ctr)
-	if !foundUnMarshal {
-		t.Error("unmarshal")
-		t.Fail()
-	}
-	ctr.RawConfig = []byte(`
+`
+	w.newTrigger(data)
+	assert.True(w.T(), w.foundUnMarshal)
+}
+
+// Tests compilation error.
+func (w *wdSuite) TestRegexp() {
+	data := `
 actions:
   - system: device
     entity: "[!]"
-    command: on`)
-	NewTrigger(ctr)
-	if !foundRegexpError{
-		t.Error("regexp")
-		t.Fail()
-	}
-	ctr.RawConfig = []byte(`
+    command: on
+`
+	w.newTrigger(data)
+	assert.True(w.T(), w.foundRegexpError)
+}
+
+// Tests unknown command
+func (w *wdSuite) TestCommand() {
+	data := `
 actions:
     - system: device
       entity: hub
-      command: on1`)
-	NewTrigger(ctr)
-	if !foundCommand {
-		t.Error("command")
-		t.Fail()
-	}
+      command: on1
+`
+	w.newTrigger(data)
+	assert.True(w.T(), w.foundCommand)
+}
 
-	ctr.RawConfig = []byte(`
+// Tests unknown system.
+func (w *wdSuite) TestSystem() {
+	data := `
 actions:
     - system: test
       entity: hub
-      command: on`)
-	NewTrigger(ctr)
-	if !foundUnknownSystem {
-		t.Error("system")
-		t.Fail()
-	}
+      command: on
+`
+	w.newTrigger(data)
+	assert.True(w.T(), w.foundUnknownSystem)
+}
+
+// Tests wrong yaml data parsing.
+func TestWrongData(t *testing.T) {
+	suite.Run(t, new(wdSuite))
 }
 
 // Tests correct invokes.
@@ -286,9 +251,9 @@ func TestInvoke(t *testing.T) {
 		Secret:    mocks.FakeNewSecretStore(nil, false),
 		FanOut:    mocks.FakeNewFanOut(),
 		Provider:  "test",
-		Server:mocks.FakeNewServer(func() {
+		Server: mocks.FakeNewServer(func() {
 			invoked = true
-		}),
+		}).(providers.IServerProvider),
 	}
 
 	ctr.RawConfig = []byte(fmt.Sprintf(`
@@ -300,18 +265,10 @@ actions:
          r: 5`))
 
 	_, err := NewTrigger(ctr)
-	if err != nil {
-		t.Error(err.Error())
-		t.FailNow()
-	}
-
+	require.NoError(t, err)
 	fakePlugin.testInvoke()
-
 	time.Sleep(1 * time.Second)
-
-	if !invoked {
-		t.Fail()
-	}
+	assert.True(t, invoked)
 }
 
 // Tests incorrect data.
@@ -332,14 +289,11 @@ actions:
       command: "on"`))
 
 	_, err := NewTrigger(ctr)
-	if err == nil {
-		t.FailNow()
-	}
-
+	assert.Error(t, err)
 }
 
 // Tests error loading plugin.
-func TestNoPlugin(t *testing.T){
+func TestNoPlugin(t *testing.T) {
 	ctr := &ConstructTrigger{
 		Logger:    mocks.FakeNewLogger(nil),
 		Validator: utils.NewValidator(mocks.FakeNewLogger(nil)),
@@ -357,9 +311,7 @@ actions:
          r: 5`))
 
 	_, err := NewTrigger(ctr)
-	if err == nil {
-		t.FailNow()
-	}
+	assert.Error(t, err)
 }
 
 // Tests invokes outside fo active hrs.
@@ -373,9 +325,9 @@ func TestInvokeOutsideOfActiveWindow(t *testing.T) {
 		Secret:    mocks.FakeNewSecretStore(nil, false),
 		FanOut:    mocks.FakeNewFanOut(),
 		Provider:  "test",
-		Server:mocks.FakeNewServer(func() {
+		Server: mocks.FakeNewServer(func() {
 			invoked = true
-		}),
+		}).(providers.IServerProvider),
 	}
 	ctr.RawConfig = []byte(fmt.Sprintf(`
 name: test
@@ -383,23 +335,13 @@ activeHrs: %s-%s
 actions:
     - system: device
       entity: hub
-      command: "on"`, time.Now().Local().Add(-3 * time.Hour).Format(time.Kitchen),
-		time.Now().Local().Add(-2 * time.Hour).Format(time.Kitchen)))
+      command: "on"`, time.Now().Local().Add(-3*time.Hour).Format(time.Kitchen),
+		time.Now().Local().Add(-2*time.Hour).Format(time.Kitchen)))
 
 	pl, err := NewTrigger(ctr)
-	if err != nil {
-		t.Error(err.Error())
-		t.FailNow()
-	}
-
+	assert.NoError(t, err)
 	fakePlugin.testInvoke()
 	time.Sleep(1 * time.Second)
-
-	if invoked {
-		t.Fail()
-	}
-
-	if pl.GetID() != "test.trigger" {
-		t.Fail()
-	}
+	assert.False(t, invoked, "wrong invoke")
+	assert.Equal(t, "test.trigger", pl.GetID(), "wrong ID")
 }

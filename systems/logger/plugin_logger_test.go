@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-home-io/server/mocks"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
 
 // Tests that every operation invoked correctly.
@@ -42,7 +43,9 @@ func TestPluginLogger(t *testing.T) {
 	l.Fatal("Fatal", errors.New(""))
 	l.Flush()
 
-	if !debug || !info || !warn || !err || !fatal {
-		t.Fail()
-	}
+	assert.True(t, debug, "debug")
+	assert.True(t, info, "info")
+	assert.True(t, warn, "warn")
+	assert.True(t, err, "err")
+	assert.True(t, fatal, "fatal")
 }

@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/go-home-io/server/plugins/device/enums"
+	"github.com/stretchr/testify/assert"
 )
 
 // Tests conversion.
 func TestUOMConvert(t *testing.T) {
-
 	for _, v := range convertRequired {
 		out := UOMConvert(100.0, v, enums.UOMMetric, enums.UOMImperial)
 		outI := UOMConvertInterface(100.0, v, enums.UOMMetric, enums.UOMImperial)
@@ -17,14 +17,10 @@ func TestUOMConvert(t *testing.T) {
 		in := UOMConvert(out, v, enums.UOMImperial, enums.UOMMetric)
 		inI := UOMConvertInterface(outI, v, enums.UOMImperial, enums.UOMMetric)
 
-		if math.Abs(in-100) > 0.2 || math.Abs(inI.(float64)-100) > 0.2 {
-			t.Error("Failed " + v.String())
-			t.Fail()
-		}
-
-		if out != outI.(float64) || in != inI.(float64) {
-			t.Error("Interface failed " + v.String())
-		}
+		assert.False(t, math.Abs(in-100) > 0.2, v.String())
+		assert.False(t, math.Abs(inI.(float64)-100) > 0.2, v.String())
+		assert.Equal(t, outI.(float64), out, "in %s", v.String())
+		assert.Equal(t, inI.(float64), in, "out %s", v.String())
 	}
 }
 
@@ -45,9 +41,7 @@ func TestUOMConvertString(t *testing.T) {
 		out := UOMConvertString(100.0, v, s[enums.UOMImperial], enums.UOMMetric)
 		in := UOMConvertString(out, v, s[enums.UOMMetric], enums.UOMImperial)
 
-		if math.Abs(in-100) > 0.2 || math.Abs(out-in) < 0.2 {
-			t.Error("String failed " + v.String())
-			t.Fail()
-		}
+		assert.False(t, math.Abs(in-100) > 0.2, "in %s", v.String())
+		assert.False(t, math.Abs(out-in) < 0.2, "out %s", v.String())
 	}
 }

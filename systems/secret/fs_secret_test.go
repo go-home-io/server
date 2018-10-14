@@ -1,15 +1,20 @@
 package secret
 
 import (
-	"github.com/go-home-io/server/utils"
-	"os"
 	"fmt"
 	"io/ioutil"
-	"github.com/go-home-io/server/plugins/secret"
-	"github.com/go-home-io/server/mocks"
+	"os"
 	"testing"
+
+	"github.com/go-home-io/server/mocks"
+	"github.com/go-home-io/server/plugins/secret"
+	"github.com/go-home-io/server/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 )
+
+const tmpDir = "./temp_secret"
 
 func getInitData(logCallback func(string)) *secret.InitDataSecret {
 	data := &secret.InitDataSecret{
@@ -19,79 +24,74 @@ func getInitData(logCallback func(string)) *secret.InitDataSecret {
 	return data
 }
 
-func getProvider(logCallback func(string), mockData string) *fsSecret {
-	os.MkdirAll(utils.GetDefaultConfigsDir(), os.ModePerm)
-	ioutil.WriteFile(fmt.Sprintf("%s/_secrets.yaml", utils.GetDefaultConfigsDir()),
-		[]byte(mockData), os.ModePerm)
-	prov := &fsSecret{}
-	prov.Init(getInitData(logCallback))
-	return prov
+func createFolder(t *testing.T) {
+	utils.ConfigDir = tmpDir
+	err := os.MkdirAll(utils.GetDefaultConfigsDir(), os.ModePerm)
+	require.NoError(t, err, "mkdir failed")
 }
 
-func cleanFile() {
-	os.Remove(fmt.Sprintf("%s/_secrets.yaml", utils.GetDefaultConfigsDir()))
-	os.Remove(utils.GetDefaultConfigsDir())
+func writeFile(t *testing.T, data string) {
+	createFolder(t)
+	err := ioutil.WriteFile(fmt.Sprintf("%s/_secrets.yaml", utils.GetDefaultConfigsDir()),
+		[]byte(data), os.ModePerm)
+	require.NoError(t, err)
+}
+
+func cleanup(t *testing.T) {
+	err := os.RemoveAll(tmpDir)
+	require.NoError(t, err, "cleanup failed")
+}
+
+func getProvider(t *testing.T, logCallback func(string), mockData string) *fsSecret {
+	writeFile(t, mockData)
+
+	prov := &fsSecret{}
+	err := prov.Init(getInitData(logCallback))
+	require.NoError(t, err, "provider")
+	return prov
 }
 
 // Tests proper file creation.
 func TestFileCreation(t *testing.T) {
-	os.MkdirAll(utils.GetDefaultConfigsDir(), os.ModePerm)
-	defer os.Remove(utils.GetDefaultConfigsDir())
-	prov := &fsSecret{}
-	prov.Init(getInitData(nil))
+	defer cleanup(t)
+	prov := getProvider(t, nil, "")
 
 	err := prov.Set("test", "data")
-	if err != nil {
-		t.FailNow()
-	}
+	require.NoError(t, err, "set")
 
 	fileData, err := ioutil.ReadFile(fmt.Sprintf("%s/_secrets.yaml", utils.GetDefaultConfigsDir()))
-	if err != nil {
-		t.FailNow()
-	}
-
-	defer cleanFile()
+	require.NoError(t, err, "read")
 
 	sec := make(map[string]string)
 	err = yaml.Unmarshal(fileData, sec)
-	if err != nil {
-		t.FailNow()
-	}
-
-	if sec["test"] != "data" {
-		t.Fail()
-	}
+	require.NoError(t, err, "yaml")
+	assert.Equal(t, 1, len(sec), "length")
+	assert.Equal(t, "data", sec["test"], "content")
 }
 
 // Tests file save error.
 func TestSaveError(t *testing.T) {
-	cleanFile()
-	defer cleanFile()
-	prov := &fsSecret{}
-	prov.Init(getInitData(nil))
-
+	defer cleanup(t)
+	prov := getProvider(t, nil, "")
+	cleanup(t)
 	err := prov.Set("test", "data")
-
-	if err == nil {
-		t.Fail()
-	}
+	assert.Error(t, err)
 }
 
 // Tests wrong file format.
-func TestWrongFileFormat(t *testing.T){
-	defer cleanFile()
-	prov := getProvider(nil, "val: -1\n-1")
+func TestWrongFileFormat(t *testing.T) {
+	defer cleanup(t)
+	prov := getProvider(t, nil, "val: -1\n-1")
 	_, err := prov.Get("val")
-	if err == nil{
-		t.Fail()
-	}
+	assert.Error(t, err)
 }
 
 // Test obtaining values and new logger.
 func TestGetAndLoggerUpdate(t *testing.T) {
-	defer cleanFile()
+	defer cleanup(t)
+
 	oldLogger := false
-	prov := getProvider(func(s string) {
+	prov := getProvider(t, func(s string) {
 		oldLogger = true
 	}, "val1: data")
 
@@ -100,22 +100,17 @@ func TestGetAndLoggerUpdate(t *testing.T) {
 		newLogger = true
 	}))
 
-
 	_, err := prov.Get("val2")
-	if err == nil {
-		t.FailNow()
-	}
+	assert.Error(t, err, "non existing key")
 
 	val, _ := prov.Get("val1")
-	if val != "data" {
-		t.Fail()
-	}
+	assert.Equal(t, "data", val, "existing key")
+	cleanup(t)
 
-	cleanFile()
 	oldLogger = false
 	newLogger = false
-	prov.Set("1", "1")
-	if oldLogger || !newLogger {
-		t.FailNow()
-	}
+	err = prov.Set("1", "1")
+	assert.Error(t, err, "no folder")
+	assert.False(t, oldLogger, "old")
+	assert.True(t, newLogger, "new")
 }

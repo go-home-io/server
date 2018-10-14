@@ -1,16 +1,19 @@
 package server
 
 import (
-	"github.com/fortytw2/leaktest"
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems/bus"
-	"github.com/go-home-io/server/utils"
 	"testing"
 	"time"
-	"github.com/go-home-io/server/systems/fanout"
+
+	"github.com/fortytw2/leaktest"
+	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/helpers"
+	"github.com/go-home-io/server/providers"
+	"github.com/go-home-io/server/systems/bus"
+	"github.com/go-home-io/server/systems/fanout"
+	"github.com/go-home-io/server/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Settings mock.
@@ -22,10 +25,7 @@ func getFakeSettings(publishCallback func(name string, msg ...interface{}),
 // Service bus patch.
 func getSbPatch(published map[string][]string, t *testing.T) func(name string, msg ...interface{}) {
 	return func(name string, msg ...interface{}) {
-		if 1 != len(msg) {
-			t.Errorf("Got %d messages", len(msg))
-			t.Fail()
-		}
+		assert.Equal(t, 1, len(msg), "messages failed")
 
 		r := msg[0].(*bus.DeviceAssignmentMessage)
 		cfg := make([]string, 0)
@@ -55,9 +55,7 @@ func TestPickWorkerNotMatchSimple(t *testing.T) {
 	}
 
 	results := state.pickWorker(device)
-	if 0 != len(results) {
-		t.Fail()
-	}
+	assert.Equal(t, 0, len(results))
 }
 
 // Test whether worker is not picked up if properties are not specified
@@ -78,9 +76,7 @@ func TestPickWorkerNotMatchNoPropertiesSimple(t *testing.T) {
 	}
 
 	results := state.pickWorker(device)
-	if 0 != len(results) {
-		t.Fail()
-	}
+	assert.Equal(t, 0, len(results))
 }
 
 // Tests whether worker is picked up by devices with matching selectors
@@ -106,13 +102,8 @@ func TestPickWorkerSingleMatchSimple(t *testing.T) {
 	}
 
 	results := state.pickWorker(device)
-	if 1 != len(results) {
-		t.Fail()
-	}
-
-	if "1" != results[0] {
-		t.Fail()
-	}
+	require.Equal(t, 1, len(results), "wrong count")
+	assert.Equal(t, "1", results[0], "wrong worker")
 }
 
 // Tests whether error is generated when device has selectors
@@ -141,10 +132,8 @@ func TestPickWorkerBrokenRegex(t *testing.T) {
 		},
 	}
 
-	_ = state.pickWorker(device)
-	if 1 != calledTimes {
-		t.Fail()
-	}
+	state.pickWorker(device)
+	assert.Equal(t, 1, calledTimes)
 }
 
 // Tests whether worker is picked up by matching regexp selectors
@@ -171,9 +160,7 @@ func TestPickWorkerSingleMatchRegex(t *testing.T) {
 	}
 
 	results := state.pickWorker(device)
-	if 1 != len(results) {
-		t.Fail()
-	}
+	assert.Equal(t, 1, len(results))
 }
 
 // Tests whether first worker out of two is picked up when all workers matches
@@ -208,14 +195,8 @@ func TestPickWorkerSingleMatchFromManyRegex(t *testing.T) {
 	}
 
 	results := state.pickWorker(device)
-	if 1 != len(results) {
-		t.Errorf("Actual selected %d", len(results))
-		t.FailNow()
-	}
-
-	if results[0] != "1" {
-		t.Fail()
-	}
+	require.Equal(t, 1, len(results), "count")
+	assert.Equal(t, "1", results[0], "worker")
 }
 
 // Tests whether worker with non matched selectors is not picked up.
@@ -257,14 +238,8 @@ func TestPickWorkerMultipleMatchFromManyRegex(t *testing.T) {
 	}
 
 	results := state.pickWorker(device)
-	if 2 != len(results) {
-		t.Errorf("Actual selected %d", len(results))
-		t.Fail()
-	}
-
-	if helpers.SliceContainsString(results, "2") {
-		t.Fail()
-	}
+	assert.Equal(t, 2, len(results), "count")
+	assert.False(t, helpers.SliceContainsString(results, "2"), "wrong worker")
 }
 
 // Tests whether warning is generated when no workers is available.
@@ -285,9 +260,7 @@ func TestReBalanceNoWorkers(t *testing.T) {
 	state := newServerState(s)
 
 	state.reBalance("")
-	if !msgFound {
-		t.Fail()
-	}
+	assert.True(t, msgFound)
 }
 
 // Tests whether warning is generated when worker is at its devices' capacity.
@@ -318,9 +291,8 @@ func TestReBalanceTooManyDevices(t *testing.T) {
 	}
 
 	state.reBalance("")
-	if !msgFound || 2 != calledTimes {
-		t.Fail()
-	}
+	assert.True(t, msgFound, "not found")
+	assert.Equal(t, 2, calledTimes, "calls")
 }
 
 // Tests whether re-balance evenly distributes devices among
@@ -362,21 +334,9 @@ func TestReBalanceNoSelectors(t *testing.T) {
 	}
 
 	state.reBalance("")
-
-	if 2 != len(published) {
-		t.Errorf("Published has incorrect data")
-		t.Fail()
-	}
-
-	if 2 != len(published["1"]) {
-		t.Errorf("First worker has incorrect assigments, got %d devices", len(published["1"]))
-		t.Fail()
-	}
-
-	if 2 != len(published["2"]) {
-		t.Errorf("Second worker has incorrect assigments, got %d devices", len(published["2"]))
-		t.Fail()
-	}
+	assert.Equal(t, 2, len(published), "publish")
+	assert.Equal(t, 2, len(published["1"]), "worker 1")
+	assert.Equal(t, 2, len(published["2"]), "worker 2")
 }
 
 // Tests whether re-balance is prioritizing devices with selectors
@@ -417,21 +377,11 @@ func TestReBalanceWithSelectors(t *testing.T) {
 	}
 
 	state.reBalance("")
-
-	if 2 != len(published) {
-		t.Errorf("Published has incorrect data")
-		t.Fail()
-	}
-
-	if 2 != len(published["1"]) || helpers.SliceContainsString(published["1"], "1") {
-		t.Errorf("First worker has incorrect assigments, got %d devices", len(published["1"]))
-		t.Fail()
-	}
-
-	if 1 != len(published["2"]) || !helpers.SliceContainsString(published["2"], "1") {
-		t.Errorf("Second worker has incorrect assigments, got %d devices", len(published["2"]))
-		t.Fail()
-	}
+	assert.Equal(t, 2, len(published), "publish")
+	assert.Equal(t, 2, len(published["1"]), "worker 1 calls")
+	assert.False(t, helpers.SliceContainsString(published["1"], "1"), "worker 1 assignment")
+	assert.Equal(t, 1, len(published["2"]), "worker 2 calls")
+	assert.True(t, helpers.SliceContainsString(published["2"], "1"), "worker 2 assignment")
 }
 
 // Tests whether regular ping message is not triggering re-balance.
@@ -459,16 +409,8 @@ func TestPingMessageNoReBalance(t *testing.T) {
 		IsFirstStart: false,
 	}
 	state.Discovery(discovery)
-
-	if !logInvoked {
-		t.Errorf("Log was not ivoked")
-		t.Fail()
-	}
-
-	if 1 != len(published) {
-		t.Errorf("Bus was not called")
-		t.Fail()
-	}
+	assert.True(t, logInvoked, "log")
+	assert.Equal(t, 1, len(published), "calls")
 }
 
 // Tests whether after reboot worker will receive it's device
@@ -497,10 +439,9 @@ func TestWorkerRestartNoReBalance(t *testing.T) {
 		IsFirstStart: true,
 	}
 	state.Discovery(discovery)
-	if 1 != len(published) || 1 != len(published["1"]) || "1" != published["1"][0] {
-		t.Errorf("Bus was not called")
-		t.Fail()
-	}
+	assert.Equal(t, 1, len(published), "calls")
+	assert.Equal(t, 1, len(published["1"]), "worker devices")
+	assert.Equal(t, "1", published["1"][0], "device ID")
 }
 
 // Tests device re-sending to a worker if it changes property.
@@ -567,16 +508,10 @@ func TestWorkerPropertiesChangesReBalance(t *testing.T) {
 
 	state.Discovery(discovery)
 	time.Sleep(1 * time.Second)
-
-	if 1 != len(published) || 2 != len(published["1"]) {
-		t.Errorf("Bus was not called")
-		t.Fail()
-	}
-
-	if !helpers.SliceContainsString(published["1"], "d2") || !helpers.SliceContainsString(published["1"], "d3") {
-		t.Errorf("Re-balanced wrong drvices")
-		t.Fail()
-	}
+	assert.Equal(t, 1, len(published), "calls")
+	assert.Equal(t, 2, len(published["1"]), "calls to worker 1")
+	assert.True(t, helpers.SliceContainsString(published["1"], "d2"), "device 2")
+	assert.True(t, helpers.SliceContainsString(published["1"], "d3"), "device 3")
 }
 
 // Test that new worker discovery triggers re-balance if current worker handles
@@ -626,10 +561,7 @@ func TestNewWorkerDiscoveryReBalance(t *testing.T) {
 
 	state.Discovery(discovery)
 	time.Sleep(1 * time.Second)
-
-	if 2 != len(published) {
-		t.Fail()
-	}
+	assert.Equal(t, 2, len(published))
 }
 
 // Test that new worker discovery triggers re-balance if current worker handles
@@ -679,10 +611,7 @@ func TestNewWorkerDiscoveryNoReBalanceWithSelectors(t *testing.T) {
 
 	state.Discovery(discovery)
 	time.Sleep(1 * time.Second)
-
-	if 0 != len(published) {
-		t.Fail()
-	}
+	assert.Equal(t, 0, len(published))
 }
 
 // Tests that adding a new property results in changing state.
@@ -702,9 +631,7 @@ func TestComparePropertiesNewOne(t *testing.T) {
 		Properties:   map[string]string{"location": "1"},
 	}
 
-	if state.compareProperties(discovery) {
-		t.Fail()
-	}
+	assert.False(t, state.compareProperties(discovery))
 }
 
 // Tests that adding a new property results in changing state.
@@ -724,9 +651,7 @@ func TestComparePropertiesUpdatedOne(t *testing.T) {
 		Properties:   map[string]string{"location": "1"},
 	}
 
-	if state.compareProperties(discovery) {
-		t.Fail()
-	}
+	assert.False(t, state.compareProperties(discovery))
 }
 
 // Tests whether stale check honors last seen.
@@ -771,9 +696,7 @@ func TestStaleWorkersAllAreFine(t *testing.T) {
 	}
 
 	state.checkStaleWorkers()
-	if 0 != len(published) {
-		t.Fail()
-	}
+	assert.Equal(t, 0, len(published))
 }
 
 // Tests whether re-balance is triggered when one worker is stale.
@@ -818,9 +741,8 @@ func TestStaleWorkersOneIsStale(t *testing.T) {
 	}
 
 	state.checkStaleWorkers()
-	if 1 != len(published) || 2 != len(published["2"]) {
-		t.Fail()
-	}
+	require.Equal(t, 1, len(published), "count")
+	assert.Equal(t, 2, len(published["2"]), "calls")
 }
 
 // Tests whether re-balance is triggered when one worker is stale
@@ -868,9 +790,7 @@ func TestStaleWorkersOneIsStaleNoWorkersForDevice(t *testing.T) {
 	}
 
 	state.checkStaleWorkers()
-	if 0 != len(published) {
-		t.Fail()
-	}
+	assert.Equal(t, 0, len(published))
 }
 
 // Tests that state properly returns all known devices.
@@ -881,9 +801,8 @@ func TestALllDevicesAreReturned(t *testing.T) {
 		"1": {ID: "1"},
 		"2": {ID: "2"},
 	}
-	if 2 != len(state.GetAllDevices()) {
-		t.Fail()
-	}
+
+	assert.Equal(t, 2, len(state.GetAllDevices()))
 }
 
 // Tests that state properly returns known device.
@@ -896,9 +815,8 @@ func TestGetKnownDevice(t *testing.T) {
 	}
 
 	dev := state.GetDevice("1")
-	if nil == dev || dev.ID != "1" {
-		t.Fail()
-	}
+	require.NotNil(t, dev)
+	assert.Equal(t, "1", dev.ID)
 }
 
 // Tests that state properly returns nothing.
@@ -911,19 +829,14 @@ func TestGetUnKnownDevice(t *testing.T) {
 	}
 
 	dev := state.GetDevice("132")
-	if nil != dev {
-		t.Fail()
-	}
+	assert.Nil(t, dev)
 }
 
 // Test that state returns nothing while querying unknown device.
 func TestQueryUnknownWorker(t *testing.T) {
 	s := getFakeSettings(nil, nil, nil)
 	state := newServerState(s)
-
-	if state.isWorkerHasSameDevicesAlready("workerId", nil) {
-		t.Fail()
-	}
+	assert.False(t, state.isWorkerHasSameDevicesAlready("workerId", nil))
 }
 
 // Test that state returns nothing while querying unknown device.
@@ -946,7 +859,7 @@ func TestQueryUnknownDevice(t *testing.T) {
 		},
 	}
 
-	if state.isWorkerHasSameDevicesAlready("1", []*bus.DeviceAssignment{
+	have := state.isWorkerHasSameDevicesAlready("1", []*bus.DeviceAssignment{
 		{
 			Config: "d1",
 			Name:   "d1",
@@ -955,9 +868,9 @@ func TestQueryUnknownDevice(t *testing.T) {
 			Config: "d2",
 			Name:   "d3",
 		},
-	}) {
-		t.Fail()
-	}
+	})
+
+	assert.False(t, have)
 }
 
 // Tests various updates.
@@ -985,39 +898,30 @@ func TestUpdatesFanOut(t *testing.T) {
 
 	state.Update(busMsg)
 	time.Sleep(1 * time.Second)
-	if !msg.FirstSeen {
-		t.Fail()
-	}
+	assert.True(t, msg.FirstSeen, "first seen")
 
 	msg = nil
 	state.Update(busMsg)
 	time.Sleep(1 * time.Second)
-	if msg != nil {
-		t.Fail()
-	}
+	assert.Nil(t, msg, "same message")
 
 	msg = nil
 	busMsg.State["brightness"] = 60
 	state.Update(busMsg)
 	time.Sleep(1 * time.Second)
-	if nil == msg {
-		t.Fail()
-	}
+	assert.NotNil(t, msg, "brightness message")
 
 	msg = nil
 	busMsg.State["brightness1"] = 60
 	state.Update(busMsg)
 	time.Sleep(1 * time.Second)
-	if nil != msg {
-		t.Fail()
-	}
+	assert.Nil(t, msg, "wrong message")
 
 	msg = nil
 	busMsg.State["brightness"] = 65
 	busMsg.State["on"] = "wrong_bool"
 	state.Update(busMsg)
 	time.Sleep(1 * time.Second)
-	if nil == msg || 1 != len(msg.State) {
-		t.Fail()
-	}
+	require.NotNil(t, msg, "wrong data message")
+	assert.Equal(t, 1, len(msg.State), "wrong data message state")
 }

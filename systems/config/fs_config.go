@@ -7,6 +7,7 @@ import (
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/config"
 	"github.com/go-home-io/server/utils"
+	"github.com/pkg/errors"
 )
 
 // Default file system config loader.
@@ -37,7 +38,7 @@ func (c *fsConfig) Load() chan []byte {
 	fError := filepath.Walk(c.location, func(path string, f os.FileInfo, err error) error {
 		if err != nil {
 			c.logger.Warn("Failed get folder files", common.LogFileToken, path)
-			return err
+			return errors.Wrap(err, "get folder failed")
 		}
 		if f.IsDir() {
 			return nil

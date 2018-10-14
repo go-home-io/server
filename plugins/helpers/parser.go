@@ -2,13 +2,13 @@ package helpers
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/Knetic/govaluate"
+	"github.com/pkg/errors"
 	"github.com/savaki/jq"
 )
 
@@ -51,7 +51,7 @@ func NewParser() ITemplateParser {
 func (p *parser) Compile(expression string) (ITemplateExpression, error) {
 	exp, err := govaluate.NewEvaluableExpressionWithFunctions(expression, p.functions)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "govaluate compilation failed")
 	}
 
 	return &parserExpression{
@@ -73,7 +73,7 @@ func (p *parserExpression) Format(params map[string]interface{}) (interface{}, e
 
 	data, err := p.expression.Evaluate(params)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "govaluate evaluation failed")
 	}
 
 	return data, nil
@@ -83,19 +83,19 @@ func (p *parserExpression) Format(params map[string]interface{}) (interface{}, e
 // If two params are supplied, regular JQ syntax is used.
 func jqParse(arguments ...interface{}) (interface{}, error) {
 	if 0 == len(arguments) {
-		return nil, errors.New("not enough arguments")
+		return nil, &ErrArgumentsMismatch{Count: len(arguments)}
 	}
 
 	arg1, ok := arguments[0].(string)
 	if !ok {
-		return nil, errors.New("first argument is not a string")
+		return nil, &ErrWrongArgument{Message: "first argument is not a string"}
 	}
 
 	if 1 == len(arguments) {
 		data := make(map[string]interface{})
 		err := json.Unmarshal([]byte(arg1), &data)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "json un-marshal failed")
 		}
 
 		return data, nil
@@ -104,42 +104,42 @@ func jqParse(arguments ...interface{}) (interface{}, error) {
 	if 2 == len(arguments) {
 		arg2, ok := arguments[1].(string)
 		if !ok {
-			return nil, errors.New("second argument is not a string")
+			return nil, &ErrWrongArgument{Message: "second argument is not a string"}
 		}
 
 		op, err := jq.Parse(arg2)
 		if err != nil {
-			return nil, errors.New("failed to parse jq syntax")
+			return nil, &ErrJqSyntax{Message: "failed to parse"}
 		}
 
 		val, err := op.Apply([]byte(arg1))
 		if err != nil {
-			return nil, errors.New("failed to apply jq")
+			return nil, &ErrJqSyntax{Message: "failed to apply"}
 		}
 
 		return strings.Trim(string(val), "\""), nil
 	}
 
-	return nil, errors.New("too many arguments")
+	return nil, &ErrArgumentsMismatch{Count: len(arguments)}
 }
 
 // Converts input param into int.
 func float64Convert(arguments ...interface{}) (interface{}, error) {
 	if 1 != len(arguments) {
-		return nil, errors.New("wrong arguments")
+		return nil, &ErrArgumentsMismatch{Count: len(arguments)}
 	}
 
 	if reflect.TypeOf(arguments[0]).Kind() == reflect.String {
 		v, err := strconv.ParseFloat(arguments[0].(string), 64)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "string conversion failed")
 		}
 		return v, nil
 	}
 
 	a, ok := arguments[0].(float64)
 	if !ok {
-		return nil, errors.New("not compatible with int type")
+		return nil, &ErrWrongArgument{Message: "not compatible with int type"}
 	}
 
 	return a, nil
@@ -148,7 +148,7 @@ func float64Convert(arguments ...interface{}) (interface{}, error) {
 // Converts input param into string.
 func strConvert(arguments ...interface{}) (interface{}, error) {
 	if 1 != len(arguments) {
-		return nil, errors.New("wrong arguments")
+		return nil, &ErrArgumentsMismatch{Count: len(arguments)}
 	}
 
 	a, ok := arguments[0].(string)
@@ -162,7 +162,7 @@ func strConvert(arguments ...interface{}) (interface{}, error) {
 // Uses fmt.Sprintf.
 func format(arguments ...interface{}) (interface{}, error) {
 	if 0 == len(arguments) {
-		return nil, errors.New("wrong arguments")
+		return nil, &ErrArgumentsMismatch{Count: len(arguments)}
 	}
 
 	if 1 == len(arguments) {
@@ -171,7 +171,7 @@ func format(arguments ...interface{}) (interface{}, error) {
 
 	a, err := strConvert(arguments[0])
 	if err != nil {
-		return nil, errors.New("not compatible with string type")
+		return nil, &ErrWrongArgument{Message: "not compatible with string type"}
 	}
 
 	return fmt.Sprintf(a.(string), arguments[1:]...), nil

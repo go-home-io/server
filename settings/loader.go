@@ -57,6 +57,8 @@ type rawProvider struct {
 // System settings.
 type settingsProvider struct {
 	logger       common.ILoggerProvider
+	pluginLogger common.ILoggerProvider
+
 	bus          providers.IBusProvider
 	nodeID       string
 	cron         providers.ICronProvider
@@ -87,6 +89,7 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 		isWorker:      options.IsWorker,
 		devicesConfig: make([]*providers.RawDevice, 0),
 		logger:        logger.NewConsoleLogger(),
+		pluginLogger:  logger.NewConsoleLogger(),
 		rawRoles:      make([]*providers.SecRole, 0),
 		triggers:      make([]*providers.RawMasterComponent, 0),
 		extendedAPIs:  make([]*providers.RawMasterComponent, 0),
@@ -104,9 +107,9 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 	settings.pluginLoader = utils.NewPluginLoader(pluginsCtor)
 
 	secretsConstruct := &secret.ConstructSecret{
-		Logger:  settings.logger,
-		Options: options.Secret,
-		Loader:  settings.pluginLoader,
+		PluginLogger: settings.pluginLogger,
+		Options:      options.Secret,
+		Loader:       settings.pluginLoader,
 	}
 	settings.secrets = secret.NewSecretProvider(secretsConstruct)
 
@@ -119,10 +122,10 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 	allProviders := make([]*rawProvider, 0)
 
 	cfgConstruct := &config.ConstructConfig{
-		Logger:  settings.logger,
-		Options: options.Config,
-		Loader:  settings.pluginLoader,
-		Secret:  settings.secrets,
+		PluginLogger: settings.pluginLogger,
+		Options:      options.Config,
+		Loader:       settings.pluginLoader,
+		Secret:       settings.secrets,
 	}
 	configProvider := config.NewConfigProvider(cfgConstruct)
 
@@ -155,7 +158,7 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 		Roles:        settings.rawRoles,
 		Secret:       settings.secrets,
 		Loader:       settings.pluginLoader,
-		Logger:       settings.logger,
+		PluginLogger: settings.pluginLogger,
 		UserProvider: "",
 	}
 
@@ -327,7 +330,7 @@ func (s *settingsProvider) loadGoHomeDefinition(provider *rawProvider) {
 func (s *settingsProvider) processDeviceProvider(provider *rawProvider) error {
 	d, err := s.loadDeviceProvider(provider)
 	if nil == d {
-		return err
+		return errors.Wrap(err, "device load failed")
 	}
 
 	s.devicesConfig = append(s.devicesConfig, d)
@@ -412,6 +415,7 @@ func (s *settingsProvider) loadLoggerProvider(provs []*rawProvider) []*rawProvid
 			Loader:     s.pluginLoader,
 			NodeID:     s.nodeID,
 			Secret:     s.secrets,
+			SkipLevel:  2,
 		}
 		log, err := logger.NewLoggerProvider(ctor)
 		if err != nil {
@@ -421,14 +425,23 @@ func (s *settingsProvider) loadLoggerProvider(provs []*rawProvider) []*rawProvid
 
 		s.logger = log
 
+		ctor.SkipLevel = 3
+		logP, err := logger.NewLoggerProvider(ctor)
+		if err != nil {
+			s.logger.Error("Failed to load plugin logger", err, common.LogProviderToken, v.Provider)
+			continue
+		}
+
+		s.pluginLogger = logP
+
 		validatorLogger := &logger.ConstructPluginLogger{
-			SystemLogger: s.logger,
+			SystemLogger: s.pluginLogger,
 			Provider:     "go-home",
 			System:       "validator",
 		}
 
 		s.validator.SetLogger(logger.NewPluginLogger(validatorLogger))
-		s.secrets.(providers.IInternalSecret).UpdateLogger(s.logger)
+		s.secrets.(providers.IInternalSecret).UpdateLogger(s.pluginLogger)
 	}
 
 	if -1 != index {
@@ -503,11 +516,11 @@ func (s *settingsProvider) processStorage(provider *rawProvider) {
 	}
 
 	ctor := &storage.ConstructStorage{
-		Logger:    s.logger,
-		Secret:    s.secrets,
-		Provider:  provider.Provider,
-		RawConfig: provider.Config,
-		Loader:    s.pluginLoader,
+		PluginLogger: s.pluginLogger,
+		Secret:       s.secrets,
+		Provider:     provider.Provider,
+		RawConfig:    provider.Config,
+		Loader:       s.pluginLoader,
 	}
 
 	s.storage = storage.NewStorageProvider(ctor)

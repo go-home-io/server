@@ -1,19 +1,23 @@
 package api
 
 import (
+	"encoding/json"
 	"testing"
+	"time"
+
+	"github.com/fortytw2/leaktest"
 	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/plugins/api"
-	"github.com/go-home-io/server/utils"
-	"github.com/fortytw2/leaktest"
-	"time"
-	"github.com/go-home-io/server/providers"
-	"encoding/json"
 	"github.com/go-home-io/server/plugins/bus"
-	"github.com/gobwas/glob"
 	"github.com/go-home-io/server/plugins/device/enums"
+	"github.com/go-home-io/server/providers"
+	"github.com/go-home-io/server/utils"
+	"github.com/gobwas/glob"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
+// Fake plugin patch.
 type fakePlugin struct {
 	com api.IExtendedAPICommunicator
 	q   chan []byte
@@ -35,6 +39,7 @@ func (*fakePlugin) Routes() []string {
 func (*fakePlugin) Unload() {
 }
 
+//noinspection GoUnhandledErrorResult
 func (f *fakePlugin) Subscribe() {
 	f.com.Subscribe(f.q)
 }
@@ -59,9 +64,10 @@ func (f *fakePlugin) HasMessages() bool {
 	}
 }
 
-func getProvider(pl *fakePlugin, bus providers.IBusProvider, srvCallback func()) (providers.IExtendedAPIProvider, error) {
+func getProvider(pl *fakePlugin, bus providers.IBusProvider, srvCallback func(),
+	t *testing.T) (providers.IExtendedAPIProvider, error) {
 	ctor := &ConstructAPI{
-		Server:     mocks.FakeNewServer(srvCallback),
+		Server:     mocks.FakeNewServer(srvCallback).(providers.IServerProvider),
 		Name:       "test",
 		Logger:     mocks.FakeNewLogger(nil),
 		Loader:     mocks.FakeNewPluginLoader(pl),
@@ -76,8 +82,8 @@ func getProvider(pl *fakePlugin, bus providers.IBusProvider, srvCallback func())
 
 	p, err := NewExtendedAPIProvider(ctor)
 	pl.FakeInit(p.(api.IExtendedAPICommunicator))
+	require.NoError(t, err, "provider")
 	return p, err
-
 }
 
 func getMessage(message api.IExtendedAPIMessage) bus.RawMessage {
@@ -87,46 +93,51 @@ func getMessage(message api.IExtendedAPIMessage) bus.RawMessage {
 	}
 }
 
-// Tests that unload .
+// Tests that unload.
 func TestCorrectUnload(t *testing.T) {
 	defer leaktest.CheckTimeout(t, 1*time.Second)()
-	wr, err := getProvider(&fakePlugin{}, mocks.FakeNewServiceBus(nil), nil)
-	if err != nil {
-		t.FailNow()
-	}
+	wr, err := getProvider(&fakePlugin{}, mocks.FakeNewServiceBus(nil), nil, t)
+	require.NoError(t, err)
 	wr.Unload()
 	time.Sleep(1 * time.Second)
 }
 
 // Tests that messages are delivered properly.
+//noinspection GoUnhandledErrorResult
 func TestMessagesDelivery(t *testing.T) {
 	p := &fakePlugin{}
 	b := mocks.FakeNewServiceBus(nil)
 
-	_, err := getProvider(p, b, nil)
+	_, err := getProvider(p, b, nil, t)
 	p.Subscribe()
-	if err != nil {
-		t.FailNow()
+	require.NoError(t, err)
+
+	data := []struct {
+		msg  bus.RawMessage
+		gold bool
+	}{
+		{
+			msg:  getMessage(&api.ExtendedAPIMessage{SendTime: utils.TimeNow() - bus.MsgTTLSeconds - 1}),
+			gold: false,
+		},
+		{
+			msg:  bus.RawMessage{Body: nil},
+			gold: false,
+		},
+		{
+			msg:  getMessage(&api.ExtendedAPIMessage{SendTime: utils.TimeNow()}),
+			gold: true,
+		},
 	}
 
-	b.FakePublish("", getMessage(&api.ExtendedAPIMessage{SendTime: utils.TimeNow() - bus.MsgTTLSeconds - 1}))
-	if p.HasMessages() {
-		t.FailNow()
-	}
-
-	b.FakePublish("", bus.RawMessage{Body: nil})
-	if p.HasMessages() {
-		t.FailNow()
-	}
-
-	b.FakePublish("", getMessage(&api.ExtendedAPIMessage{SendTime: utils.TimeNow()}))
-	if !p.HasMessages() {
-		t.FailNow()
+	for _, v := range data {
+		b.FakePublish("", v.msg)
+		assert.Equal(t, v.gold, p.HasMessages(), string(v.msg.Body))
 	}
 }
 
-// Test wrapper methods.
-func TestMethods(t *testing.T) {
+// Tests constructors.
+func TestCtor(t *testing.T) {
 	ctor := &ConstructAPI{
 		Name:      "test",
 		Loader:    mocks.FakeNewPluginLoader(nil),
@@ -137,29 +148,7 @@ func TestMethods(t *testing.T) {
 	}
 
 	_, err := NewExtendedAPIProvider(ctor)
-	if err == nil {
-		t.FailNow()
-	}
-
-	called := false
-	srvCalled := false
-	wr, err := getProvider(&fakePlugin{}, mocks.FakeNewServiceBusRegular(func(i ...interface{}) {
-		called = true
-	}), func() {
-		srvCalled = true
-	})
-
-	msg := &fakeMessage{}
-	wr.(api.IExtendedAPICommunicator).Publish(msg)
-
-	if !called || 0 == msg.published {
-		t.FailNow()
-	}
-
-	wr.(api.IExtendedAPICommunicator).InvokeDeviceCommand(glob.MustCompile("**"), enums.CmdOn, nil)
-	if !srvCalled {
-		t.FailNow()
-	}
+	assert.Error(t, err, "server")
 
 	ctor = &ConstructAPI{
 		Name:      "test",
@@ -171,8 +160,28 @@ func TestMethods(t *testing.T) {
 		Provider:  "test",
 		RawConfig: []byte(""),
 	}
+	_, err = NewExtendedAPIProvider(ctor)
+	assert.NoError(t, err, "worker")
+}
+
+// Test wrapper methods.
+func TestMethods(t *testing.T) {
+	called := false
+	srvCalled := false
+	wr, _ := getProvider(&fakePlugin{}, mocks.FakeNewServiceBusRegular(func(i ...interface{}) {
+		called = true
+	}), func() {
+		srvCalled = true
+	}, t)
+
+	msg := &fakeMessage{}
+	wr.(api.IExtendedAPICommunicator).Publish(msg)
+	assert.True(t, called, "fake message not called")
+	assert.NotEqual(t, 0, msg.published, "fake message not published")
+
 	wr.(api.IExtendedAPICommunicator).InvokeDeviceCommand(glob.MustCompile("**"), enums.CmdOn, nil)
-	if "test" != wr.ID() {
-		t.FailNow()
-	}
+	assert.True(t, srvCalled, "server not called")
+
+	wr.(api.IExtendedAPICommunicator).InvokeDeviceCommand(glob.MustCompile("**"), enums.CmdOn, nil)
+	assert.Equal(t, "test", wr.ID(), "wrong ID")
 }

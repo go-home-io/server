@@ -15,23 +15,36 @@ import (
 	"github.com/go-home-io/server/providers"
 	"github.com/gobwas/glob"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-// Tests WS connection.
-func TestWsConnection(t *testing.T) {
-	worker1 := false
-	worker2 := false
-	s := getFakeSettings(func(name string, msg ...interface{}) {
+type wsSuite struct {
+	suite.Suite
+
+	s       providers.ISettingsProvider
+	worker1 bool
+	worker2 bool
+	group   bool
+
+	ts *httptest.Server
+	ws *websocket.Conn
+}
+
+//noinspection GoUnhandledErrorResult
+func (w *wsSuite) SetupTest() {
+	w.s = getFakeSettings(func(name string, msg ...interface{}) {
 		switch name {
 		case "1":
-			worker1 = true
+			w.worker1 = true
 		case "2":
-			worker2 = true
+			w.worker2 = true
 		}
 
 	}, nil, nil)
 
-	state := newServerState(s)
+	state := newServerState(w.s)
 	state.KnownDevices = map[string]*knownDevice{
 		"dev1": {ID: "dev1", Commands: []string{enums.CmdOn.String(), enums.CmdSetBrightness.String()},
 			Worker: "1", State: map[string]interface{}{"test": "test"}},
@@ -55,99 +68,122 @@ func TestWsConnection(t *testing.T) {
 		},
 	}
 
-	groupCalled := false
-
 	srv := &GoHomeServer{
 		state:    state,
 		Logger:   mocks.FakeNewLogger(nil),
-		Settings: s,
+		Settings: w.s,
 		groups: map[string]providers.IGroupProvider{
 			"g1": mocks.FakeNewGroupProvider("g1", []string{"dev1"}, func() {
-				groupCalled = true
+				w.group = true
 			}),
 		},
 	}
 
-	ts := httptest.NewServer(http.HandlerFunc(srv.handleWS))
-	defer ts.Close()
+	w.ts = httptest.NewServer(http.HandlerFunc(srv.handleWS))
 
 	monkey.Patch(getContextUser, func(request *http.Request) *providers.AuthenticatedUser {
 		return user
 	})
+	defer monkey.UnpatchAll()
 
-	u := "ws" + strings.TrimPrefix(ts.URL, "http")
+	u := "ws" + strings.TrimPrefix(w.ts.URL, "http")
 	ws, _, err := websocket.DefaultDialer.Dial(u, nil)
-	if err != nil {
-		t.Fatalf("%v", err)
+	require.NoError(w.T(), err, "dial")
+	w.ws = ws
+}
+
+//noinspection GoUnhandledErrorResult
+func (w *wsSuite) TearDownTest() {
+	if nil != w.ts {
+		w.ts.Close()
 	}
-	defer ws.Close()
+	if nil != w.ws {
+		w.ws.Close()
+	}
+}
 
-	ws.SetReadDeadline(time.Now().Add(1 * time.Second))
-	ws.WriteMessage(websocket.TextMessage, []byte("ping"))
-	wt, msg, err := ws.ReadMessage()
-	if err != nil || wt != websocket.TextMessage || string(msg) != "pong" {
-		t.Error("Ping failed")
-		t.FailNow()
+// Tests ping.
+//noinspection GoUnhandledErrorResult
+func (w *wsSuite) TestPing() {
+	w.ws.SetReadDeadline(time.Now().Add(1 * time.Second))
+	w.ws.WriteMessage(websocket.TextMessage, []byte("ping"))
+	wt, msg, err := w.ws.ReadMessage()
+	require.NoError(w.T(), err, "ping")
+	assert.Equal(w.T(), websocket.TextMessage, wt, "ping type")
+	assert.Equal(w.T(), "pong", string(msg), "pong response")
+}
+
+// Tests proper updates.
+//noinspection GoUnhandledErrorResult
+func (w *wsSuite) TestCalls() {
+	data := []struct {
+		ID  string
+		w1  bool
+		w2  bool
+		g   bool
+		msg string
+	}{
+		{
+			ID:  "dev1",
+			w1:  true,
+			w2:  false,
+			g:   false,
+			msg: "allowed",
+		},
+		{
+			ID:  "dev2",
+			w1:  false,
+			w2:  false,
+			g:   false,
+			msg: "forbidden",
+		},
+		{
+			ID: "g1",
+			w1: false,
+			w2: false,
+			g:  true,
+		},
 	}
 
-	ws.WriteJSON(&wsCmd{
-		ID:  "dev1",
-		Cmd: "on",
-		Val: nil,
-	})
+	for _, v := range data {
+		w.worker1 = false
+		w.worker2 = false
+		w.group = false
 
-	time.Sleep(1 * time.Second)
+		w.ws.WriteJSON(&wsCmd{
+			ID:  v.ID,
+			Cmd: "on",
+			Val: nil,
+		})
 
-	if !worker1 || worker2 {
-		t.Error("Allowed device failed")
-		t.Fail()
+		time.Sleep(1 * time.Second)
+		assert.Equal(w.T(), v.w1, w.worker1, v.msg+" worker 1")
+		assert.Equal(w.T(), v.w2, w.worker2, v.msg+" worker 2")
+		assert.Equal(w.T(), v.g, w.group, v.msg+" group")
 	}
+}
 
-	ws.WriteJSON(&wsCmd{
-		ID:  "dev2",
-		Cmd: "on",
-		Val: nil,
-	})
-
-	worker1 = false
-	worker2 = false
-
-	time.Sleep(1 * time.Second)
-
-	if worker1 || worker2 {
-		t.Error("Forbidden device failed")
-		t.Fail()
-	}
-
-	ws.WriteJSON(&wsCmd{
-		ID:  "g1",
-		Cmd: "on",
-		Val: nil,
-	})
-
-	time.Sleep(1 * time.Second)
-
-	if !groupCalled {
-		t.Error("Group failed")
-		t.Fail()
-	}
-
-	s.FanOut().ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
+// Tests update callbacks.
+//noinspection GoUnhandledErrorResult
+func (w *wsSuite) TestUpdate() {
+	w.s.FanOut().ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
 		ID: "dev1",
 	}
 
-	ws.SetReadDeadline(time.Now().Add(1 * time.Second))
-	wt, msg, err = ws.ReadMessage()
-	if err != nil || wt != websocket.TextMessage {
-		t.Error("Update failed")
-		t.FailNow()
-	}
+	w.ws.SetReadDeadline(time.Now().Add(1 * time.Second))
+	wt, msg, err := w.ws.ReadMessage()
+	require.NoError(w.T(), err, "error")
+	require.Equal(w.T(), websocket.TextMessage, wt, "type")
 
 	d := &knownDevice{}
 	err = json.Unmarshal(msg, d)
+	require.NoError(w.T(), err, "json")
+	assert.Equal(w.T(), "dev1", d.ID, "wrong device")
+	assert.Equal(w.T(), "test", d.State["test"].(string), "wrong state")
+}
 
-	if err != nil || d.ID != "dev1" || d.State["test"].(string) != "test" {
-		t.Error("Update failed with wrong data")
-		t.Fail()
-	}
+// Tests WS connection.
+func TestWs(t *testing.T) {
+	suite.Run(t, new(wsSuite))
+
 }

@@ -64,7 +64,7 @@ func newServerState(settings providers.ISettingsProvider) *serverState {
 
 	_, err := settings.Cron().AddFunc("@every 15s", s.checkStaleWorkers)
 	if err != nil {
-		panic("Failed to start staled workers job")
+		s.Logger.Fatal("Failed to start workers job", err)
 	}
 	return &s
 }
@@ -160,6 +160,7 @@ func (s *serverState) Update(msg *bus.DeviceUpdateMessage) {
 }
 
 // GetAllDevices returns list of all known devices.
+// nolint: dupl
 func (s *serverState) GetAllDevices() []*knownDevice {
 	s.deviceMutex.Lock()
 	defer s.deviceMutex.Unlock()
@@ -179,6 +180,7 @@ func (s *serverState) GetDevice(deviceID string) *knownDevice {
 }
 
 // GetWorkers returns known workers.
+// nolint: dupl
 func (s *serverState) GetWorkers() []*knownWorker {
 	s.workerMutex.Lock()
 	defer s.workerMutex.Unlock()
@@ -210,7 +212,7 @@ func (s *serverState) processDeviceStateUpdate(dv *knownDevice, newState map[str
 		val := v
 		if dv.Type != enums.DevGroup {
 			t, err = helpers.PropertyFixYaml(v, prop)
-			if nil != err {
+			if err != nil {
 				s.Logger.Error("Failed to convert property", err,
 					common.LogDevicePropertyToken, prop.String(), common.LogDeviceNameToken, dv.ID)
 				continue

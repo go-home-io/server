@@ -8,6 +8,7 @@ import (
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -48,7 +49,7 @@ func NewServiceBusProvider(ctor *ConstructBus) (providers.IBusProvider, error) {
 
 	i, err := ctor.Loader.LoadPlugin(pluginLoadRequest)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "plugin load failed")
 	}
 
 	p.bus = i.(bus.IServiceBus)

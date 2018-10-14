@@ -42,7 +42,11 @@ func newCameraProcessor(rawConfig string) IProcessor {
 	s := &cameraSettings{}
 	err := yaml.Unmarshal([]byte(rawConfig), s)
 	if err != nil {
-		return &cameraProcessor{distance: defaultCameraDistance, quality: defaultImageQuality, width: defaultCameraWidth}
+		return &cameraProcessor{
+			distance: defaultCameraDistance,
+			quality:  defaultImageQuality,
+			width:    defaultCameraWidth,
+		}
 	}
 
 	if s.Distance < 1 {

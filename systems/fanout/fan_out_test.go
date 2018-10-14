@@ -2,8 +2,10 @@ package fanout
 
 import (
 	"testing"
-	"github.com/go-home-io/server/plugins/common"
 	"time"
+
+	"github.com/go-home-io/server/plugins/common"
+	"github.com/stretchr/testify/assert"
 )
 
 // Tests devices updates channels.
@@ -34,10 +36,8 @@ func TestDeviceUpdates(t *testing.T) {
 
 	fo.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{}
 	time.Sleep(1 * time.Second)
-
-	if nil == m1 || nil == m2 {
-		t.FailNow()
-	}
+	assert.NotNil(t, m1, "channel 1")
+	assert.NotNil(t, m2, "channel 2")
 
 	m1 = nil
 	m2 = nil
@@ -47,9 +47,9 @@ func TestDeviceUpdates(t *testing.T) {
 	fo.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{}
 	time.Sleep(1 * time.Second)
 
-	if nil != m1 || nil == m2 || !d1Exited {
-		t.FailNow()
-	}
+	assert.Nil(t, m1, "unsubscribe channel 1")
+	assert.NotNil(t, m2, "unsubscribe channel 2")
+	assert.True(t, d1Exited, "exit channel 1")
 
 	m1 = nil
 	m2 = nil
@@ -59,9 +59,9 @@ func TestDeviceUpdates(t *testing.T) {
 	fo.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{}
 	time.Sleep(1 * time.Second)
 
-	if nil != m1 || nil != m2 || !d2Exited {
-		t.Fail()
-	}
+	assert.Nil(t, m1, "full unsubscribe channel 1")
+	assert.Nil(t, m2, "full unsubscribe channel 2")
+	assert.True(t, d2Exited, "exit channel 2")
 }
 
 // Tests triggers updates channels.
@@ -93,9 +93,8 @@ func TestTriggerUpdates(t *testing.T) {
 	fo.ChannelInTriggerUpdates() <- "test"
 	time.Sleep(1 * time.Second)
 
-	if "" == m1 || "" == m2 {
-		t.FailNow()
-	}
+	assert.Equal(t, "test", m1, "channel 1")
+	assert.Equal(t, "test", m2, "channel 2")
 
 	m1 = ""
 	m2 = ""
@@ -105,9 +104,9 @@ func TestTriggerUpdates(t *testing.T) {
 	fo.ChannelInTriggerUpdates() <- "test"
 	time.Sleep(1 * time.Second)
 
-	if "" != m1 || "" == m2 || !d1Exited {
-		t.FailNow()
-	}
+	assert.Equal(t, "", m1, "unsubscribe channel 1")
+	assert.Equal(t, "test", m2, "unsubscribe channel 2")
+	assert.True(t, d1Exited, "exit channel 1")
 
 	m1 = ""
 	m2 = ""
@@ -117,7 +116,8 @@ func TestTriggerUpdates(t *testing.T) {
 	fo.ChannelInTriggerUpdates() <- "test"
 	time.Sleep(1 * time.Second)
 
-	if "" != m1 || "" != m2 || !d2Exited {
-		t.Fail()
-	}
+	assert.Equal(t, "", m1, "full unsubscribe channel 1")
+	assert.Equal(t, "", m2, "full unsubscribe channel 2")
+	assert.True(t, d2Exited, "exit channel 2")
+
 }

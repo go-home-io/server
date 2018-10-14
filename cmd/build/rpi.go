@@ -31,10 +31,13 @@ func main() {
 	bintrayKey := os.Args[3]
 
 	if len(os.Args) > 4 {
-		port, _ = strconv.Atoi(os.Args[4])
+		port, _ = strconv.Atoi(os.Args[4]) // nolint: gosec
 	}
 
-	cd, _ := os.Getwd()
+	cd, err := os.Getwd()
+	if err != nil {
+		panic(err.Error())
+	}
 
 	h := &handler{
 		key:         key,
@@ -45,6 +48,7 @@ func main() {
 	}
 	router := mux.NewRouter()
 	router.HandleFunc(fmt.Sprintf("/{%s}/{%s}", buildTag, keyTag), h.handle).Methods(http.MethodGet)
+	//noinspection GoUnhandledErrorResult
 	go http.ListenAndServe(fmt.Sprintf(":%d", port), router)
 	logger.Printf("Started build agent on port %d", port)
 
@@ -99,7 +103,8 @@ func (h *handler) handle(writer http.ResponseWriter, request *http.Request) {
 	cmdOut, err := cmd.CombinedOutput()
 
 	if 0 != len(cmdOut) {
-		ioutil.WriteFile("./"+version+".log", cmdOut, 0644)
+		//noinspection GoUnhandledErrorResult
+		ioutil.WriteFile("./"+version+".log", cmdOut, 0644) // nolint: gosec
 	}
 
 	if err != nil {

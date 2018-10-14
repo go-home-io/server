@@ -1,16 +1,19 @@
 package secret
 
 import (
-	"testing"
-	"github.com/go-home-io/server/mocks"
-	"io/ioutil"
 	"fmt"
-	"github.com/go-home-io/server/utils"
-	"os"
+	"io/ioutil"
+	"testing"
+
+	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/secret"
+	"github.com/go-home-io/server/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
+// Fake plugin.
 type fakePlugin struct {
 	data map[string]string
 }
@@ -33,93 +36,84 @@ func (*fakePlugin) Init(*secret.InitDataSecret) error {
 func (*fakePlugin) UpdateLogger(common.ILoggerProvider) {
 }
 
+// Tests fallback to default fs provider.
 func TestFallbackToDefault(t *testing.T) {
-	os.MkdirAll(utils.GetDefaultConfigsDir(), os.ModePerm)
-	defer cleanFile()
+	createFolder(t)
+	defer cleanup(t)
 
 	ctor := &ConstructSecret{
-		Loader:  mocks.FakeNewPluginLoader(nil),
-		Logger:  mocks.FakeNewLogger(nil),
-		Options: map[string]string{common.LogProviderToken: "fs"},
+		Loader:       mocks.FakeNewPluginLoader(nil),
+		PluginLogger: mocks.FakeNewLogger(nil),
+		Options:      map[string]string{common.LogProviderToken: "fs"},
 	}
 
 	prov := NewSecretProvider(ctor)
 	err := prov.Set("1", "1")
-	if err != nil {
-		t.FailNow()
-	}
+	require.NoError(t, err, "set")
 
 	_, err = ioutil.ReadFile(fmt.Sprintf("%s/_secrets.yaml", utils.GetDefaultConfigsDir()))
-	if err != nil {
-		t.FailNow()
-	}
+	assert.NoError(t, err, "read")
 }
 
+// Tests fallback to default fs if plugin failed to load.
 func TestFallbackToDefaultWithWrongPlugin(t *testing.T) {
-	os.MkdirAll(utils.GetDefaultConfigsDir(), os.ModePerm)
-	defer cleanFile()
+	createFolder(t)
+	defer cleanup(t)
 
 	ctor := &ConstructSecret{
-		Loader:  mocks.FakeNewPluginLoader(nil),
-		Logger:  mocks.FakeNewLogger(nil),
-		Options: map[string]string{common.LogProviderToken: "test"},
+		Loader:       mocks.FakeNewPluginLoader(nil),
+		PluginLogger: mocks.FakeNewLogger(nil),
+		Options:      map[string]string{common.LogProviderToken: "test"},
 	}
 
 	prov := NewSecretProvider(ctor)
 	err := prov.Set("1", "1")
-	if err != nil {
-		t.FailNow()
-	}
+	require.NoError(t, err, "set")
 
 	_, err = ioutil.ReadFile(fmt.Sprintf("%s/_secrets.yaml", utils.GetDefaultConfigsDir()))
-	if err != nil {
-		t.FailNow()
-	}
+	assert.NoError(t, err, "read")
 }
 
+// Tests error during set.
 func TestSetFail(t *testing.T) {
-	cleanFile()
-	defer cleanFile()
+	cleanup(t)
+	defer cleanup(t)
 
 	ctor := &ConstructSecret{
-		Loader:  mocks.FakeNewPluginLoader(nil),
-		Logger:  mocks.FakeNewLogger(nil),
-		Options: map[string]string{},
+		Loader:       mocks.FakeNewPluginLoader(nil),
+		PluginLogger: mocks.FakeNewLogger(nil),
+		Options:      map[string]string{},
 	}
 
 	prov := NewSecretProvider(ctor)
-
 	err := prov.Set("1", "1")
-	if err == nil {
-		t.FailNow()
-	}
+	require.Error(t, err, "set")
 
 	_, err = ioutil.ReadFile(fmt.Sprintf("%s/_secrets.yaml", utils.GetDefaultConfigsDir()))
-	if err == nil {
-		t.FailNow()
-	}
+	require.Error(t, err, "read")
 
 	_, err = prov.Get("1")
-	if err == nil {
-		t.FailNow()
-	}
+	assert.Error(t, err, "get")
 }
 
+// Tests correct plugin load.
 func TestPluginLoad(t *testing.T) {
 	p := &fakePlugin{
 		data: map[string]string{"val1": "data"},
 	}
 	ctor := &ConstructSecret{
-		Loader:  mocks.FakeNewPluginLoader(p),
-		Logger:  mocks.FakeNewLogger(nil),
-		Options: map[string]string{common.LogProviderToken: "test"},
+		Loader:       mocks.FakeNewPluginLoader(p),
+		PluginLogger: mocks.FakeNewLogger(nil),
+		Options:      map[string]string{common.LogProviderToken: "test"},
 	}
 	prov := NewSecretProvider(ctor)
+
 	// Test no panic
+	defer func() {
+		assert.Nil(t, recover(), "panic")
+	}()
 	prov.UpdateLogger(mocks.FakeNewLogger(nil))
 
 	v, _ := prov.Get("val1")
-	if "data" != v {
-		t.Fail()
-	}
+	assert.Equal(t, "data", v, "get")
 }

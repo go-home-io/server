@@ -1,30 +1,24 @@
 package helpers
 
 import (
-	"testing"
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/plugins/device"
-	"github.com/go-home-io/server/plugins/common"
 	"encoding/json"
+	"testing"
+
+	"github.com/go-home-io/server/plugins/common"
+	"github.com/go-home-io/server/plugins/device"
+	"github.com/go-home-io/server/plugins/device/enums"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
-
-type testExpData struct {
-	payload        string
-	expression     string
-	expectedResult interface{}
-	property       enums.Property
-}
-
-type testFormatData struct {
-	expression     string
-	expectedResult interface{}
-	params         map[string]interface{}
-	property       enums.Property
-}
 
 // Tests evaluation of different expressions.
 func TestEvaluations(t *testing.T) {
-	data := []testExpData{
+	data := []struct {
+		payload        string
+		expression     string
+		expectedResult interface{}
+		property       enums.Property
+	}{
 		{
 			expression:     "payload=='on'",
 			payload:        "on",
@@ -61,20 +55,10 @@ func TestEvaluations(t *testing.T) {
 
 	for _, v := range data {
 		exp, err := p.Compile(v.expression)
-		if err != nil {
-			t.Error("failed to compile " + v.expression)
-			t.FailNow()
-		}
-
+		require.NoError(t, err, "compile %s", v.expression)
 		res, err := exp.Parse(v.payload)
-		if err != nil {
-			t.Error("failed to parse " + v.expression)
-			t.FailNow()
-		}
-		if !PropertyDeepEqual(res, v.expectedResult, v.property) {
-			t.Error("unexpected result " + v.expression)
-			t.Fail()
-		}
+		require.NoError(t, err, "parse %s", v.expression)
+		assert.True(t, PropertyDeepEqual(res, v.expectedResult, v.property), "equal %s", v.expression)
 	}
 }
 
@@ -83,9 +67,7 @@ func TestParseErrors(t *testing.T) {
 	p := NewParser()
 
 	_, err := p.Compile("_=1")
-	if err == nil {
-		t.Fail()
-	}
+	assert.Error(t, err, "compile workerd")
 
 	data := []string{
 		"num()",
@@ -105,15 +87,9 @@ func TestParseErrors(t *testing.T) {
 
 	for _, v := range data {
 		exp, err := p.Compile(v)
-		if err != nil {
-			t.Error("failed to compile " + v)
-			t.FailNow()
-		}
-
+		require.NoError(t, err, "compile %s", v)
 		_, err = exp.Parse("test")
-		if err == nil {
-			t.Error("unexpected result " + v)
-		}
+		assert.Error(t, err, "parse %s", v)
 	}
 }
 
@@ -127,15 +103,17 @@ func TestJsonConvert(t *testing.T) {
 	d, _ := json.Marshal(tp)
 	exp, _ := p.Compile("jq(payload)")
 	val, _ := exp.Parse(string(d))
-
-	if val.(map[string]interface{})["T"].(string) != "data" {
-		t.Fail()
-	}
+	assert.Equal(t, "data", val.(map[string]interface{})["T"].(string))
 }
 
 // Tests correct parsing.
 func TestParse(t *testing.T) {
-	data := []testFormatData{
+	data := []struct {
+		expression     string
+		expectedResult interface{}
+		params         map[string]interface{}
+		property       enums.Property
+	}{
 		{
 			expression:     "str('on')",
 			params:         nil,
@@ -157,8 +135,8 @@ func TestParse(t *testing.T) {
 			expectedResult: "on",
 		},
 		{
-			expression: "'generic'",
-			params: map[string]interface{}{},
+			expression:     "'generic'",
+			params:         map[string]interface{}{},
 			property:       111,
 			expectedResult: "generic",
 		},
@@ -193,29 +171,15 @@ func TestParse(t *testing.T) {
 
 	for _, v := range data {
 		exp, err := p.Compile(v.expression)
-		if err != nil {
-			t.Error("failed to compile " + v.expression)
-			t.FailNow()
-		}
-
+		require.NoError(t, err, "compile %s", v.expression)
 		res, err := exp.Format(v.params)
-		if err != nil {
-			t.Error("failed to parse " + v.expression)
-			t.FailNow()
-		}
+		require.NoError(t, err, "parse %s", v.expression)
 
 		if !v.property.IsAProperty() {
-			if v.expectedResult != res {
-				t.Error("unexpected result " + v.expression)
-				t.FailNow()
-			}
-
+			assert.Equal(t, v.expectedResult, res, "not property %s", v.expression)
 			continue
 		}
 
-		if !PropertyDeepEqual(res, v.expectedResult, v.property) {
-			t.Error("unexpected result " + v.expression)
-			t.Fail()
-		}
+		assert.True(t, PropertyDeepEqual(res, v.expectedResult, v.property), v.expression)
 	}
 }

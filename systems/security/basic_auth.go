@@ -2,7 +2,6 @@ package security
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -43,19 +42,19 @@ func (b *basicAuthProvider) Authorize(headers map[string][]string) (username str
 
 	if 2 != len(auth) || "Basic" != auth[0] {
 		b.logger.Warn("No Basic Auth header found")
-		return "", errors.New("header not found")
+		return "", &ErrNoHeader{}
 	}
 
 	payload, err := base64.StdEncoding.DecodeString(auth[1])
 	if err != nil {
 		b.logger.Warn("Failed to decode Basic Auth header")
-		return "", errors.New("can't decode header")
+		return "", &ErrIncorrectHeader{}
 	}
 
 	pair := strings.SplitN(string(payload), ":", 2)
 	if 2 != len(pair) {
 		b.logger.Warn("Corrupted Basic Auth header")
-		return "", errors.New("wrong header")
+		return "", &ErrCorruptedHeader{Header: string(payload)}
 	}
 
 	pwd, ok := b.presetPasswords[pair[0]]
@@ -71,7 +70,7 @@ func (b *basicAuthProvider) Authorize(headers map[string][]string) (username str
 	}
 
 	b.logger.Warn("User is unauthorized", "user", pair[0])
-	return "", errors.New("user not found")
+	return "", &ErrUserNotFound{User: pair[0]}
 }
 
 // Reads htpsswds file.

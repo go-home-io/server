@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sort"
 
@@ -54,7 +53,6 @@ func (s *GoHomeServer) InternalCommandInvokeDeviceCommand(
 				bus.NewDeviceCommandMessage(v.ID, cmd, data))
 		}
 	}
-
 }
 
 // Invokes device command if it's allowed for the user.
@@ -64,14 +62,14 @@ func (s *GoHomeServer) commandInvokeDeviceCommand(user *providers.AuthenticatedU
 	if nil == knownDevice {
 		s.Logger.Warn("Failed to find device", common.LogSystemToken, logSystem,
 			common.LogDeviceNameToken, deviceID, common.LogUserNameToken, user.Username)
-		return errors.New("unknown device")
+		return &ErrUnknownDevice{ID: deviceID}
 	}
 
 	// We don't want to allow to brute-forth device names, so returning generic error
 	if !knownDevice.Command(user) {
 		s.Logger.Warn("User doesn't have access to this device", common.LogSystemToken, logSystem,
 			common.LogDeviceNameToken, deviceID, common.LogUserNameToken, user.Username)
-		return errors.New("unknown device")
+		return &ErrUnknownDevice{ID: deviceID}
 	}
 
 	command, err := enums.CommandString(cmdName)
@@ -79,14 +77,14 @@ func (s *GoHomeServer) commandInvokeDeviceCommand(user *providers.AuthenticatedU
 		s.Logger.Warn("Received unknown command", common.LogSystemToken, logSystem,
 			common.LogDeviceNameToken, deviceID, common.LogDeviceCommandToken, cmdName,
 			common.LogUserNameToken, user.Username)
-		return errors.New("unknown command")
+		return &ErrUnknownCommand{Name: cmdName}
 	}
 
 	if !helpers.SliceContainsString(knownDevice.Commands, cmdName) {
 		s.Logger.Warn("Received command is not supported", common.LogSystemToken, logSystem,
 			common.LogDeviceNameToken, deviceID, common.LogDeviceCommandToken, cmdName,
 			common.LogUserNameToken, user.Username)
-		return errors.New("command is not supported")
+		return &ErrUnsupportedCommand{Name: cmdName}
 	}
 
 	inputData := make(map[string]interface{})
@@ -98,7 +96,7 @@ func (s *GoHomeServer) commandInvokeDeviceCommand(user *providers.AuthenticatedU
 			if err != nil {
 				s.Logger.Error("Failed to unmarshal input request", err,
 					common.LogSystemToken, logSystem)
-				return errors.New("bad request data")
+				return &ErrBadRequest{}
 			}
 		}
 	}
@@ -123,7 +121,7 @@ func (s *GoHomeServer) commandGroupCommand(user *providers.AuthenticatedUser,
 		s.Logger.Warn("Received unknown group", common.LogSystemToken, logSystem,
 			common.LogDeviceNameToken, groupID, common.LogDeviceCommandToken, cmd.String(),
 			common.LogUserNameToken, user.Username)
-		return errors.New("unknown group")
+		return &ErrUnknownGroup{Name: groupID}
 	}
 
 	g.InvokeCommand(cmd, data)

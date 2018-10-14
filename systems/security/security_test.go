@@ -5,28 +5,13 @@ import (
 
 	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/providers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
-
-// Tests that provider falls back to default FS implementation.
-func TestFallbackToDefaultProvider(t *testing.T) {
-	found := false
-	ctor := &ConstructSecurityProvider{
-		Logger: mocks.FakeNewLogger(func(s string) {
-			if s == "Loading default user storage" {
-				found = true
-			}
-		}),
-	}
-
-	NewSecurityProvider(ctor)
-	if !found {
-		t.Fail()
-	}
-}
 
 func getFakeProvider(usr string) providers.ISecurityProvider {
 	ctor := &ConstructSecurityProvider{
-		Logger:       mocks.FakeNewLogger(nil),
+		PluginLogger: mocks.FakeNewLogger(nil),
 		UserProvider: "test",
 		Loader:       mocks.FakeNewPluginLoader(mocks.FakeNewUserStorage(usr)),
 		Roles: []*providers.SecRole{
@@ -71,11 +56,26 @@ func getFakeProvider(usr string) providers.ISecurityProvider {
 	return NewSecurityProvider(ctor)
 }
 
+// Tests that provider falls back to default FS implementation.
+func TestFallbackToDefaultProvider(t *testing.T) {
+	found := false
+	ctor := &ConstructSecurityProvider{
+		PluginLogger: mocks.FakeNewLogger(func(s string) {
+			if s == "Loading default user storage" {
+				found = true
+			}
+		}),
+	}
+
+	NewSecurityProvider(ctor)
+	assert.True(t, found)
+}
+
 // Tests fallback to default FS provider.
 func TestWrongProvider(t *testing.T) {
 	found := false
 	ctor := &ConstructSecurityProvider{
-		Logger: mocks.FakeNewLogger(func(s string) {
+		PluginLogger: mocks.FakeNewLogger(func(s string) {
 			if s == "Failed to load user storage, defaulting to basic" {
 				found = true
 			}
@@ -85,9 +85,7 @@ func TestWrongProvider(t *testing.T) {
 	}
 
 	NewSecurityProvider(ctor)
-	if !found {
-		t.Fail()
-	}
+	assert.True(t, found)
 }
 
 // Tests possible errors with roles.
@@ -98,7 +96,7 @@ func TestWrongRoles(t *testing.T) {
 	emptyUsers := false
 	emptyRules := false
 	ctor := &ConstructSecurityProvider{
-		Logger: mocks.FakeNewLogger(func(s string) {
+		PluginLogger: mocks.FakeNewLogger(func(s string) {
 			switch s {
 			case "Failed to compile role's resource regexp":
 				wrongResRegex = true
@@ -152,34 +150,32 @@ func TestWrongRoles(t *testing.T) {
 	}
 
 	NewSecurityProvider(ctor)
-	if !wrongResRegex || !emptyResource || !wrongUserRegex || !emptyUsers || !emptyRules {
-		t.Fail()
-	}
+	assert.True(t, wrongResRegex, "roles regexp")
+	assert.True(t, emptyResource, "empty resource")
+	assert.True(t, wrongUserRegex, "wrong user")
+	assert.True(t, emptyUsers, "empty users")
+	assert.True(t, emptyRules, "empty rules")
 }
 
 // Tests correct user validation.
 func TestCorrectUsers(t *testing.T) {
 	prov := getFakeProvider("usr1")
 	usr, err := prov.GetUser(nil)
-	if err != nil || 1 != len(usr.Rules) {
-		t.Fail()
-	}
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(usr.Rules))
 }
 
 // Tests that incorrect user won't pass validation.
 func TestIncorrectUsers(t *testing.T) {
 	prov := getFakeProvider("user1")
 	usr, err := prov.GetUser(nil)
-	if err != nil || 0 != len(usr.Rules) {
-		t.Fail()
-	}
+	require.NoError(t, err)
+	assert.Equal(t, 0, len(usr.Rules))
 }
 
 // Tests user not found scenario.
 func TestUserNotFound(t *testing.T) {
 	prov := getFakeProvider("")
 	_, err := prov.GetUser(nil)
-	if err == nil {
-		t.Fail()
-	}
+	assert.Error(t, err)
 }

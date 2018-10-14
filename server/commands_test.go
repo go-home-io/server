@@ -7,6 +7,8 @@ import (
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/providers"
 	"github.com/gobwas/glob"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Tests correct users' selection.
@@ -58,35 +60,80 @@ func TestDeviceOperation(t *testing.T) {
 		},
 	}
 
-	err := srv.commandInvokeDeviceCommand(user, "dev1", "on", []byte(""))
-
-	if err != nil || !worker1 {
-		t.Fail()
+	data := []struct {
+		deviceID string
+		cmd      enums.Command
+		data     string
+		result   *bool
+		gold     bool
+		isGroup  bool
+		isError  bool
+	}{
+		{
+			cmd:      enums.CmdOn,
+			deviceID: "dev1",
+			data:     "",
+			result:   &worker1,
+			gold:     true,
+			isGroup:  false,
+			isError:  false,
+		},
+		{
+			deviceID: "dev1",
+			cmd:      enums.CmdSetBrightness,
+			data:     "20",
+			result:   &worker1,
+			gold:     true,
+			isGroup:  false,
+			isError:  false,
+		},
+		{
+			deviceID: "device",
+			cmd:      enums.CmdOn,
+			data:     "",
+			result:   &worker2,
+			gold:     false,
+			isGroup:  false,
+			isError:  true,
+		},
+		{
+			deviceID: "g1",
+			cmd:      enums.CmdOn,
+			data:     "",
+			result:   &groupCalled,
+			gold:     true,
+			isGroup:  false,
+		},
+		{
+			deviceID: "g2",
+			cmd:      enums.CmdOn,
+			data:     "",
+			result:   &groupCalled,
+			gold:     false,
+			isGroup:  true,
+			isError:  true,
+		},
 	}
 
-	worker1 = false
-	worker2 = false
+	for _, v := range data {
+		worker1 = false
+		worker2 = false
+		groupCalled = false
 
-	err = srv.commandInvokeDeviceCommand(user, "dev1", "set-brightness", []byte("20"))
+		var err error
+		if v.isGroup {
+			err = srv.commandGroupCommand(user, v.deviceID, v.cmd, nil)
+		} else {
+			err = srv.commandInvokeDeviceCommand(user, v.deviceID, v.cmd.String(), []byte(v.data))
+		}
 
-	if err != nil || !worker1 {
-		t.Fail()
-	}
+		if v.isError {
+			assert.Error(t, err, "%s invoke no error %s", v.deviceID, v.cmd.String())
+		} else {
+			require.NoError(t, err, "%s invoke error %s", v.deviceID, v.cmd.String())
+		}
 
-	err = srv.commandInvokeDeviceCommand(user, "device", "on", []byte(""))
-	if err == nil || worker2 {
-		t.Fail()
-	}
-
-	err = srv.commandInvokeDeviceCommand(user, "g1", "on", []byte(""))
-	if err != nil || !groupCalled {
-		t.Fail()
-	}
-
-	groupCalled = false
-	err = srv.commandGroupCommand(user, "g2", enums.CmdOn, nil)
-	if err == nil || groupCalled {
-		t.Fail()
+		assert.Equal(t, v.gold, *v.result, "%s result %s", v.deviceID, v.cmd.String())
 	}
 }
 
@@ -107,10 +154,8 @@ func TestUnknownDevice(t *testing.T) {
 	}
 
 	err := srv.commandInvokeDeviceCommand(user, "dev1", "on", []byte(""))
-
-	if err == nil || err.Error() != "unknown device" {
-		t.Fail()
-	}
+	require.Error(t, err)
+	assert.IsType(t, &ErrUnknownDevice{}, err)
 }
 
 // Tests forbidden device error.
@@ -137,10 +182,9 @@ func TestDeviceForbidden(t *testing.T) {
 	}
 
 	err := srv.commandInvokeDeviceCommand(user, "dev1", "on", []byte(""))
-
-	if err == nil || err.Error() != "unknown device" || !logFound {
-		t.Fail()
-	}
+	require.Error(t, err)
+	assert.IsType(t, &ErrUnknownDevice{}, err)
+	assert.True(t, logFound, "log not found")
 }
 
 // Tests unknown and non-supported commands error.
@@ -171,19 +215,32 @@ func TestWrongCommand(t *testing.T) {
 		},
 	}
 
-	err := srv.commandInvokeDeviceCommand(user, "dev1", "on1", []byte(""))
-	if err == nil || err.Error() != "unknown command" {
-		t.Fail()
+	data := []struct {
+		cmd  string
+		data string
+		err  interface{}
+	}{
+		{
+			cmd:  "on1",
+			data: "",
+			err:  &ErrUnknownCommand{},
+		},
+		{
+			cmd:  "off",
+			data: "",
+			err:  &ErrUnsupportedCommand{},
+		},
+		{
+			cmd:  "on",
+			data: "wrong data",
+			err:  &ErrBadRequest{},
+		},
 	}
 
-	err = srv.commandInvokeDeviceCommand(user, "dev1", "off", []byte(""))
-	if err == nil || err.Error() != "command is not supported" {
-		t.Fail()
-	}
-
-	err = srv.commandInvokeDeviceCommand(user, "dev1", "on", []byte("wrong data"))
-	if err == nil || err.Error() != "bad request data" {
-		t.Fail()
+	for _, v := range data {
+		err := srv.commandInvokeDeviceCommand(user, "dev1", v.cmd, []byte(v.data))
+		require.Error(t, err, "%s: %s", v.cmd, v.data)
+		assert.IsType(t, v.err, err, "%s: %s", v.cmd, v.data)
 	}
 }
 
@@ -218,9 +275,8 @@ func TestGetAllDevices(t *testing.T) {
 	}
 
 	devices := srv.commandGetAllDevices(user)
-	if 1 != len(devices) || "dev1" != devices[0].ID {
-		t.Fail()
-	}
+	require.Equal(t, 1, len(devices), "len")
+	assert.Equal(t, "dev1", devices[0].ID, "name")
 }
 
 // Tests internal command invoke.
@@ -243,9 +299,7 @@ func TestInternalInvokeCommand(t *testing.T) {
 	}
 
 	srv.InternalCommandInvokeDeviceCommand(glob.MustCompile("dev[1-2]*"), enums.CmdOn, nil)
-	if 1 != numCalled {
-		t.Fail()
-	}
+	assert.Equal(t, 1, numCalled)
 }
 
 // Tests group invoke.
@@ -268,9 +322,7 @@ func TestInternalInvokeCommandGroup(t *testing.T) {
 	}
 
 	srv.InternalCommandInvokeDeviceCommand(glob.MustCompile("dev[1-2]*"), enums.CmdOn, nil)
-	if 1 != numCalled {
-		t.Fail()
-	}
+	require.Equal(t, 1, numCalled, "device call w/o group")
 
 	groupCalled := 0
 	fg := mocks.FakeNewGroupProvider("dev2", nil, func() {
@@ -280,9 +332,8 @@ func TestInternalInvokeCommandGroup(t *testing.T) {
 	srv.groups = map[string]providers.IGroupProvider{"dev2": fg}
 
 	srv.InternalCommandInvokeDeviceCommand(glob.MustCompile("dev[1-2]*"), enums.CmdOn, nil)
-	if 1 != numCalled || 1 != groupCalled {
-		t.Fail()
-	}
+	assert.Equal(t, 1, numCalled, "device call")
+	assert.Equal(t, 1, groupCalled, "group call")
 }
 
 // Tests groups invocation.
@@ -326,16 +377,10 @@ func TestGetGroups(t *testing.T) {
 	}
 
 	groups := srv.commandGetAllGroups(user)
-	if 2 != len(groups) {
-		t.Error("Number of groups failed")
-		t.Fail()
-	}
+	assert.Equal(t, 2, len(groups), "groups")
 
 	for _, v := range groups {
-		if 1 != len(v.Devices) {
-			t.Error("Devices failed for group " + v.Name)
-			t.Fail()
-		}
+		assert.Equal(t, 1, len(v.Devices), "devices for %s", v.Name)
 	}
 }
 
@@ -384,24 +429,16 @@ func TestGetLocations(t *testing.T) {
 	}
 
 	locations := srv.commandGetAllLocations(user)
-	if 2 != len(locations) {
-		t.Error("Number of groups failed")
-		t.Fail()
-	}
+	assert.Equal(t, 2, len(locations), "number of groups")
 
 	found := false
 	for _, v := range locations {
 		if v.Name == "Default" {
-			if 2 != len(v.Devices) {
-				t.Fail()
-			}
-
+			assert.Equal(t, 2, len(v.Devices), "number of devices")
 			found = true
 			break
 		}
 	}
 
-	if !found {
-		t.Fail()
-	}
+	assert.True(t, found, "group")
 }

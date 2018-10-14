@@ -3,6 +3,8 @@ package utils
 import (
 	"testing"
 	"time"
+
+	"gopkg.in/go-playground/assert.v1"
 )
 
 // Tests that un-register works as expected.
@@ -18,8 +20,5 @@ func TestCron(t *testing.T) {
 	})
 
 	time.Sleep(4 * time.Second)
-
-	if 2 != called {
-		t.Fail()
-	}
+	assert.Equal(t, 2, called)
 }

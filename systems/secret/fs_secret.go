@@ -57,6 +57,7 @@ func (s *fsSecret) Get(name string) (string, error) {
 }
 
 // Set adds a new secret and overwrites existing file.
+//noinspection GoUnhandledErrorResult
 func (s *fsSecret) Set(name string, data string) error {
 	secrets := make(map[string]string, len(s.secrets))
 	for k, v := range s.secrets {
@@ -67,20 +68,20 @@ func (s *fsSecret) Set(name string, data string) error {
 	fileData, err := yaml.Marshal(secrets)
 	if err != nil {
 		s.logger.Error("Failed to marshal secrets data", err)
-		return err
+		return errors.Wrap(err, "yaml un-marshal failed")
 	}
 
 	writer, err := os.Create(s.location)
 	if err != nil {
 		s.logger.Warn("Failed to open _secrets.yaml file")
-		return err
+		return errors.Wrap(err, "file open failed")
 	}
 
 	defer writer.Close()
 	_, err = writer.Write(fileData)
 	if err != nil {
 		s.logger.Warn("Failed to write _secrets.yaml file")
-		return err
+		return errors.Wrap(err, "file write failed")
 	}
 
 	s.secrets[name] = data

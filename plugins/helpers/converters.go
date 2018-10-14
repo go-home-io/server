@@ -1,50 +1,58 @@
 package helpers
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
-// Internal property type.
-type propertyType int
+// PropertyType describes internal property type.
+type PropertyType int
 
 const (
-	propFloat propertyType = iota
-	propColor
-	propString
-	propStringSlice
-	propEnum
-	propBool
-	propPercent
-	propInt
+	// PropFloat defines float property.
+	PropFloat PropertyType = iota
+	// PropColor defines color property.
+	PropColor
+	// PropString defines string property.
+	PropString
+	// PropStringSlice defines string slice property.
+	PropStringSlice
+	// PropEnum defines enum property.
+	PropEnum
+	// PropBool defines boolean property.
+	PropBool
+	// PropPercent defines percent property.
+	PropPercent
+	// PropInt defines integer property.
+	PropInt
 )
 
-// Converts device property to its type.
-func getPropertyType(p enums.Property) propertyType {
+// GetPropertyType converts device property to its type.
+func GetPropertyType(p enums.Property) PropertyType {
 	switch p {
 	case enums.PropColor:
-		return propColor
+		return PropColor
 	case enums.PropScenes:
-		return propStringSlice
+		return PropStringSlice
 	case enums.PropSensorType, enums.PropVacStatus:
-		return propEnum
-	case enums.PropPicture, enums.PropUser:
-		return propString
+		return PropEnum
+	case enums.PropPicture, enums.PropUser, enums.PropSunrise, enums.PropSunset:
+		return PropString
 	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
-		return propBool
+		return PropBool
 	case enums.PropBrightness, enums.PropBatteryLevel, enums.PropFanSpeed:
-		return propPercent
-	case enums.PropDuration, enums.PropDistance:
-		return propInt
+		return PropPercent
+	case enums.PropDuration, enums.PropDistance, enums.PropNumDevices, enums.PropTransitionTime:
+		return PropInt
 	}
 
-	return propFloat
+	return PropFloat
 }
 
 // Fixing properties.
@@ -54,20 +62,20 @@ func propertyFix(x interface{}, p enums.Property,
 		return x, nil
 	}
 
-	switch getPropertyType(p) {
-	case propColor:
+	switch GetPropertyType(p) {
+	case PropColor:
 		return convertProperty(x, &common.Color{})
-	case propStringSlice, propEnum, propString:
+	case PropStringSlice, PropEnum, PropString:
 		return x, nil
-	case propBool:
+	case PropBool:
 		r, ok := x.(bool)
 		if !ok {
-			return nil, errors.New("error converting bool")
+			return nil, &ErrBoolConvert{}
 		}
 		return r, nil
-	case propPercent:
+	case PropPercent:
 		return f(x, &common.Percent{})
-	case propInt:
+	case PropInt:
 		return f(x, &common.Int{})
 	default:
 		return f(x, &common.Float{})
@@ -101,15 +109,15 @@ func PlainProperty(x interface{}, p enums.Property) interface{} {
 		return x
 	}
 
-	switch getPropertyType(p) {
-	case propColor:
+	switch GetPropertyType(p) {
+	case PropColor:
 		c := x.(common.Color)
 		return fmt.Sprintf("r:%d,g:%d,b:%d", c.R, c.G, c.B)
-	case propStringSlice, propEnum, propString, propBool:
+	case PropStringSlice, PropEnum, PropString, PropBool:
 		return x
-	case propPercent:
+	case PropPercent:
 		return x.(common.Percent).Value
-	case propInt:
+	case PropInt:
 		return x.(common.Int).Value
 	default:
 		return x.(common.Float).Value
@@ -122,12 +130,12 @@ func PlainValueProperty(x interface{}, p enums.Property) interface{} {
 		return x
 	}
 
-	switch getPropertyType(p) {
-	case propPercent:
+	switch GetPropertyType(p) {
+	case PropPercent:
 		return x.(common.Percent).Value
-	case propInt:
+	case PropInt:
 		return x.(common.Int).Value
-	case propFloat:
+	case PropFloat:
 		return x.(common.Float).Value
 	default:
 		return x
@@ -197,7 +205,7 @@ func convertValueProperty(from, to interface{}) (interface{}, error) {
 func convertProperty(from, to interface{}) (interface{}, error) {
 	data, err := yaml.Marshal(from)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "yaml un-marshal failed")
 	}
 	err = yaml.Unmarshal(data, to)
 	return reflect.ValueOf(to).Elem().Interface(), err

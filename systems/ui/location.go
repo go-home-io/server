@@ -8,6 +8,7 @@ import (
 	"github.com/go-home-io/server/plugins/helpers"
 	"github.com/go-home-io/server/providers"
 	"github.com/gobwas/glob"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -62,7 +63,7 @@ func NewLocationProvider(ctor *ConstructLocation) (providers.ILocationProvider, 
 	err := yaml.Unmarshal(ctor.RawConfig, settings)
 	if err != nil {
 		ctor.Logger.Error("Failed to init location", err)
-		return nil, err
+		return nil, errors.Wrap(err, "yaml un-marshal failed")
 	}
 
 	provider := &location{

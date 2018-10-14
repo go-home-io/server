@@ -20,10 +20,10 @@ type provider struct {
 
 // ConstructConfig contains data required for a new config provider.
 type ConstructConfig struct {
-	Options map[string]string
-	Logger  common.ILoggerProvider
-	Loader  providers.IPluginLoaderProvider
-	Secret  common.ISecretProvider
+	Options      map[string]string
+	PluginLogger common.ILoggerProvider
+	Loader       providers.IPluginLoaderProvider
+	Secret       common.ISecretProvider
 }
 
 // NewConfigProvider constructs a new config provider.
@@ -34,7 +34,7 @@ func NewConfigProvider(ctor *ConstructConfig) IConfigProvider {
 	}
 
 	configCtor := &logger.ConstructPluginLogger{
-		SystemLogger: ctor.Logger,
+		SystemLogger: ctor.PluginLogger,
 		Provider:     requesterProvider,
 		System:       systems.SysConfig.String(),
 	}
@@ -81,7 +81,7 @@ func returnFsProvider(ctor *ConstructConfig) *provider {
 // nolint: dupl
 func getFsProvider(ctor *ConstructConfig) *fsConfig {
 	configLoggerCtor := &logger.ConstructPluginLogger{
-		SystemLogger: ctor.Logger,
+		SystemLogger: ctor.PluginLogger,
 		Provider:     "go-home",
 		System:       systems.SysConfig.String(),
 	}

@@ -8,65 +8,57 @@ import (
 	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/plugins/config"
 	"github.com/go-home-io/server/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const tmpDir = "./temp_config"
 
-func cleanup() {
-	os.RemoveAll(tmpDir)
+func cleanup(t *testing.T) {
+	err := os.RemoveAll(tmpDir)
+	require.NoError(t, err, "cleanup failed")
+}
+
+func writeFile(t *testing.T, name string, data string) {
+	utils.ConfigDir = tmpDir
+	err := os.MkdirAll(tmpDir, os.ModePerm)
+	require.NoError(t, err, "mkdir failed")
+
+	f, err := os.OpenFile(fmt.Sprintf("%s/%s", tmpDir, name), os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	require.NoError(t, err, "open failed")
+	_, err = f.Write([]byte(data))
+	require.NoError(t, err, "write failed")
+	err = f.Close()
+	require.NoError(t, err, "close failed")
 }
 
 // Tests correct loading.
 func TestFSConfig(t *testing.T) {
-	utils.ConfigDir = tmpDir
-	os.MkdirAll(tmpDir, os.ModePerm)
-	defer cleanup()
-	f, err := os.OpenFile(fmt.Sprintf("%s/data.yaml", tmpDir), os.O_CREATE|os.O_WRONLY, os.ModePerm)
-	if err != nil {
-		t.FailNow()
-	}
-	_, err = f.Write([]byte("test"))
-	f.Close()
-
-	f, err = os.OpenFile(fmt.Sprintf("%s/_data.yaml", tmpDir), os.O_CREATE|os.O_WRONLY, os.ModePerm)
-	if err != nil {
-		t.FailNow()
-	}
-	f.Write([]byte("test1"))
-	f.Close()
-
-	f, err = os.OpenFile(fmt.Sprintf("%s/data.txt", tmpDir), os.O_CREATE|os.O_WRONLY, os.ModePerm)
-	if err != nil {
-		t.FailNow()
-	}
-	f.Write([]byte("test1"))
-	f.Close()
+	defer cleanup(t)
+	writeFile(t, "data.yaml", "test_yaml")
+	writeFile(t, "_data.yaml", "_test_yaml")
+	writeFile(t, "data.txt", "test_txt")
 
 	c := &fsConfig{}
-	err = c.Init(&config.InitDataConfig{
-		Logger:  mocks.FakeNewLogger(nil),
+	err := c.Init(&config.InitDataConfig{
+		Logger:  mocks.FakeNewLogger(func(s string) {
+			println(s)
+		}),
 		Options: map[string]string{},
 		Secret:  mocks.FakeNewSecretStore(nil, true),
 	})
 
-	if err != nil {
-		t.FailNow()
-	}
-
+	require.NoError(t, err)
+	
 	ii := 0
 	for d := range c.Load() {
+		println("FILE")
 		if 0 == ii {
-			if string(d) != "test" {
-				t.Error("Wrong data")
-				t.FailNow()
-			}
+			assert.Equal(t, "test_yaml", string(d), "data")
 		}
 
 		ii++
 	}
 
-	if 1 != ii {
-		t.Error("Wrong len")
-		t.FailNow()
-	}
+	assert.Equal(t, 1, ii, "number of files")
 }

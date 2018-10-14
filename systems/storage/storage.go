@@ -33,11 +33,11 @@ type settings struct {
 
 // ConstructStorage has data required for a new storage provider.
 type ConstructStorage struct {
-	Logger    common.ILoggerProvider
-	Secret    common.ISecretProvider
-	Loader    providers.IPluginLoaderProvider
-	RawConfig []byte
-	Provider  string
+	PluginLogger common.ILoggerProvider
+	Secret       common.ISecretProvider
+	Loader       providers.IPluginLoaderProvider
+	RawConfig    []byte
+	Provider     string
 }
 
 // NewEmptyStorageProvider returns an empty storage provider.
@@ -49,7 +49,7 @@ func NewEmptyStorageProvider() providers.IStorageProvider {
 // NewStorageProvider returns a new storage provider.
 func NewStorageProvider(ctor *ConstructStorage) providers.IStorageProvider {
 	loggerCtor := &logger.ConstructPluginLogger{
-		SystemLogger: ctor.Logger,
+		SystemLogger: ctor.PluginLogger,
 		Provider:     ctor.Provider,
 		System:       systems.SysStorage.String(),
 	}

@@ -5,29 +5,31 @@ import (
 
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
+	"github.com/go-home-io/server/plugins/helpers"
+	"github.com/pkg/errors"
 )
 
 // PropertySave converts actual property before storing into the database.
 func PropertySave(property enums.Property, value interface{}) (interface{}, error) {
-	switch property {
-	case enums.PropScenes, enums.PropSensorType:
+	// Something we don't care to store
+	if property == enums.PropScenes || property == enums.PropSensorType {
 		return nil, nil
-	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress, enums.PropPicture:
+	}
+
+	switch helpers.GetPropertyType(property) {
+	case helpers.PropEnum, helpers.PropBool, helpers.PropString, helpers.PropStringSlice:
 		return value, nil
-	case enums.PropBrightness, enums.PropBatteryLevel, enums.PropFanSpeed:
+	case helpers.PropPercent:
 		return value.(common.Percent).Value, nil
-	case enums.PropDuration:
+	case helpers.PropInt:
 		return value.(common.Int).Value, nil
-	case enums.PropColor:
+	case helpers.PropColor:
 		data, err := json.Marshal(value)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "json marshal failed")
 		}
 
 		return string(data), nil
-	case enums.PropVacStatus:
-		return value, nil
-
 	default:
 		return value.(common.Float).Value, nil
 	}
@@ -40,7 +42,7 @@ func PropertyLoad(property enums.Property, value interface{}) (interface{}, erro
 		data := common.Color{}
 		err := json.Unmarshal([]byte(value.(string)), &data)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "json un-marshal failed")
 		}
 
 		return data, nil

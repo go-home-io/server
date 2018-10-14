@@ -2,7 +2,6 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -17,6 +16,7 @@ import (
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
 	"github.com/mholt/archiver"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -72,6 +72,7 @@ func NewPluginLoader(ctor *ConstructPluginLoader) providers.IPluginLoaderProvide
 
 // LoadPlugin loads requested plugin.
 // Returns main interface implementation which should be casted to package interface.
+//noinspection GoUnhandledErrorResult
 func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interface{}, error) {
 	pKey := getPluginKey(request.SystemType, request.PluginProvider)
 	if method, ok := l.loadedPlugins[pKey]; ok {
@@ -91,7 +92,7 @@ func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interfa
 	if _, err := os.Stat(fileName); err != nil {
 		err = l.downloadFile(pKey, fileName)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "download failed")
 		}
 	}
 
@@ -99,16 +100,16 @@ func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interfa
 	if err != nil {
 		// We want to delete failed plugin
 		os.Remove(fileName) // nolint: gosec
-		return nil, err
+		return nil, errors.Wrap(err, "lib open failed")
 	}
 
 	LoadSymbol, err := p.Lookup(PluginEntryPointMethodName)
 	if err != nil {
-		return nil, errors.New("didn't find entry point")
+		return nil, &ErrNoEntryPoint{}
 	}
 	LoadMethod := LoadSymbol.(func() (interface{}, interface{}, error))
 	if LoadMethod == nil {
-		return nil, errors.New("wrong entry point signature")
+		return nil, &ErrWrongSignature{}
 	}
 
 	l.loadedPlugins[pKey] = LoadMethod
@@ -131,17 +132,17 @@ func (l *pluginLoader) loadPlugin(request *providers.PluginLoadRequest,
 	loadMethod func() (interface{}, interface{}, error)) (interface{}, error) {
 	pluginObject, settingsObject, err := loadMethod()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "load call failed")
 	}
 
 	if !reflect.TypeOf(pluginObject).AssignableTo(request.ExpectedType) {
-		return nil, errors.New("plugin doesn't implement requested interface")
+		return nil, &ErrWrongInterface{}
 	}
 
 	if nil == request.RawConfig || nil == settingsObject {
 		err = l.initPlugin(request, pluginObject)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "init failed")
 		}
 
 		return pluginObject, nil
@@ -149,26 +150,26 @@ func (l *pluginLoader) loadPlugin(request *providers.PluginLoadRequest,
 
 	err = yaml.Unmarshal(request.RawConfig, settingsObject)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "yaml un-marshal failed")
 	}
 
 	settingsInterface, ok := settingsObject.(common.ISettings)
 
 	if !ok {
-		return nil, errors.New("wrong settings signature")
+		return nil, &ErrWrongSettingsSignature{}
 	}
 	if !l.validator.Validate(settingsObject) {
-		return nil, errors.New("invalid config")
+		return nil, &ErrInvalidConfig{}
 	}
 
 	err = settingsInterface.Validate()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "settings validate failed")
 	}
 
 	err = l.initPlugin(request, pluginObject)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "init plugin failed")
 	}
 
 	return pluginObject, nil
@@ -178,7 +179,7 @@ func (l *pluginLoader) loadPlugin(request *providers.PluginLoadRequest,
 func (l *pluginLoader) initPlugin(request *providers.PluginLoadRequest, pluginObject interface{}) error {
 	method := reflect.ValueOf(pluginObject).MethodByName(PluginInterfaceInitMethodName)
 	if !method.IsValid() {
-		return errors.New("init method not found")
+		return &ErrNoInit{}
 	}
 
 	var results []reflect.Value
@@ -218,6 +219,7 @@ func (l *pluginLoader) getActualFileName(pluginKey string) string {
 }
 
 // Downloads plugin from bintray CDN.
+//noinspection GoUnhandledErrorResult
 func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 	name := strings.Replace(pluginKey, "/", "_", -1)
 	name = fmt.Sprintf("%s-%s.so.tar.gz", name, Version)
@@ -231,12 +233,12 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 		err = os.MkdirAll(filepath.Dir(actualName), os.ModePerm)
 		if err != nil {
 			l.logger.Println("Failed to load " + name + ": " + err.Error())
-			return err
+			return errors.Wrap(err, "mkdir failed")
 		}
 		out, err := os.Create(archName)
 		if err != nil {
 			l.logger.Println("Failed to load " + name + ": " + err.Error())
-			return err
+			return errors.Wrap(err, "archive create failed")
 		}
 
 		defer out.Close()
@@ -245,7 +247,7 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 		if err != nil {
 			os.Remove(archName) // nolint: gosec
 			l.logger.Println("Failed to get " + downloadURL)
-			return err
+			return errors.Wrap(err, "http get failed")
 		}
 
 		defer res.Body.Close()
@@ -253,7 +255,7 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 		if err != nil {
 			l.logger.Println("Failed to save " + name + ": " + err.Error())
 			os.Remove(archName) // nolint: gosec
-			return err
+			return errors.Wrap(err, "copy file failed")
 		}
 	}
 
@@ -261,7 +263,7 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 	if err != nil {
 		l.logger.Println("Failed to un-archive " + name + ": " + err.Error())
 		os.Remove(archName) // nolint: gosec
-		return err
+		return errors.Wrap(err, "un-tar failed")
 	}
 
 	return nil
@@ -272,7 +274,7 @@ func (l *pluginLoader) downloadFileThroughProxy(name string) error {
 	r, err := http.Get(fmt.Sprintf("%s/%s/%s", l.pluginsProxy, Arch, name))
 	if err != nil || r.StatusCode != http.StatusOK {
 		l.logger.Printf("Failed to download %s through proxy", name)
-		return errors.New("proxy download failed")
+		return &ErrProxy{}
 	}
 
 	return nil

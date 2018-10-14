@@ -12,6 +12,7 @@ import (
 	"github.com/go-home-io/server/systems"
 	"github.com/go-home-io/server/utils"
 	"github.com/gobwas/glob"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -61,7 +62,7 @@ func NewGroupProvider(ctor *ConstructGroup) (providers.IGroupProvider, error) {
 	err := yaml.Unmarshal(ctor.RawConfig, settings)
 	if err != nil {
 		ctor.Settings.SystemLogger().Error("Failed to load group", err)
-		return nil, err
+		return nil, errors.Wrap(err, "yaml un-marshal failed")
 	}
 
 	provider := &provider{
@@ -171,7 +172,7 @@ func (p *provider) processDeviceUpdates(msg *common.MsgDeviceUpdate) {
 		}
 
 		exp, err := glob.Compile(msg.ID)
-		if nil != err {
+		if err != nil {
 			return
 		}
 

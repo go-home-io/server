@@ -8,6 +8,7 @@ import (
 	"github.com/go-home-io/server/plugins/logger"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -29,6 +30,7 @@ type ConstructLogger struct {
 	RawConfig  []byte
 	NodeID     string
 	Secret     common.ISecretProvider
+	SkipLevel  int
 }
 
 // NewLoggerProvider constructs a new logger.
@@ -39,8 +41,9 @@ func NewLoggerProvider(ctor *ConstructLogger) (common.ILoggerProvider, error) {
 
 	pluginLoadRequest := &providers.PluginLoadRequest{
 		InitData: &logger.InitDataLogger{
-			Secret: ctor.Secret,
-			Level:  getLogLevel(ctor.RawConfig),
+			Secret:    ctor.Secret,
+			Level:     getLogLevel(ctor.RawConfig),
+			SkipLevel: ctor.SkipLevel,
 		},
 		RawConfig:      ctor.RawConfig,
 		PluginProvider: ctor.LoggerType,
@@ -50,7 +53,7 @@ func NewLoggerProvider(ctor *ConstructLogger) (common.ILoggerProvider, error) {
 
 	i, err := ctor.Loader.LoadPlugin(pluginLoadRequest)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "plugin load failed")
 	}
 
 	prov.logger = i.(logger.ILogger)

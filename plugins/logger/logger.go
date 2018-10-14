@@ -34,8 +34,9 @@ const (
 
 // InitDataLogger has data required for initializing a new logger.
 type InitDataLogger struct {
-	Secret common.ISecretProvider
-	Level  LogLevel
+	Secret    common.ISecretProvider
+	Level     LogLevel
+	SkipLevel int
 }
 
 // TypeLogger is a syntax sugar around ILogger type.

@@ -2,7 +2,6 @@ package bus
 
 import (
 	"encoding/json"
-	"errors"
 
 	"github.com/go-home-io/server/plugins/bus"
 	"github.com/go-home-io/server/utils"
@@ -12,11 +11,11 @@ import (
 func parseRawMessage(r *bus.RawMessage) (*MessageWithType, error) {
 	var b MessageWithType
 	if err := json.Unmarshal(r.Body, &b); err != nil {
-		return nil, errors.New("failed to unmarshal bus message")
+		return nil, &ErrCorruptedMessage{}
 	}
 
 	if utils.TimeNow()-b.SendTime > bus.MsgTTLSeconds {
-		return nil, errors.New("message is too old")
+		return nil, &ErrOldMessage{}
 	}
 
 	return &b, nil

@@ -8,8 +8,11 @@ import (
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/plugins/storage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
+// Fake plugin.
 type fakePlugin struct {
 	invokes int
 }
@@ -38,6 +41,10 @@ func (f *fakePlugin) History(ID string, hrs int) map[string]map[int64]interface{
 
 // Tests that empty storage is not causing panic.
 func TestNewEmptyStorageProvider(t *testing.T) {
+	defer func() {
+		assert.Nil(t, recover(), "panic")
+	}()
+
 	p := NewEmptyStorageProvider()
 	p.History("test")
 	p.Heartbeat("test")
@@ -46,13 +53,17 @@ func TestNewEmptyStorageProvider(t *testing.T) {
 
 // Tests that failed plugin is not causing panic.
 func TestNewStorageProviderError(t *testing.T) {
+	defer func() {
+		assert.Nil(t, recover(), "panic")
+	}()
+
 	ctor := &ConstructStorage{
-		Logger:    mocks.FakeNewLogger(nil),
+		PluginLogger: mocks.FakeNewLogger(nil),
 		RawConfig: []byte(`
 storeHeartbeat: true`),
-		Loader:    mocks.FakeNewPluginLoader(nil),
-		Provider:  "test",
-		Secret:    mocks.FakeNewSecretStore(nil, true),
+		Loader:   mocks.FakeNewPluginLoader(nil),
+		Provider: "test",
+		Secret:   mocks.FakeNewSecretStore(nil, true),
 	}
 
 	p := NewStorageProvider(ctor)
@@ -65,11 +76,11 @@ storeHeartbeat: true`),
 func TestNewStorageProvider(t *testing.T) {
 	pl := &fakePlugin{}
 	ctor := &ConstructStorage{
-		Logger:    mocks.FakeNewLogger(nil),
-		RawConfig: []byte(""),
-		Loader:    mocks.FakeNewPluginLoader(pl),
-		Provider:  "test",
-		Secret:    mocks.FakeNewSecretStore(nil, true),
+		PluginLogger: mocks.FakeNewLogger(nil),
+		RawConfig:    []byte(""),
+		Loader:       mocks.FakeNewPluginLoader(pl),
+		Provider:     "test",
+		Secret:       mocks.FakeNewSecretStore(nil, true),
 	}
 
 	p := NewStorageProvider(ctor)
@@ -86,32 +97,20 @@ func TestNewStorageProvider(t *testing.T) {
 	p.State(update)
 	p.State(update)
 	r := p.History("not_test")
-	if 0 != len(r) {
-		t.Error("Wrong history")
-		t.Fail()
-	}
-
+	assert.Equal(t, 0, len(r), "wrong history")
 	time.Sleep(1 * time.Second)
-
 	r = p.History("test")
-	if nil == r {
-		t.Error("Wrong history with correct ID")
-		t.Fail()
-	}
-
+	assert.NotNil(t, r, "wrong history with correct ID")
 	_, ok := r[enums.PropOn][4]
-
-	if !ok || 1 != len(r) {
-		t.Error("Wrong invokes count")
-		t.Fail()
-	}
+	require.True(t, ok, "wrong invoke")
+	assert.Equal(t, 1, len(r), "wrong invoke count")
 }
 
 // Tests correct heartbeat invocation.
 func TestHeartbeat(t *testing.T) {
 	pl := &fakePlugin{}
 	ctor := &ConstructStorage{
-		Logger: mocks.FakeNewLogger(nil),
+		PluginLogger: mocks.FakeNewLogger(nil),
 		RawConfig: []byte(`
 storeHeartbeat: true`),
 		Loader:   mocks.FakeNewPluginLoader(pl),
@@ -122,25 +121,21 @@ storeHeartbeat: true`),
 	p := NewStorageProvider(ctor)
 	p.Heartbeat("test")
 	p.Heartbeat("test")
-
 	time.Sleep(1 * time.Second)
-
-	if 2 != pl.invokes {
-		t.Fail()
-	}
+	assert.Equal(t, 2, pl.invokes)
 }
 
 // Tests proper device exclusion.
 func TestExcluding(t *testing.T) {
 	pl := &fakePlugin{}
 	ctor := &ConstructStorage{
-		Logger:    mocks.FakeNewLogger(nil),
+		PluginLogger: mocks.FakeNewLogger(nil),
 		RawConfig: []byte(`
 exclude:
   - test?`),
-		Loader:    mocks.FakeNewPluginLoader(pl),
-		Provider:  "test",
-		Secret:    mocks.FakeNewSecretStore(nil, true),
+		Loader:   mocks.FakeNewPluginLoader(pl),
+		Provider: "test",
+		Secret:   mocks.FakeNewSecretStore(nil, true),
 	}
 
 	p := NewStorageProvider(ctor)
@@ -155,20 +150,18 @@ exclude:
 
 	p.State(update)
 	time.Sleep(1 * time.Second)
-	if pl.invokes != 0 {
-		t.Fail()
-	}
+	assert.Equal(t, 0, pl.invokes)
 }
 
 // Tests proper device ignore.
-func TestIgnores(t *testing.T){
+func TestIgnores(t *testing.T) {
 	pl := &fakePlugin{}
 	ctor := &ConstructStorage{
-		Logger:    mocks.FakeNewLogger(nil),
-		RawConfig: []byte(""),
-		Loader:    mocks.FakeNewPluginLoader(pl),
-		Provider:  "test",
-		Secret:    mocks.FakeNewSecretStore(nil, true),
+		PluginLogger: mocks.FakeNewLogger(nil),
+		RawConfig:    []byte(""),
+		Loader:       mocks.FakeNewPluginLoader(pl),
+		Provider:     "test",
+		Secret:       mocks.FakeNewSecretStore(nil, true),
 	}
 
 	p := NewStorageProvider(ctor)
@@ -183,22 +176,20 @@ func TestIgnores(t *testing.T){
 
 	p.State(update)
 	time.Sleep(1 * time.Second)
-	if pl.invokes != 0 {
-		t.Fail()
-	}
+	assert.Equal(t, 0, pl.invokes)
 }
 
 // Tests proper device inclusion.
-func TestIncluding(t *testing.T){
+func TestIncluding(t *testing.T) {
 	pl := &fakePlugin{}
 	ctor := &ConstructStorage{
-		Logger:    mocks.FakeNewLogger(nil),
+		PluginLogger: mocks.FakeNewLogger(nil),
 		RawConfig: []byte(`
 include:
   - test?`),
-		Loader:    mocks.FakeNewPluginLoader(pl),
-		Provider:  "test",
-		Secret:    mocks.FakeNewSecretStore(nil, true),
+		Loader:   mocks.FakeNewPluginLoader(pl),
+		Provider: "test",
+		Secret:   mocks.FakeNewSecretStore(nil, true),
 	}
 
 	p := NewStorageProvider(ctor)
@@ -213,7 +204,5 @@ include:
 
 	p.State(update)
 	time.Sleep(1 * time.Second)
-	if pl.invokes != 1 {
-		t.Fail()
-	}
+	assert.Equal(t, 1, pl.invokes)
 }

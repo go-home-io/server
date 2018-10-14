@@ -7,37 +7,54 @@ import (
 	"time"
 
 	"github.com/go-home-io/server/plugins/device/enums"
+	"github.com/stretchr/testify/assert"
 )
 
 // Tests that we're returning current time.
 func TestTimeNow(t *testing.T) {
-	if TimeNow() != time.Now().UTC().Unix() {
-		t.Fail()
-	}
+	assert.Equal(t, time.Now().UTC().Unix(), TimeNow())
 }
 
 // Test no see.
 func TestIsLongTimeNoSee(t *testing.T) {
-	if IsLongTimeNoSee(TimeNow() - LongTimeNoSee + 1) {
-		t.Fail()
-	}
-
-	if !IsLongTimeNoSee(TimeNow() - LongTimeNoSee - 1) {
-		t.Fail()
-	}
+	assert.False(t, IsLongTimeNoSee(TimeNow()-LongTimeNoSee+1))
+	assert.True(t, IsLongTimeNoSee(TimeNow()-LongTimeNoSee-1))
 }
 
 // Tests correct device provider parsing.
 func TestVerifyDeviceProvider(t *testing.T) {
-	in := []string{"hub/hue", "light/zengge", "wrong/device",
-		"wrong/device/provider", "device/hub", "hub"}
-	out := []enums.DeviceType{enums.DevHub, enums.DevLight, enums.DevUnknown,
-		enums.DevUnknown, enums.DevUnknown, enums.DevUnknown}
+	data := []struct {
+		in  string
+		out enums.DeviceType
+	}{
+		{
+			in:  "hub/hue",
+			out: enums.DevHub,
+		},
+		{
+			in:  "light/zengge",
+			out: enums.DevLight,
+		},
+		{
+			in:  "wrong/device",
+			out: enums.DevUnknown,
+		},
+		{
+			in:  "wrong/device/provider",
+			out: enums.DevUnknown,
+		},
+		{
+			in:  "device/hub",
+			out: enums.DevUnknown,
+		},
+		{
+			in:  "hub",
+			out: enums.DevUnknown,
+		},
+	}
 
-	for i, v := range in {
-		if VerifyDeviceProvider(v) != out[i] {
-			t.Fail()
-		}
+	for _, v := range data {
+		assert.Equal(t, v.out, VerifyDeviceProvider(v.in), v.in)
 	}
 }
 
@@ -45,24 +62,23 @@ func TestVerifyDeviceProvider(t *testing.T) {
 func TestGetDefaultConfigsDir(t *testing.T) {
 	ConfigDir = ""
 	cd, _ := os.Getwd()
-	if fmt.Sprintf("%s/configs", cd) != GetDefaultConfigsDir() {
-		t.Fail()
-	}
+	assert.Equal(t, fmt.Sprintf("%s/configs", cd), GetDefaultConfigsDir(), "regular")
 
 	ConfigDir = "testData"
-	if ConfigDir != GetDefaultConfigsDir() {
-		t.Fail()
-	}
+	assert.Equal(t, ConfigDir, GetDefaultConfigsDir(), "changed")
 }
 
 // Tests devices name normalization.
 func TestNormalizeDeviceName(t *testing.T) {
-	in := []string{"device 1", "device-2", "device.3", "device%4", "девайс$5"}
-	out := []string{"device_1", "device_2", "device_3", "device_4", "девайс_5"}
+	data := map[string]string{
+		"device 1": "device_1",
+		"device-2": "device_2",
+		"device.3": "device_3",
+		"device%4": "device_4",
+		"девайс$5": "девайс_5",
+	}
 
-	for i, v := range in {
-		if NormalizeDeviceName(v) != out[i] {
-			t.Fail()
-		}
+	for k, v := range data {
+		assert.Equal(t, v, NormalizeDeviceName(k), k)
 	}
 }

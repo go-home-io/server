@@ -2,8 +2,10 @@ package server
 
 import (
 	"testing"
+
 	"github.com/go-home-io/server/providers"
 	"github.com/gobwas/glob"
+	"github.com/stretchr/testify/assert"
 )
 
 func compileRegexp(r string) glob.Glob {
@@ -28,7 +30,7 @@ func TestAllowed(t *testing.T) {
 					Get:     true,
 					History: true,
 					Command: true,
-					Resources: [] glob.Glob{
+					Resources: []glob.Glob{
 						compileRegexp("static device"),
 						compileRegexp("dev*"),
 					},
@@ -39,7 +41,7 @@ func TestAllowed(t *testing.T) {
 					Get:     true,
 					History: true,
 					Command: true,
-					Resources: [] glob.Glob{
+					Resources: []glob.Glob{
 						compileRegexp("hub*"),
 					},
 				},
@@ -48,20 +50,9 @@ func TestAllowed(t *testing.T) {
 	}
 
 	for _, v := range devices {
-		if !v.Get(user) {
-			t.Log("Failed Get on " + v.ID)
-			t.Fail()
-		}
-
-		if !v.Command(user) {
-			t.Log("Failed command on " + v.ID)
-			t.Fail()
-		}
-
-		if !v.History(user) {
-			t.Log("Failed history on " + v.ID)
-			t.Fail()
-		}
+		assert.True(t, v.Get(user), "get %s", v.ID)
+		assert.True(t, v.Command(user), "command %s", v.ID)
+		assert.True(t, v.History(user), "history %s", v.ID)
 	}
 }
 
@@ -82,7 +73,7 @@ func TestForbidden(t *testing.T) {
 					Get:     true,
 					History: false,
 					Command: true,
-					Resources: [] glob.Glob{
+					Resources: []glob.Glob{
 						compileRegexp("static[! ]*"),
 						compileRegexp("dev?"),
 					},
@@ -93,7 +84,7 @@ func TestForbidden(t *testing.T) {
 					Get:     false,
 					History: true,
 					Command: false,
-					Resources: [] glob.Glob{
+					Resources: []glob.Glob{
 						compileRegexp("hub*"),
 					},
 				},
@@ -102,20 +93,9 @@ func TestForbidden(t *testing.T) {
 	}
 
 	for _, v := range devices {
-		if v.Get(user) {
-			t.Log("Failed Get on " + v.ID)
-			t.Fail()
-		}
-
-		if v.Command(user) {
-			t.Log("Failed command on " + v.ID)
-			t.Fail()
-		}
-
-		if v.History(user) {
-			t.Log("Failed history on " + v.ID)
-			t.Fail()
-		}
+		assert.False(t, v.Get(user), "get %s", v.ID)
+		assert.False(t, v.Command(user), "command %s", v.ID)
+		assert.False(t, v.History(user), "history %s", v.ID)
 	}
 }
 
@@ -134,7 +114,7 @@ func TestInternalAllowed(t *testing.T) {
 			Get:     false,
 			History: true,
 			Command: false,
-			Resources: [] glob.Glob{
+			Resources: []glob.Glob{
 				compileRegexp("static device"),
 				compileRegexp("dev*"),
 			},
@@ -143,17 +123,14 @@ func TestInternalAllowed(t *testing.T) {
 			Get:     true,
 			History: false,
 			Command: true,
-			Resources: [] glob.Glob{
+			Resources: []glob.Glob{
 				compileRegexp("hub*"),
 			},
 		},
 	}
 
 	for _, v := range devices {
-		if !v.isAllowed(rules, providers.SecVerbAll) {
-			t.Log("Failed on " + v.ID)
-			t.Fail()
-		}
+		assert.True(t, v.isAllowed(rules, providers.SecVerbAll), v.ID)
 	}
 }
 
@@ -172,7 +149,7 @@ func TestInternalForbidden(t *testing.T) {
 			Get:     false,
 			History: false,
 			Command: false,
-			Resources: [] glob.Glob{
+			Resources: []glob.Glob{
 				compileRegexp("static device"),
 				compileRegexp("dev\\S"),
 			},
@@ -181,16 +158,13 @@ func TestInternalForbidden(t *testing.T) {
 			Get:     false,
 			History: false,
 			Command: false,
-			Resources: [] glob.Glob{
+			Resources: []glob.Glob{
 				compileRegexp("hub\\S"),
 			},
 		},
 	}
 
 	for _, v := range devices {
-		if v.isAllowed(rules, providers.SecVerbAll) {
-			t.Log("Failed on " + v.ID)
-			t.Fail()
-		}
+		assert.False(t, v.isAllowed(rules, providers.SecVerbAll), v.ID)
 	}
 }

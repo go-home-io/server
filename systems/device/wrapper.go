@@ -2,7 +2,6 @@ package device
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -68,9 +67,11 @@ type deviceWrapper struct {
 	Spec        *device.Spec
 	CommandsStr []string
 
+	stopped      bool
 	stopChan     chan bool
 	updateMethod reflect.Value
 	commands     map[enums.Command]reflect.Value
+	children     []IDeviceWrapperProvider
 
 	isPolling bool
 	processor IProcessor
@@ -84,6 +85,8 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 		State:     make(map[string]interface{}),
 		processor: ctor.processor,
 		stopChan:  make(chan bool, 5),
+		stopped:   false,
+		children:  make([]IDeviceWrapperProvider, 0),
 	}
 
 	w.Spec = ctor.DeviceInterface.(device.IDevice).GetSpec()
@@ -150,6 +153,13 @@ func (w *deviceWrapper) Name() string {
 
 // Unload stops all background activities.
 func (w *deviceWrapper) Unload() {
+	w.Lock()
+	defer w.Unlock()
+
+	if w.stopped {
+		return
+	}
+
 	// Stopping all three threads.
 	w.stopChan <- true
 	w.stopChan <- true
@@ -159,6 +169,12 @@ func (w *deviceWrapper) Unload() {
 	close(w.Ctor.LoadData.DeviceStateUpdateChan)
 	if w.Ctor.IsRootDevice {
 		close(w.Ctor.LoadData.DeviceDiscoveredChan)
+	}
+
+	w.stopped = true
+
+	for _, v := range w.children {
+		v.Unload()
 	}
 }
 
@@ -420,7 +436,7 @@ func (w *deviceWrapper) pullDeviceUpdate() {
 	state := w.updateMethod.Call(nil)
 	var err error
 	if 0 == len(state) {
-		err = errors.New("plugin didn't return any data")
+		err = &ErrNoDataFromPlugin{}
 	}
 
 	if len(state) > 1 && nil != state[1].Interface() {
@@ -428,7 +444,7 @@ func (w *deviceWrapper) pullDeviceUpdate() {
 	}
 
 	if len(state) > 1 && nil == state[0].Interface() && nil == state[1].Interface() {
-		err = errors.New("plugin didn't return any data")
+		err = &ErrNoDataFromPlugin{}
 	}
 
 	if err != nil {
@@ -541,4 +557,6 @@ func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
 	subLoadData.DeviceStateUpdateChan <- &device.StateUpdateData{
 		State: d.State,
 	}
+
+	w.children = append(w.children, wrapper)
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/go-home-io/server/utils"
 	"github.com/gobwas/glob"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 // API wrapper provider
@@ -90,7 +91,7 @@ func NewExtendedAPIProvider(ctor *ConstructAPI) (providers.IExtendedAPIProvider,
 	plugin, err := ctor.Loader.LoadPlugin(request)
 	if err != nil {
 		ctor.Logger.Error("Failed to load api provider", err, common.LogProviderToken, w.name)
-		return nil, err
+		return nil, errors.Wrap(err, "plugin load failed")
 	}
 
 	ctor.Logger.Info("Successfully registered extended API", common.LogProviderToken, w.name)

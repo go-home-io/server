@@ -9,11 +9,15 @@ import (
 	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/plugins/device"
 	"github.com/go-home-io/server/providers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 type wrongSettings struct {
 }
 
+// Fake settings
 type fakeSettings struct {
 	throw bool
 }
@@ -26,7 +30,8 @@ func (f *fakeSettings) Validate() error {
 	return nil
 }
 
-type IPlugin interface {
+// Fake plugin.
+type iPlugin interface {
 	device.IDevice
 }
 
@@ -53,13 +58,24 @@ func (*fakePlugin) GetSpec() *device.Spec {
 	return nil
 }
 
-func cleanup() {
-	os.RemoveAll("./plugins")
+type pSuite struct {
+	suite.Suite
+	load *pluginLoader
 }
 
-// Tests error while loading plugins.
-func TestErrorsScenarios(t *testing.T) {
-	defer cleanup()
+func (p *pSuite) TearDownTest() {
+	err := os.RemoveAll("./plugins")
+	require.NoError(p.T(), err, "cleanup failed")
+}
+
+func (p *pSuite) SetupTest() {
+	p.load = &pluginLoader{
+		validator: NewValidator(mocks.FakeNewLogger(nil)),
+	}
+}
+
+// Tests construct.
+func (p *pSuite) TestConstruct() {
 	loader := NewPluginLoader(&ConstructPluginLoader{
 		Validator: nil,
 	})
@@ -68,81 +84,82 @@ func TestErrorsScenarios(t *testing.T) {
 		PluginProvider: "test",
 	})
 
-	if err == nil {
-		t.Fail()
-	}
+	assert.Error(p.T(), err)
+}
 
-	load := &pluginLoader{
-		validator: NewValidator(mocks.FakeNewLogger(nil)),
-	}
-	_, err = load.loadPlugin(nil, func() (interface{}, interface{}, error) {
+// Tests regular load.
+func (p *pSuite) TestRegularLoad() {
+	_, err := p.load.loadPlugin(nil, func() (interface{}, interface{}, error) {
 		return nil, nil, errors.New("test")
 	})
 
-	if err == nil {
-		t.Fail()
-	}
+	assert.Error(p.T(), err)
+}
 
-	_, err = load.loadPlugin(&providers.PluginLoadRequest{
+// Tests double load.
+func (p *pSuite) TestDoubleLoad() {
+	_, err := p.load.loadPlugin(&providers.PluginLoadRequest{
 		ExpectedType: reflect.TypeOf((*wrongSettings)(nil)).Elem(),
 	}, func() (interface{}, interface{}, error) {
 		return &fakePlugin{}, &wrongSettings{}, nil
 	})
+	assert.Error(p.T(), err)
 
-	_, err = load.loadPlugin(&providers.PluginLoadRequest{
+	_, err = p.load.loadPlugin(&providers.PluginLoadRequest{
 		ExpectedType: reflect.TypeOf((*fakePlugin)(nil)).Elem(),
 	}, func() (interface{}, interface{}, error) {
 		return fakePlugin{}, &wrongSettings{}, nil
 	})
+	assert.Error(p.T(), err)
+}
 
-	if err == nil {
-		t.Fail()
-	}
-
-	_, err = load.loadPlugin(&providers.PluginLoadRequest{
-		ExpectedType: reflect.TypeOf((*IPlugin)(nil)).Elem(),
+// Tests load with data.
+func (p *pSuite) TestLoadWithData() {
+	_, err := p.load.loadPlugin(&providers.PluginLoadRequest{
+		ExpectedType: reflect.TypeOf((*iPlugin)(nil)).Elem(),
 		InitData:     &device.InitDataDevice{},
 		RawConfig:    []byte("data: test"),
 	}, func() (interface{}, interface{}, error) {
 		return &fakePlugin{}, &wrongSettings{}, nil
 	})
+	assert.Error(p.T(), err)
+}
 
-	if err == nil {
-		t.Fail()
-	}
-
-	_, err = load.loadPlugin(&providers.PluginLoadRequest{
-		ExpectedType: reflect.TypeOf((*IPlugin)(nil)).Elem(),
+func (p *pSuite) TestThrow() {
+	_, err := p.load.loadPlugin(&providers.PluginLoadRequest{
+		ExpectedType: reflect.TypeOf((*iPlugin)(nil)).Elem(),
 		InitData:     &device.InitDataDevice{},
 	}, func() (interface{}, interface{}, error) {
 		return &fakePlugin{throw: true}, &fakeSettings{}, nil
 	})
+	assert.Error(p.T(), err)
+}
 
-	if err == nil {
-		t.Fail()
-	}
-
-	_, err = load.loadPlugin(&providers.PluginLoadRequest{
-		ExpectedType: reflect.TypeOf((*IPlugin)(nil)).Elem(),
-		InitData:     &device.InitDataDevice{},
-		RawConfig:    []byte("data: test"),
-	}, func() (interface{}, interface{}, error) {
-		return &fakePlugin{}, &fakeSettings{throw: true}, nil
-	})
-
-	if err == nil {
-		t.Fail()
-	}
-
-	_, err = load.loadPlugin(&providers.PluginLoadRequest{
-		ExpectedType: reflect.TypeOf((*IPlugin)(nil)).Elem(),
+// Tests correct load.
+func (p *pSuite) TestNoError() {
+	_, err := p.load.loadPlugin(&providers.PluginLoadRequest{
+		ExpectedType: reflect.TypeOf((*iPlugin)(nil)).Elem(),
 		InitData:     &device.InitDataDevice{},
 		RawConfig:    []byte("data: test"),
 	}, func() (interface{}, interface{}, error) {
 		return &fakePlugin{}, &fakeSettings{}, nil
 	})
+	assert.NoError(p.T(), err)
+}
 
-	if err != nil {
-		t.Fail()
-	}
+// Test proxy.
+func (p *pSuite) TestProxy() {
+	p.load.pluginsProxy = "http://wrong_url"
+	_, err := p.load.loadPlugin(&providers.PluginLoadRequest{
+		ExpectedType: reflect.TypeOf((*iPlugin)(nil)).Elem(),
+		InitData:     &device.InitDataDevice{},
+	}, func() (interface{}, interface{}, error) {
+		return &fakePlugin{throw: true}, &fakeSettings{}, nil
+	})
+	assert.Error(p.T(), err)
+}
+
+// Tests plugin loading scenarios.
+func TestErrorsScenarios(t *testing.T) {
+	suite.Run(t, new(pSuite))
 }

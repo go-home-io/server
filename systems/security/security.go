@@ -11,6 +11,7 @@ import (
 	"github.com/go-home-io/server/systems/logger"
 	"github.com/gobwas/glob"
 	"github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 )
 
 // Implements security provider.
@@ -26,7 +27,7 @@ type provider struct {
 
 // ConstructSecurityProvider has all data required for a new security provider.
 type ConstructSecurityProvider struct {
-	Logger        common.ILoggerProvider
+	PluginLogger  common.ILoggerProvider
 	Secret        common.ISecretProvider
 	Loader        providers.IPluginLoaderProvider
 	Roles         []*providers.SecRole
@@ -64,7 +65,7 @@ func loadUserStorage(ctor *ConstructSecurityProvider) (user.IUserStorage, common
 	}
 
 	loggerCtor := &logger.ConstructPluginLogger{
-		SystemLogger: ctor.Logger,
+		SystemLogger: ctor.PluginLogger,
 		Provider:     ctor.UserProvider,
 		System:       systems.SysSecurity.String(),
 	}
@@ -86,9 +87,8 @@ func loadUserStorage(ctor *ConstructSecurityProvider) (user.IUserStorage, common
 	}
 
 	storage, err := ctor.Loader.LoadPlugin(pluginRequest)
-	if nil != err {
+	if err != nil {
 		loggerProvider.Error("Failed to load user storage, defaulting to basic", err)
-
 		return loadBasicAuthStorage(ctor)
 	}
 
@@ -96,9 +96,10 @@ func loadUserStorage(ctor *ConstructSecurityProvider) (user.IUserStorage, common
 }
 
 // Loads default file system provider.
+//noinspection GoUnhandledErrorResult
 func loadBasicAuthStorage(ctor *ConstructSecurityProvider) (user.IUserStorage, common.ILoggerProvider) {
 	loggerCtor := &logger.ConstructPluginLogger{
-		SystemLogger: ctor.Logger,
+		SystemLogger: ctor.PluginLogger,
 		Provider:     "basic",
 		System:       systems.SysSecurity.String(),
 	}
@@ -123,7 +124,7 @@ func (p *provider) GetUser(headers map[string][]string) (*providers.Authenticate
 
 	usr, err := p.userStorage.Authorize(headers)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "auth failed")
 	}
 
 	authData, ok := p.cache.Get(usr)
@@ -223,7 +224,8 @@ func (p *provider) processRule(rule *providers.SecRoleRule, roleName string) *pr
 	for _, v := range rule.Resources {
 		reg, err := glob.Compile(v)
 		if err != nil {
-			p.logger.Warn("Failed to compile role's resource regexp", "regexp", v, common.LogRoleNameToken, roleName)
+			p.logger.Warn("Failed to compile role's resource regexp", "regexp",
+				v, common.LogRoleNameToken, roleName)
 			continue
 		}
 

@@ -3,14 +3,13 @@ package config
 import (
 	"testing"
 
-	"fmt"
-	"os"
-
 	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/config"
+	"github.com/stretchr/testify/assert"
 )
 
+// Fake config plugin.
 type fakeConfig struct {
 	loadCalled bool
 }
@@ -28,54 +27,38 @@ func (f *fakeConfig) Load() chan []byte {
 func TestNewConfigProvider(t *testing.T) {
 	f := &fakeConfig{}
 	ctor := &ConstructConfig{
-		Secret:  mocks.FakeNewSecretStore(nil, true),
-		Logger:  mocks.FakeNewLogger(nil),
-		Options: map[string]string{common.LogProviderToken: "test"},
-		Loader:  mocks.FakeNewPluginLoader(f),
+		Secret:       mocks.FakeNewSecretStore(nil, true),
+		PluginLogger: mocks.FakeNewLogger(nil),
+		Options:      map[string]string{common.LogProviderToken: "test"},
+		Loader:       mocks.FakeNewPluginLoader(f),
 	}
 
 	c := NewConfigProvider(ctor)
 	c.Load()
-
-	if !f.loadCalled {
-		t.FailNow()
-	}
+	assert.True(t, f.loadCalled)
 }
 
 // Tests fallback to FS config.
 func TestFallbackToFsProvider(t *testing.T) {
 	ctor := &ConstructConfig{
-		Secret:  mocks.FakeNewSecretStore(nil, true),
-		Logger:  mocks.FakeNewLogger(nil),
-		Options: map[string]string{common.LogProviderToken: "test", "location": tmpDir},
-		Loader:  mocks.FakeNewPluginLoader(nil),
+		Secret:       mocks.FakeNewSecretStore(nil, true),
+		PluginLogger: mocks.FakeNewLogger(nil),
+		Options:      map[string]string{common.LogProviderToken: "test", "location": tmpDir},
+		Loader:       mocks.FakeNewPluginLoader(nil),
 	}
 
 	c := NewConfigProvider(ctor)
-
-	os.MkdirAll(tmpDir, os.ModePerm)
-	defer cleanup()
-	f, err := os.OpenFile(fmt.Sprintf("%s/data.yaml", tmpDir), os.O_CREATE|os.O_WRONLY, os.ModePerm)
-	if err != nil {
-		t.FailNow()
-	}
-	_, err = f.Write([]byte("test"))
-	f.Close()
+	defer cleanup(t)
+	writeFile(t, "data.yaml", "test")
 
 	ii := 0
 	for d := range c.Load() {
 		if 0 == ii {
-			if string(d) != "test" {
-				t.Error("Wrong data")
-				t.FailNow()
-			}
+			assert.Equal(t, "test", string(d), "data")
 		}
 
 		ii++
 	}
 
-	if 1 != ii {
-		t.Error("Wrong len")
-		t.FailNow()
-	}
+	assert.Equal(t, 1, ii, "number of files")
 }

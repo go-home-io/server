@@ -7,6 +7,8 @@ import (
 
 	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/plugins/logger"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type fakePlugin struct {
@@ -51,9 +53,7 @@ func TestErrorLoad(t *testing.T) {
 	}
 
 	_, err := NewLoggerProvider(ctor)
-	if err == nil {
-		t.Fail()
-	}
+	assert.Error(t, err)
 }
 
 // Tests correct methods invocations.
@@ -90,9 +90,7 @@ func TestLogger(t *testing.T) {
 	}
 
 	l, err := NewLoggerProvider(ctor)
-	if err != nil {
-		t.Fail()
-	}
+	require.NoError(t, err, "failed to load provider")
 
 	l.Debug("Debug")
 	l.Info("Info")
@@ -101,9 +99,11 @@ func TestLogger(t *testing.T) {
 	l.Fatal("Fatal", errors.New(""))
 	l.Flush()
 
-	if !debug || !info || !warn || !err1 || !fatal {
-		t.Fail()
-	}
+	assert.True(t, debug, "debug")
+	assert.True(t, info, "info")
+	assert.True(t, warn, "warn")
+	assert.True(t, err1, "err1")
+	assert.True(t, fatal, "fatal")
 }
 
 // Tests loading log level.
@@ -147,9 +147,6 @@ func TestLogLevel(t *testing.T) {
 	}
 
 	for _, v := range in {
-		if v.Expected != getLogLevel([]byte(fmt.Sprintf("level: %s", v.In))) {
-			t.Error("Failed to convert " + v.In)
-			t.Fail()
-		}
+		assert.Equal(t, v.Expected, getLogLevel([]byte(fmt.Sprintf("level: %s", v.In))), v.In)
 	}
 }

@@ -13,6 +13,7 @@ import (
 )
 
 // Plain HTTP_200 API response.
+//noinspection GoUnhandledErrorResult
 func respondOk(writer http.ResponseWriter) {
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "application/json")
@@ -20,6 +21,7 @@ func respondOk(writer http.ResponseWriter) {
 }
 
 // Generic API respond.
+//noinspection GoUnhandledErrorResult
 func respond(writer http.ResponseWriter, data interface{}) {
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "application/json")
@@ -47,6 +49,7 @@ func respondUnAuth(writer http.ResponseWriter) {
 }
 
 // Plain HTTP_500 API response.
+//noinspection GoUnhandledErrorResult
 func respondError(writer http.ResponseWriter, err string) {
 	writer.WriteHeader(http.StatusInternalServerError)
 	writer.Header().Set("Content-Type", "application/json")

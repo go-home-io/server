@@ -7,10 +7,19 @@ import (
 	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
+	"github.com/go-home-io/server/providers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
-// Tests location provider.
-func TestGroupProvider(t *testing.T) {
+type grSuite struct {
+	suite.Suite
+
+	prov providers.ILocationProvider
+	f    providers.IInternalFanOutProvider
+}
+
+func (g *grSuite) SetupTest() {
 	var config = `
 system: ui
 provider: location
@@ -21,25 +30,28 @@ devices:
   - otherdevice
 `
 	s := mocks.FakeNewSettings(nil, false, nil, nil)
-	f := s.FanOut()
+	g.f = s.FanOut()
 
 	ctor := &ConstructLocation{
 		RawConfig: []byte(config),
-		FanOut:    f,
+		FanOut:    g.f,
 	}
 
-	prov, _ := NewLocationProvider(ctor)
-	f.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
+	g.prov, _ = NewLocationProvider(ctor)
+}
+
+// Tests empty device message.
+func (g *grSuite) TestEmptyDevice() {
+	g.f.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
 		ID: "device1",
 	}
 
 	time.Sleep(1 * time.Second)
+	assert.Equal(g.T(), 0, len(g.prov.Devices()))
+}
 
-	if len(prov.Devices()) != 0 {
-		t.Error("Wrong device")
-		t.FailNow()
-	}
-
+// Tests double invoke.
+func (g *grSuite) TestDoubleMessage() {
 	msg := &common.MsgDeviceUpdate{
 		ID:        "device1",
 		Name:      "device 1",
@@ -47,42 +59,39 @@ devices:
 		FirstSeen: true,
 	}
 
-	f.ChannelInDeviceUpdates() <- msg
+	g.f.ChannelInDeviceUpdates() <- msg
 	time.Sleep(1 * time.Second)
+	assert.Equal(g.T(), 1, len(g.prov.Devices()), "first add")
 
-	if 1 != len(prov.Devices()) {
-		t.Error("Device was not added")
-		t.FailNow()
-	}
-
-	f.ChannelInDeviceUpdates() <- msg
+	g.f.ChannelInDeviceUpdates() <- msg
 	time.Sleep(1 * time.Second)
+	assert.Equal(g.T(), 1, len(g.prov.Devices()), "second add")
+}
 
-	if 1 != len(prov.Devices()) {
-		t.Error("Device was not added")
-		t.FailNow()
-	}
-
-	f.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
+// Tests double invoke with incorrect device.
+func (g *grSuite) TestDoubleIncorrect() {
+	msg := &common.MsgDeviceUpdate{
 		ID:        "wrongdevice",
 		FirstSeen: true,
 	}
-	time.Sleep(1 * time.Second)
-	f.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
-		ID:        "wrongdevice",
-		FirstSeen: true,
-	}
-	time.Sleep(1 * time.Second)
 
-	if 1 != len(prov.Devices()) {
-		t.Error("Device was not added")
-		t.FailNow()
-	}
+	g.f.ChannelInDeviceUpdates() <- msg
+	time.Sleep(1 * time.Second)
+	assert.Equal(g.T(), 0, len(g.prov.Devices()), "first add")
 
-	if prov.ID() != "cabinet loc" {
-		t.Error("Wrong name")
-		t.Fail()
-	}
+	g.f.ChannelInDeviceUpdates() <- msg
+	time.Sleep(1 * time.Second)
+	assert.Equal(g.T(), 0, len(g.prov.Devices()), "second add")
+}
+
+// Tests ID.
+func (g *grSuite) TestID() {
+	assert.Equal(g.T(), "cabinet loc", g.prov.ID())
+}
+
+// Tests location provider.
+func TestGroupProvider(t *testing.T) {
+	suite.Run(t, new(grSuite))
 }
 
 // Test wrong config.
@@ -98,7 +107,5 @@ func TestWrongSettings(t *testing.T) {
 	}
 
 	_, err := NewLocationProvider(ctor)
-	if err == nil {
-		t.Fail()
-	}
+	assert.Error(t, err)
 }

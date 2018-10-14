@@ -8,6 +8,10 @@ import (
 	"github.com/gobwas/glob"
 )
 
+type IFakeServer interface {
+	AddDevice(device *providers.KnownDevice)
+}
+
 type fakeServer struct {
 	callback func()
 	device   *providers.KnownDevice
@@ -34,7 +38,7 @@ func (f *fakeServer) AddDevice(device *providers.KnownDevice) {
 	f.device = device
 }
 
-func FakeNewServer(callback func()) *fakeServer {
+func FakeNewServer(callback func()) IFakeServer {
 	return &fakeServer{
 		callback: callback,
 	}

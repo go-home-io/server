@@ -11,6 +11,8 @@ import (
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/systems/bus"
 	"github.com/go-home-io/server/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Fake sensor plugin.
@@ -208,25 +210,19 @@ func TestStaleMaster(t *testing.T) {
 	})
 
 	time.Sleep(1 * time.Second)
-	if !d.loadCalled || 1 != len(state.devices) {
-		t.Error("Plugin not loaded")
-		t.Fail()
-	}
+	assert.True(t, d.loadCalled, "load failed")
+	assert.Equal(t, 1, len(state.devices), "load failed")
 
 	time.Sleep(1 * time.Second)
 	d.loadCalled = false
 	state.retryLoad()
 	time.Sleep(1 * time.Second)
-	if d.loadCalled {
-		t.Error("Retry called")
-		t.Fail()
-	}
+	assert.False(t, d.loadCalled, "retry called")
+
 	state.checkStaleMaster()
 	time.Sleep(1 * time.Second)
-	if !d.unloadCalled || len(state.devices) != 0 {
-		t.Error("Unload not called")
-		t.Fail()
-	}
+	assert.True(t, d.unloadCalled, "unload was not called")
+	assert.Equal(t, 0, len(state.devices), "unload was not called")
 }
 
 // Tests that if plugin failed to load, it will be correctly reloaded next time.
@@ -250,19 +246,18 @@ func TestFailedReload(t *testing.T) {
 	})
 
 	time.Sleep(1 * time.Second)
-	if !d.loadCalled || 0 != len(state.devices) || nil == state.failedDevices || 1 != len(state.failedDevices.Devices) {
-		t.Error("Plugin was loaded")
-		t.Fail()
-	}
+	assert.True(t, d.loadCalled, "load not called")
+	assert.Equal(t, 0, len(state.devices), "loaded wrong device")
+	assert.NotNil(t, state.failedDevices, "no failed device")
+	assert.Equal(t, 1, len(state.failedDevices.Devices), "loaded wrong device")
 
 	d.loadCalled = false
 	d.loadError = nil
 	state.retryLoad()
 	time.Sleep(1 * time.Second)
-	if !d.loadCalled || 1 != len(state.devices) || nil != state.failedDevices {
-		t.Error("Plugin was not loaded")
-		t.Fail()
-	}
+	assert.True(t, d.loadCalled, "load not called")
+	assert.Equal(t, 1, len(state.devices), "didn't load device")
+	assert.Nil(t, state.failedDevices, "failed not nil")
 }
 
 // Tests timeout during device load.
@@ -289,22 +284,21 @@ func TestLoadTimeout(t *testing.T) {
 	})
 
 	time.Sleep(3 * time.Second)
-	if !d.loadCalled || 0 != len(state.devices) ||
-		!d.unloadCalled || nil == state.failedDevices || 1 != len(state.failedDevices.Devices) {
-		t.Error("Plugin was loaded")
-		t.Fail()
-	}
+	assert.True(t, d.loadCalled, "load not called")
+	assert.Equal(t, 0, len(state.devices), "device num")
+	assert.True(t, d.unloadCalled, "unload not called")
+	assert.NotNil(t, state.failedDevices, "has failed")
+	assert.Equal(t, 1, len(state.failedDevices.Devices), "failed num")
 
 	d.loadTimeout = 0
 	d.loadCalled = false
 	d.unloadCalled = false
-
 	state.retryLoad()
 	time.Sleep(1 * time.Second)
-	if !d.loadCalled || d.unloadCalled || 1 != len(state.devices) || nil != state.failedDevices {
-		t.Error("Plugin was not loaded")
-		t.Fail()
-	}
+	assert.True(t, d.loadCalled, "load not called")
+	assert.False(t, d.unloadCalled, "unload called")
+	assert.Nil(t, state.failedDevices, "has failed")
+	assert.Equal(t, 1, len(state.devices), "device num")
 }
 
 // Tests long load with a new assignment.
@@ -335,12 +329,11 @@ func TestLoadTimeoutWithNewMessage(t *testing.T) {
 	})
 
 	time.Sleep(3 * time.Second)
-
-	if !d.loadCalled || 0 != len(state.devices) ||
-		!d.unloadCalled || nil == state.failedDevices || 1 != len(state.failedDevices.Devices) {
-		t.Error("Plugin was loaded")
-		t.Fail()
-	}
+	assert.True(t, d.loadCalled, "first load")
+	assert.True(t, d.unloadCalled, "first unload load")
+	assert.Equal(t, 0, len(state.devices), "fist wrong num")
+	assert.NotNil(t, state.failedDevices, "first failed")
+	assert.Equal(t, 1, len(state.failedDevices.Devices), "first failed num")
 
 	d.loadTimeout = 0
 	d.loadCalled = false
@@ -360,17 +353,13 @@ func TestLoadTimeoutWithNewMessage(t *testing.T) {
 	})
 
 	state.retryLoad()
-
 	time.Sleep(1 * time.Second)
-	if d.loadCalled || 1 != len(state.devices) || nil == state.devices["fake_device2.sensor.fake_device"] {
-		t.Error("First plugin was loaded")
-		t.Fail()
-	}
 
-	if !d2.loadCalled || d2.unloadCalled {
-		t.Error("Second plugin was not loaded")
-		t.Fail()
-	}
+	assert.False(t, d.loadCalled, "first load")
+	assert.True(t, d2.loadCalled, "second load")
+	assert.False(t, d2.unloadCalled, "second unload")
+	assert.Equal(t, 1, len(state.devices), "wrong num")
+	assert.NotNil(t, state.devices["fake_device2.sensor.fake_device"], "wrong state")
 }
 
 // Tests that device will be unloaded when a new assignment is received.
@@ -396,10 +385,10 @@ func TestProperUnloadOnANewAssignment(t *testing.T) {
 	})
 
 	time.Sleep(1 * time.Second)
-	if !d.loadCalled || 1 != len(state.devices) || d.unloadCalled || nil != state.failedDevices {
-		t.Error("Plugin was not loaded")
-		t.Fail()
-	}
+	require.True(t, d.loadCalled, "plugin was not loaded")
+	require.Equal(t, 1, len(state.devices), "incorrect devices number")
+	require.False(t, d.unloadCalled, "unload called")
+	require.Nil(t, state.failedDevices, "found failed devices")
 
 	d.loadCalled = false
 	d.unloadCalled = false
@@ -418,16 +407,12 @@ func TestProperUnloadOnANewAssignment(t *testing.T) {
 	})
 
 	time.Sleep(1 * time.Second)
-	if d.loadCalled || !d.unloadCalled || 1 != len(state.devices) ||
-		nil == state.devices["fake_device2.sensor.fake_device"] {
-		t.Error("First plugin was loaded")
-		t.Fail()
-	}
+	assert.False(t, d.loadCalled, "first plugin called")
+	assert.True(t, d.unloadCalled, "unload was not called")
+	assert.Equal(t, 1, len(state.devices), "device num is incorrect")
 
-	if !d2.loadCalled || d2.unloadCalled {
-		t.Error("Second plugin was not loaded")
-		t.Fail()
-	}
+	assert.True(t, d2.loadCalled, "second plugin was not called")
+	assert.False(t, d2.unloadCalled, "second unload was called")
 }
 
 // Tests that same assignment won't trigger reload.
@@ -451,10 +436,10 @@ func TestSameAssignment(t *testing.T) {
 	})
 
 	time.Sleep(1 * time.Second)
-	if !d.loadCalled || 1 != len(state.devices) || d.unloadCalled || nil != state.failedDevices {
-		t.Error("Plugin was not loaded")
-		t.Fail()
-	}
+	require.True(t, d.loadCalled, "plugin was not loaded")
+	require.Equal(t, 1, len(state.devices), "incorrect devices number")
+	require.False(t, d.unloadCalled, "unload called")
+	require.Nil(t, state.failedDevices, "found failed devices")
 
 	d.loadCalled = false
 	d.unloadCalled = false
@@ -472,10 +457,9 @@ func TestSameAssignment(t *testing.T) {
 	})
 
 	time.Sleep(1 * time.Second)
-	if d.unloadCalled || d.loadCalled || 1 != len(state.devices) {
-		t.Error("Device was unloaded")
-		t.Fail()
-	}
+	assert.False(t, d.unloadCalled, "unload called")
+	assert.False(t, d.loadCalled, "load called")
+	assert.Equal(t, 1, len(state.devices), "device num is incorrect")
 }
 
 // Tests device discovery and commands.
@@ -504,32 +488,20 @@ func TestDeviceDiscoveryAndCommands(t *testing.T) {
 	})
 
 	time.Sleep(1 * time.Second)
-	if 1 != len(state.devices) || nil != state.failedDevices {
-		t.Error("Hub was not loaded")
-		t.Fail()
-	}
+	assert.Equal(t, 1, len(state.devices), "hub was not loaded")
+	assert.Nil(t, state.failedDevices, "hub failed to load")
 
 	s := &fakeSwitch{}
 	settings.(mocks.IFakeSettings).AddLoader(s)
 	h.Disco(s)
 	time.Sleep(1 * time.Second)
-	if !busCalled {
-		t.Error("Bus was not called during discovery")
-		t.Fail()
-	}
-
-	if 2 != len(state.devices) {
-		t.Error("Discovery didn't work")
-		t.Fail()
-	}
+	assert.True(t, busCalled, "bus was not called during the discovery")
+	assert.Equal(t, 2, len(state.devices), "discovery didn't work")
 
 	busCalled = false
 	s.Push()
 	time.Sleep(1 * time.Second)
-	if !busCalled {
-		t.Error("Bus update was not called during update")
-		t.Fail()
-	}
+	assert.True(t, busCalled, "bus was not called during the update")
 
 	state.DevicesCommandMessage(&bus.DeviceCommandMessage{
 		Command:  enums.CmdOn,
@@ -537,11 +509,7 @@ func TestDeviceDiscoveryAndCommands(t *testing.T) {
 	})
 
 	time.Sleep(1 * time.Second)
-
-	if !s.onCalled {
-		t.Error("Command was not called")
-		t.Fail()
-	}
+	assert.True(t, s.onCalled, "command was not invoked")
 
 	s.onCalled = false
 	s.unloadCalled = false
@@ -562,15 +530,13 @@ func TestDeviceDiscoveryAndCommands(t *testing.T) {
 	})
 
 	time.Sleep(1 * time.Second)
-	if !h.unloadCalled || !s.unloadCalled {
-		t.Error("Unload was not called")
-		t.Fail()
-	}
+	assert.True(t, h.unloadCalled, "unload was not called")
+	assert.True(t, s.unloadCalled, "unload was not called on a switch")
 
-	if !d.loadCalled || 1 != len(state.devices) || d.unloadCalled || nil != state.failedDevices {
-		t.Error("Plugin was not loaded")
-		t.Fail()
-	}
+	require.True(t, d.loadCalled, "plugin was not loaded")
+	require.Equal(t, 1, len(state.devices), "incorrect devices number")
+	require.False(t, d.unloadCalled, "unload called")
+	require.Nil(t, state.failedDevices, "found failed devices")
 
 	busCalled = false
 	state.DevicesCommandMessage(&bus.DeviceCommandMessage{
@@ -578,10 +544,7 @@ func TestDeviceDiscoveryAndCommands(t *testing.T) {
 		DeviceID: "fake_hub.switch.fake_switch",
 	})
 
-	if busCalled {
-		t.Error("Unknown device bus called")
-		t.Fail()
-	}
+	assert.False(t, busCalled, "unknown device bus called")
 }
 
 // Tests API processing.
@@ -604,10 +567,10 @@ func TestAPIUnload(t *testing.T) {
 	})
 
 	time.Sleep(1 * time.Second)
-	if a.unloadCalled || 1 != len(state.extendedAPIs) || 0 != len(state.devices) || nil != state.failedDevices {
-		t.Error("API was not loaded")
-		t.Fail()
-	}
+	require.Equal(t, 1, len(state.extendedAPIs), "incorrect api number")
+	require.Equal(t, 0, len(state.devices), "incorrect devices number")
+	require.False(t, a.unloadCalled, "unload called")
+	require.Nil(t, state.failedDevices, "found failed api")
 
 	a.unloadCalled = false
 
@@ -626,10 +589,10 @@ func TestAPIUnload(t *testing.T) {
 	})
 
 	time.Sleep(1 * time.Second)
-	if !a.unloadCalled || 0 != len(state.extendedAPIs) || 1 != len(state.devices) || nil != state.failedDevices {
-		t.Error("API was not unloaded")
-		t.Fail()
-	}
+	assert.True(t, a.unloadCalled, "unload was not called")
+	assert.Equal(t, 0, len(state.extendedAPIs), "incorrect api number")
+	assert.Equal(t, 1, len(state.devices), "incorrect devices number")
+	assert.Nil(t, state.failedDevices, "found failed devices")
 }
 
 // Test API load error.
@@ -650,10 +613,8 @@ func TestAPILoadError(t *testing.T) {
 	})
 
 	time.Sleep(1 * time.Second)
-	if nil == state.failedDevices || 1 != len(state.failedDevices.Devices) {
-		t.Error("Bad API error")
-		t.Fail()
-	}
+	require.NotNil(t, state.failedDevices, "first was loaded")
+	assert.Equal(t, 1, len(state.failedDevices.Devices), "first was loaded")
 
 	a := &fakeAPI{}
 	settings.(mocks.IFakeSettings).AddLoader(a)
@@ -670,16 +631,13 @@ func TestAPILoadError(t *testing.T) {
 	})
 
 	time.Sleep(1 * time.Second)
-	if nil == state.failedDevices || 1 != len(state.failedDevices.Devices) {
-		t.Error("Bad API error")
-		t.Fail()
-	}
+	require.NotNil(t, state.failedDevices, "second was loaded")
+	assert.Equal(t, 1, len(state.failedDevices.Devices), "second was loaded")
 
 	state.retryLoad()
-
 	time.Sleep(1 * time.Second)
-	if a.unloadCalled || 1 != len(state.extendedAPIs) || 0 != len(state.devices) || nil != state.failedDevices {
-		t.Error("API was not loaded")
-		t.Fail()
-	}
+	assert.False(t, a.unloadCalled, "third unload called")
+	assert.Equal(t, 1, len(state.extendedAPIs), "trird api num")
+	assert.Equal(t, 0, len(state.devices), "third device num")
+	assert.Nil(t, state.failedDevices, "third failed num")
 }

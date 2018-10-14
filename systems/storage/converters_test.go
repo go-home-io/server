@@ -7,6 +7,7 @@ import (
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/plugins/helpers"
+	"github.com/stretchr/testify/assert"
 )
 
 // Test conversions.
@@ -55,15 +56,14 @@ func TestConverters(t *testing.T) {
 
 	for _, v := range data {
 		c, err := PropertySave(v.Property, v.In)
-		if err != nil || !reflect.DeepEqual(c, v.Expected) {
-			t.Error("Failed to save " + v.Property.String())
-			t.Fail()
-		}
+		assert.NoError(t, err, "error saving %s", v.Property.String())
+		assert.True(t, reflect.DeepEqual(c, v.Expected), "not equal saving %s", v.Property.String())
 
 		o, err := PropertyLoad(v.Property, c)
-		if err != nil || (v.TwoWay && !helpers.PropertyDeepEqual(v.In, o, v.Property)) {
-			t.Error("Failed to load " + v.Property.String())
-			t.Fail()
+		assert.NoError(t, err, "error loading %s", v.Property.String())
+		if v.TwoWay {
+			assert.True(t, helpers.PropertyDeepEqual(v.In, o, v.Property),
+				"error loading %s", v.Property.String())
 		}
 	}
 }

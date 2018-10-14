@@ -7,8 +7,11 @@ import (
 )
 
 // List of properties, which needs to be converted.
-var convertRequired = []enums.Property{enums.PropTemperature, enums.PropWindSpeed,
-	enums.PropVisibility, enums.PropPressure}
+var convertRequired = []enums.Property{
+	enums.PropTemperature, enums.PropWindSpeed,
+	enums.PropVisibility, enums.PropPressure,
+	enums.PropArea,
+}
 
 // UOMConvertString converts properties from one system to another.
 func UOMConvertString(value float64, property enums.Property, currentUOM string, desiredUOM enums.UOM) float64 {

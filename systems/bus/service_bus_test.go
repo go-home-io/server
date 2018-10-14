@@ -3,10 +3,14 @@ package bus
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/plugins/bus"
+	"github.com/stretchr/testify/assert"
 )
 
+// Fake bus plugin.
 type fakePlugin struct {
 	err   error
 	sub   bool
@@ -37,6 +41,13 @@ func (f *fakePlugin) Ping() error {
 	return nil
 }
 
+func (f *fakePlugin) reset() {
+	f.sub = false
+	f.unSub = false
+	f.pub = false
+	f.ping = false
+}
+
 // Tests proper error handling.
 func TestErrorLoading(t *testing.T) {
 	ctor := &ConstructBus{
@@ -45,12 +56,12 @@ func TestErrorLoading(t *testing.T) {
 	}
 
 	p, err := NewServiceBusProvider(ctor)
-	if p != nil || err == nil {
-		t.Fail()
-	}
+	assert.Error(t, err)
+	assert.Nil(t, p)
 }
 
 // Tests correct methods invocation.
+//noinspection GoUnhandledErrorResult
 func TestServiceBus(t *testing.T) {
 	f := &fakePlugin{}
 	ctor := &ConstructBus{
@@ -59,59 +70,38 @@ func TestServiceBus(t *testing.T) {
 	}
 
 	p, err := NewServiceBusProvider(ctor)
-	if p == nil || err != nil {
-		t.FailNow()
-	}
+	require.NoError(t, err)
+	require.NotNil(t, p)
 
+	f.reset()
 	p.Ping()
-	if !f.ping {
-		t.Error("Ping failed")
-		t.Fail()
-	}
+	assert.True(t, f.ping, "ping")
 
+	f.reset()
 	p.Publish(bus.ChDeviceUpdates, nil)
-	if !f.pub {
-		t.Error("Publish failed")
-		t.Fail()
-	}
+	assert.True(t, f.pub, "publish")
 
-	f.pub = false
+	f.reset()
 	p.PublishStr("test", nil)
-	if !f.pub {
-		t.Error("PublishStr failed")
-		t.Fail()
-	}
+	assert.True(t, f.pub, "publish string")
 
-	f.pub = false
+	f.reset()
 	p.PublishToWorker("test", nil)
-	if !f.pub {
-		t.Error("PublishToWorker failed")
-		t.Fail()
-	}
+	assert.True(t, f.pub, "publish to worker")
 
+	f.reset()
 	p.Subscribe(bus.ChDiscovery, nil)
-	if !f.sub {
-		t.Error("Subscribe failed")
-		t.Fail()
-	}
+	assert.True(t, f.sub, "subscribe")
 
-	f.sub = false
+	f.reset()
 	p.SubscribeStr("test", nil)
-	if !f.sub {
-		t.Error("SubscribeStr failed")
-		t.Fail()
-	}
+	assert.True(t, f.sub, "subscribe string")
 
-	f.sub = false
+	f.reset()
 	p.SubscribeToWorker("test", nil)
-	if !f.sub {
-		t.Error("SubscribeToWorker failed")
-		t.Fail()
-	}
+	assert.True(t, f.sub, "subscribe to worker")
 
+	f.reset()
 	p.Unsubscribe("test")
-	if !f.unSub {
-		t.Error("Unsubscribe failed")
-		t.Fail()
-	}
+	assert.True(t, f.unSub, "unsubscribe")
 }

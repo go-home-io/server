@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/go-home-io/server/mocks"
+	"github.com/stretchr/testify/assert"
 )
 
 type testStruct struct {
@@ -12,6 +13,7 @@ type testStruct struct {
 	IpPort  string `validate:"ipv4port"`
 }
 
+// Tests success validation
 func TestSuccessValidation(t *testing.T) {
 	in := []*testStruct{
 		{
@@ -28,24 +30,23 @@ func TestSuccessValidation(t *testing.T) {
 
 	validator := NewValidator(mocks.FakeNewLogger(nil))
 	for _, v := range in {
-		if !validator.Validate(v) {
-			t.Fail()
-		}
+		assert.True(t, validator.Validate(v), v.IpPort)
 	}
 }
 
+// Tests validation without pointer.
 func TestNotPointer(t *testing.T) {
 	validator := NewValidator(mocks.FakeNewLogger(nil))
-
-	if validator.Validate(testStruct{
+	d := testStruct{
 		Percent: 0,
 		Port:    8080,
 		IpPort:  "127.0.0.1",
-	}) {
-		t.Fail()
 	}
+
+	assert.False(t, validator.Validate(d))
 }
 
+// Tests incorrect data
 func TestFailedValidation(t *testing.T) {
 	in := []*testStruct{
 		{
@@ -63,9 +64,7 @@ func TestFailedValidation(t *testing.T) {
 	}
 
 	validator := NewValidator(mocks.FakeNewLogger(nil))
-	for _, v := range in {
-		if validator.Validate(v) {
-			t.Fail()
-		}
+	for k, v := range in {
+		assert.False(t, validator.Validate(v), "%d", k)
 	}
 }

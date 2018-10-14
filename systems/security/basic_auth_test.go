@@ -10,8 +10,12 @@ import (
 	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/plugins/user"
 	"github.com/go-home-io/server/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 )
+
+const tmpDir = "./temp_users"
 
 func getInitData(logCallback func(string), secretData map[string]string) *user.InitDataUserStorage {
 	data := &user.InitDataUserStorage{
@@ -22,11 +26,16 @@ func getInitData(logCallback func(string), secretData map[string]string) *user.I
 	return data
 }
 
-func getProvider(logCallback func(string), mockData string) *basicAuthProvider {
-	os.MkdirAll(utils.GetDefaultConfigsDir(), os.ModePerm)
-	ioutil.WriteFile(fmt.Sprintf("%s/_users", utils.GetDefaultConfigsDir()), []byte(mockData), os.ModePerm)
+func getProvider(t *testing.T, logCallback func(string), mockData string) *basicAuthProvider {
+	utils.ConfigDir = tmpDir
+	err := os.MkdirAll(utils.GetDefaultConfigsDir(), os.ModePerm)
+	require.NoError(t, err, "mkdir failed")
+	err = ioutil.WriteFile(fmt.Sprintf("%s/_users", utils.GetDefaultConfigsDir()),
+		[]byte(mockData), os.ModePerm)
+	require.NoError(t, err, "write file failed")
 	prov := &basicAuthProvider{}
-	prov.Init(getInitData(logCallback, nil))
+	err = prov.Init(getInitData(logCallback, nil))
+	require.NoError(t, err, "prov failed")
 	return prov
 }
 
@@ -50,12 +59,13 @@ func getFileRecord(usr, pwd string) string {
 	return fmt.Sprintf("%s:%s", usr, string(b))
 }
 
-func cleanFile() {
-	os.Remove(fmt.Sprintf("%s/_users", utils.GetDefaultConfigsDir()))
-	os.Remove(utils.GetDefaultConfigsDir())
+func cleanup(t *testing.T) {
+	err := os.RemoveAll(tmpDir)
+	require.NoError(t, err, "cleanup failed")
 }
 
 // Tests store access error.
+//noinspection GoUnhandledErrorResult
 func TestFileAccessError(t *testing.T) {
 	prov := basicAuthProvider{}
 	logFound := false
@@ -65,54 +75,49 @@ func TestFileAccessError(t *testing.T) {
 		}
 	}, nil))
 
-	if !logFound {
-		t.Fail()
-	}
+	assert.True(t, logFound)
 }
 
 // Tests incorrect header.
+//noinspection GoUnhandledErrorResult
 func TestNoHeader(t *testing.T) {
 	prov := basicAuthProvider{}
 	prov.Init(getInitData(nil, nil))
 	_, err := prov.Authorize(map[string][]string{})
-	if err.Error() != "header not found" {
-		t.Fail()
-	}
+	assert.IsType(t, &ErrNoHeader{}, err)
 }
 
 // Tests header with wrong data.
+//noinspection GoUnhandledErrorResult
 func TestNoBase64Header(t *testing.T) {
 	prov := basicAuthProvider{}
 	prov.Init(getInitData(nil, nil))
 	_, err := prov.Authorize(map[string][]string{"Authorization": {"Basic Wrong header"}})
-	if err.Error() != "can't decode header" {
-		t.Fail()
-	}
+	assert.IsType(t, &ErrIncorrectHeader{}, err)
 }
 
 // Tests correctly encoded header with wrong user.
+//noinspection GoUnhandledErrorResult
 func TestIncorrectAuthHeader(t *testing.T) {
 	prov := basicAuthProvider{}
 	prov.Init(getInitData(nil, nil))
-	_, err := prov.Authorize(map[string][]string{"Authorization": {"Basic " + base64.StdEncoding.EncodeToString([]byte("Wrong header"))}})
-	if err.Error() != "wrong header" {
-		t.Fail()
-	}
+	_, err := prov.Authorize(map[string][]string{
+		"Authorization": {"Basic " + base64.StdEncoding.EncodeToString([]byte("Wrong header"))}})
+	assert.IsType(t, &ErrCorruptedHeader{}, err)
 }
 
 // Tests that user from file storage read correctly.
 func TestUserFromFile(t *testing.T) {
 	data := "user1\n" + getFileRecord("user1", "123")
-	prov := getProvider(nil, data)
-	defer cleanFile()
+	prov := getProvider(t, nil, data)
+	defer cleanup(t)
 	h1 := getAuthHeader("user1", "123")
 	h2 := make(map[string][]string)
 	h2["Fake"] = []string{"header"}
 	h2["Authorization"] = h1["Authorization"]
 	usr, err := prov.Authorize(h2)
-	if err != nil || usr != "user1" {
-		t.Fail()
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "user1", usr)
 }
 
 // Tests that incorrect format is ignored.
@@ -122,32 +127,30 @@ func TestIncorrectFIleFormat(t *testing.T) {
 		getFileRecord("user1", "123") + ":wrong\n" +
 		"\n"
 
-	prov := getProvider(nil, data)
-	defer cleanFile()
+	prov := getProvider(t, nil, data)
+	defer cleanup(t)
 	_, err := prov.Authorize(getAuthHeader("user1", "123"))
-	if err == nil || err.Error() != "user not found" {
-		t.Fail()
-	}
+	assert.IsType(t, &ErrUserNotFound{}, err)
 }
 
 // Tests authentication from secret store.
+//noinspection GoUnhandledErrorResult
 func TestUserFromSecret(t *testing.T) {
 	prov := basicAuthProvider{}
 	prov.Init(getInitData(nil, map[string]string{"user1": "123"}))
 	usr, err := prov.Authorize(getCookieHeader("user1", "123"))
-	if err != nil || usr != "user1" {
-		t.Fail()
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, "user1", usr)
 }
 
 // Tests incorrect header.
+//noinspection GoUnhandledErrorResult
 func TestIncorrectHeader(t *testing.T) {
 	prov := basicAuthProvider{}
 	prov.Init(getInitData(nil, map[string]string{"user1": "123"}))
 	headers := getAuthHeader("user1", "123")
 	headers["Authorization"] = append(headers["Authorization"], "Another")
 	usr, err := prov.Authorize(headers)
-	if err == nil || usr == "user1" {
-		t.Fail()
-	}
+	assert.Error(t, err)
+	assert.NotEqual(t, "user1", usr)
 }

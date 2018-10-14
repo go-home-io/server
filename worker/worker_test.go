@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-home-io/server/utils"
-
 	"github.com/go-home-io/server/mocks"
 	busPlugin "github.com/go-home-io/server/plugins/bus"
 	"github.com/go-home-io/server/systems/bus"
+	"github.com/go-home-io/server/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 // Tests worker discovery
@@ -17,33 +18,34 @@ func TestNewWorker(t *testing.T) {
 	busCalled := false
 	settings := mocks.FakeNewSettings(nil, true, nil, nil)
 	settings.(mocks.IFakeSettings).AddSBCallback(func(i ...interface{}) {
-		if i[0].(*bus.DiscoveryMessage).NodeID != settings.NodeID() {
-			t.Error("Node ID failed")
-			t.Fail()
-		}
+		assert.Equal(t, settings.NodeID(), i[0].(*bus.DiscoveryMessage).NodeID, "wrong ID")
 		busCalled = true
 	})
 	w, _ := NewWorker(settings)
 	go w.Start()
 
 	time.Sleep(1 * time.Second)
-	if !busCalled {
-		t.Error("Bus was not called")
-		t.Fail()
-	}
+	assert.True(t, busCalled, "bus was not called")
 }
 
-// Tests devices assignment.
-func TestDeviceAssignmentAndCommand(t *testing.T) {
+type dSuite struct {
+	suite.Suite
+
+	w *GoHomeWorker
+	s *fakeSwitch
+}
+
+func (d *dSuite) SetupTest() {
 	settings := mocks.FakeNewSettings(nil, true, nil, nil)
-	w, _ := NewWorker(settings)
-	go w.Start()
+	d.w, _ = NewWorker(settings)
+	go d.w.Start()
+	d.s = &fakeSwitch{}
+	settings.(mocks.IFakeSettings).AddLoader(d.s)
+}
 
-	s := &fakeSwitch{}
-	settings.(mocks.IFakeSettings).AddLoader(s)
-
-	time.Sleep(1 * time.Second)
-	w.workerChan <- busPlugin.RawMessage{Body: []byte(fmt.Sprintf(`
+// Tests device assignment.
+func (d *dSuite) TestAssignment() {
+	d.w.workerChan <- busPlugin.RawMessage{Body: []byte(fmt.Sprintf(`
 { 
 "mt": "device_assignment",
 "d": [
@@ -54,12 +56,14 @@ func TestDeviceAssignmentAndCommand(t *testing.T) {
 `, utils.TimeNow()))}
 
 	time.Sleep(1 * time.Second)
-	if !s.loadCalled || s.unloadCalled {
-		t.Error("Load failed")
-		t.FailNow()
-	}
+	assert.True(d.T(), d.s.loadCalled, "load")
+	assert.False(d.T(), d.s.unloadCalled, "unload")
+}
 
-	w.workerChan <- busPlugin.RawMessage{Body: []byte(fmt.Sprintf(`
+// Tests device command.
+func (d *dSuite) TestCommand() {
+	d.TestAssignment()
+	d.w.workerChan <- busPlugin.RawMessage{Body: []byte(fmt.Sprintf(`
 { 
 "mt": "device_command",
 "i": "test.switch.fake_switch",
@@ -69,8 +73,10 @@ func TestDeviceAssignmentAndCommand(t *testing.T) {
 `, utils.TimeNow()))}
 
 	time.Sleep(1 * time.Second)
-	if !s.onCalled {
-		t.Error("Command failed")
-		t.Fail()
-	}
+	assert.True(d.T(), d.s.onCalled)
+}
+
+// Tests devices assignments.
+func TestWorker(t *testing.T) {
+	suite.Run(t, new(dSuite))
 }

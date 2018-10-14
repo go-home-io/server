@@ -7,6 +7,7 @@ import (
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
+	"github.com/pkg/errors"
 )
 
 // Loads hub device.
@@ -33,7 +34,7 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 	i, err := ctor.Settings.PluginLoader().LoadPlugin(pluginLoadRequest)
 	if err != nil {
 		pluginLogger.Error("Failed to load hub plugin", err)
-		return nil, err
+		return nil, errors.Wrap(err, "plugin load failed")
 	}
 
 	hub := i.(device.IHub)
@@ -41,7 +42,7 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 	hubResults, err := hub.Load()
 	if err != nil {
 		pluginLogger.Error("Failed to load hub devices", err)
-		return nil, err
+		return nil, errors.Wrap(err, "plugin init failed")
 	}
 
 	hubCtor := &wrapperConstruct{

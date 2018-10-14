@@ -2,17 +2,26 @@ package group
 
 import (
 	"testing"
-
 	"time"
 
 	"github.com/go-home-io/server/mocks"
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/providers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
-// Tests group provider.
-func TestGroupProvider(t *testing.T) {
+type grSuite struct {
+	suite.Suite
+
+	invoked int
+	f       providers.IInternalFanOutProvider
+	prov    providers.IGroupProvider
+	srv     mocks.IFakeServer
+}
+
+func (g *grSuite) SetupTest() {
 	var config = `
 system: device
 provider: group
@@ -22,87 +31,96 @@ devices:
   - device*
   - otherdevice
 `
-
-	invoked := 0
-
 	s := mocks.FakeNewSettings(nil, false, nil, nil)
-	f := s.FanOut()
-
-	srv := mocks.FakeNewServer(func() {
-		invoked++
+	g.f = s.FanOut()
+	g.invoked = 0
+	g.srv = mocks.FakeNewServer(func() {
+		g.invoked++
 	})
 
 	ctor := &ConstructGroup{
 		Settings:  s,
-		Server:    srv,
+		Server:    g.srv.(providers.IServerProvider),
 		RawConfig: []byte(config),
 	}
 
-	prov, _ := NewGroupProvider(ctor)
-	f.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
+	g.prov, _ = NewGroupProvider(ctor)
+
+	g.f.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
 		ID: "device1",
 	}
 
 	time.Sleep(1 * time.Second)
+	assert.Equal(g.T(), 0, len(g.prov.Devices()))
 
-	if len(prov.Devices()) != 0 {
-		t.Error("Wrong device")
-		t.FailNow()
-	}
-
-	srv.AddDevice(&providers.KnownDevice{
+	g.srv.AddDevice(&providers.KnownDevice{
 		Commands: []string{"On"},
 		Worker:   "worker-1",
 	})
-	msg := &common.MsgDeviceUpdate{
+}
+
+func (g *grSuite) getMsg() *common.MsgDeviceUpdate {
+	return &common.MsgDeviceUpdate{
 		ID:        "device1",
 		Name:      "device 1",
 		Type:      enums.DevLight,
 		State:     map[enums.Property]interface{}{enums.PropOn: true},
 		FirstSeen: false,
 	}
+}
 
-	f.ChannelInDeviceUpdates() <- msg
+// Tests devices update.
+func (g *grSuite) TestUpdate() {
+	l := len(g.prov.Devices())
+	msg := g.getMsg()
+
+	g.f.ChannelInDeviceUpdates() <- msg
 	time.Sleep(1 * time.Second)
+	assert.Equal(g.T(), l+1, len(g.prov.Devices()), "not added on a first call")
 
-	if 1 != len(prov.Devices()) {
-		t.Error("Device was not added")
-		t.FailNow()
+	g.f.ChannelInDeviceUpdates() <- msg
+	time.Sleep(1 * time.Second)
+	assert.Equal(g.T(), l+1, len(g.prov.Devices()), "extra device")
+
+	assert.Equal(g.T(), 0, g.invoked, "invokes mismatch")
+}
+
+// Tests that device update is not triggered with a wrong device.
+func (g *grSuite) TestNoUpdatesWrongDevice() {
+	l := len(g.prov.Devices())
+	g.f.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
+		ID: "wrongdevice",
 	}
 
-	f.ChannelInDeviceUpdates() <- msg
 	time.Sleep(1 * time.Second)
+	assert.Equal(g.T(), l, len(g.prov.Devices()), "wrong device was added on a first call")
 
-	if 1 != len(prov.Devices()) {
-		t.Error("Device was not added")
-		t.FailNow()
-	}
-
-	f.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
+	g.f.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
 		ID: "wrongdevice",
 	}
 	time.Sleep(1 * time.Second)
-	f.ChannelInDeviceUpdates() <- &common.MsgDeviceUpdate{
-		ID: "wrongdevice",
-	}
+	assert.Equal(g.T(), l, len(g.prov.Devices()), "wrong device was added on a second call")
+
+	assert.Equal(g.T(), 0, g.invoked, "invokes mismatch")
+}
+
+// Tests correct name.
+func (g *grSuite) TestName() {
+	assert.Equal(g.T(), "group.cabinet_lights", g.prov.ID())
+}
+
+// Tests correct command invoke.
+func (g *grSuite) TestCommand() {
+	g.f.ChannelInDeviceUpdates() <- g.getMsg()
 	time.Sleep(1 * time.Second)
+	g.prov.InvokeCommand(enums.CmdOn, nil)
+	time.Sleep(1 * time.Second)
+	assert.Equal(g.T(), 1, g.invoked, "invokes mismatch")
+}
 
-	if 1 != len(prov.Devices()) {
-		t.Error("Device was not added")
-		t.FailNow()
-	}
-
-	if prov.ID() != "group.cabinet_lights" {
-		t.Error("Wrong name")
-		t.Fail()
-	}
-
-	prov.InvokeCommand(enums.CmdOn, nil)
-
-	if 1 != invoked {
-		t.Error("Not invoked")
-		t.Fail()
-	}
+// Tests group provider.
+func TestGroupProvider(t *testing.T) {
+	suite.Run(t, new(grSuite))
 }
 
 // Tests wrong settings.
@@ -113,22 +131,16 @@ provider: group
 name: cabinet lights
 devices: devices:
 `
-	invoked := 0
 
 	s := mocks.FakeNewSettings(nil, false, nil, nil)
-
-	srv := mocks.FakeNewServer(func() {
-		invoked++
-	})
+	srv := mocks.FakeNewServer(nil)
 
 	ctor := &ConstructGroup{
 		Settings:  s,
-		Server:    srv,
+		Server:    srv.(providers.IServerProvider),
 		RawConfig: []byte(config),
 	}
 
 	_, err := NewGroupProvider(ctor)
-	if err == nil {
-		t.Fail()
-	}
+	assert.Error(t, err)
 }

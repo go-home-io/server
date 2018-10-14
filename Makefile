@@ -16,8 +16,7 @@ BIN_FOLDER=${CURDIR}/bin
 BIN_NAME=$(BIN_FOLDER)/go-home
 PLUGINS_BINS=$(BIN_FOLDER)/plugins
 
-#METALINER=$(GO_BIN_FOLDER)/gometalinter
-METALINER=PATH=${PATH}:$(BIN_FOLDER) $(BIN_FOLDER)/gometalinter
+METALINER=PATH=${PATH}:$(BIN_FOLDER) $(BIN_FOLDER)/gometalinter --sort=linter --config=${CURDIR}/.gometalinter.json
 
 .PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test
 
@@ -92,7 +91,15 @@ define lint_all =
 	echo "======================================="
 	echo "Linting server"
 	echo "======================================="
-	$(METALINER) --enable=megacheck --config=${CURDIR}/.gometalinter.json --sort=linter ./...
+    for fld in $$($(GOCMD) list ./...); do
+        cd $${GOPATH}/src/$${fld}
+        cwd=$$(pwd)
+        if [ "$${cwd}" != "$(CURDIR)" ]; then
+            echo $${cwd}
+            $(METALINER) --enable=megacheck .
+        fi;
+	done;
+
 	cd $(PLUGINS_LOCATION)
 	for plugin_type in *; do
     		if [ -d "$${plugin_type}" ]; then
@@ -102,7 +109,7 @@ define lint_all =
     					echo "Linting $${plugin}"
     					echo "======================================="
     					cd $${plugin}
-    					$(METALINER) --config=${CURDIR}/.gometalinter.json --enable=megacheck_provider --sort=linter ./...
+    					$(METALINER) --enable=megacheck_provider ./...
     					cd $(PLUGINS_LOCATION)
     				fi;
     			done;
@@ -144,7 +151,9 @@ run-worker: build run-only-worker
 test:
 	@set -e
 	$(GOCMD) test -failfast --covermode=count -coverprofile=$(BIN_FOLDER)/cover.out.tmp ./...
-	@cat $(BIN_FOLDER)/cover.out.tmp | grep -v "fake_" | grep -v "_enumer" | grep -v "mocks" | grep -v "public" | grep -v "statik" | grep -v "server/api_" | grep -v "cmd/" > $(BIN_FOLDER)/cover.out
+	@cat $(BIN_FOLDER)/cover.out.tmp | grep -v "fake_" | grep -v "_enumer" | \
+	    grep -v "mocks" | grep -v "public" | grep -v "statik" | grep -v "server/api_" | \
+	    grep -v "cmd/" | grep -v "errors.go" > $(BIN_FOLDER)/cover.out
 	@rm -f $(BIN_FOLDER)/cover.out.tmp
 
 test-local: test

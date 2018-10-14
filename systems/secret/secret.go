@@ -6,6 +6,7 @@ import (
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
 	"github.com/go-home-io/server/systems/logger"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -17,16 +18,17 @@ const (
 type provider struct {
 	Secret secret.ISecret
 
-	logger common.ILoggerProvider
+	logger       common.ILoggerProvider
+	pluginLogger common.ILoggerProvider
 
 	provider string
 }
 
 // ConstructSecret has data required for a new secrets provider.
 type ConstructSecret struct {
-	Options map[string]string
-	Logger  common.ILoggerProvider
-	Loader  providers.IPluginLoaderProvider
+	Options      map[string]string
+	PluginLogger common.ILoggerProvider
+	Loader       providers.IPluginLoaderProvider
 }
 
 // NewSecretProvider constructs a new secrets store provider.
@@ -41,7 +43,7 @@ func NewSecretProvider(ctor *ConstructSecret) providers.IInternalSecret {
 	}
 
 	secretCtor := &logger.ConstructPluginLogger{
-		SystemLogger: ctor.Logger,
+		SystemLogger: ctor.PluginLogger,
 		Provider:     requesterProvider,
 		System:       systems.SysSecret.String(),
 	}
@@ -78,8 +80,9 @@ func (s *provider) Get(name string) (string, error) {
 	s.logger.Debug("Requesting secret", common.LogSecretToken, name, common.LogSystemToken, logSystem)
 	value, err := s.Secret.Get(name)
 	if err != nil {
-		s.logger.Error("Can't find requested secret", err, common.LogSecretToken, name, common.LogSystemToken, logSystem)
-		return "", err
+		s.logger.Error("Can't find requested secret", err,
+			common.LogSecretToken, name, common.LogSystemToken, logSystem)
+		return "", errors.Wrap(err, "secret not found")
 	}
 
 	return value, nil
@@ -91,17 +94,18 @@ func (s *provider) Set(name string, data string) error {
 	err := s.Secret.Set(name, data)
 
 	if err != nil {
-		s.logger.Error("Failed to add a new secret", err, common.LogSecretToken, name, common.LogSystemToken, logSystem)
-		return err
+		s.logger.Error("Failed to add a new secret", err, common.LogSecretToken,
+			name, common.LogSystemToken, logSystem)
+		return errors.Wrap(err, "add secret failed")
 	}
 	return nil
 }
 
 // UpdateLogger updates a secret's provider logger.
 // Since this component loads before main logger, we need to update it.
-func (s *provider) UpdateLogger(provider common.ILoggerProvider) {
+func (s *provider) UpdateLogger(pluginLogger common.ILoggerProvider) {
 	secretLoggerCtor := &logger.ConstructPluginLogger{
-		SystemLogger: provider,
+		SystemLogger: pluginLogger,
 		Provider:     s.provider,
 		System:       systems.SysSecret.String(),
 	}
@@ -112,9 +116,10 @@ func (s *provider) UpdateLogger(provider common.ILoggerProvider) {
 
 // Helper to return default provider.
 func returnFsProvider(ctor *ConstructSecret) *provider {
+	prov := getFsProvider(ctor)
 	return &provider{
-		Secret:   getFsProvider(ctor),
-		logger:   ctor.Logger,
+		Secret:   prov,
+		logger:   prov.logger,
 		provider: "go-home",
 	}
 }
@@ -123,7 +128,7 @@ func returnFsProvider(ctor *ConstructSecret) *provider {
 // nolint: dupl
 func getFsProvider(ctor *ConstructSecret) *fsSecret {
 	secretLoggerCtor := &logger.ConstructPluginLogger{
-		SystemLogger: ctor.Logger,
+		SystemLogger: ctor.PluginLogger,
 		Provider:     "go-home",
 		System:       systems.SysSecret.String(),
 	}

@@ -28,12 +28,13 @@ const (
 )
 
 // Proxy Bintray downloading attempt.
+//noinspection GoUnhandledErrorResult
 func main() {
 	logger := log.New(os.Stdout, "proxy", log.LstdFlags)
 	pluginFolder := os.Args[1]
 	port := 9090
 	if len(os.Args) > 2 {
-		port, _ = strconv.Atoi(os.Args[2])
+		port, _ = strconv.Atoi(os.Args[2]) // nolint: gosec
 	}
 
 	p := &proxy{
@@ -146,6 +147,7 @@ func (p *proxy) handle(writer http.ResponseWriter, request *http.Request) {
 }
 
 // Downloads the file.
+//noinspection GoUnhandledErrorResult
 func (p *proxy) download(file string, arch string, callback chan *downloadResponse) {
 	archName := strings.Replace(file, "_", "/", -1)
 	pluginName := strings.Replace(archName, ".tar.gz", "", -1)
@@ -234,8 +236,9 @@ func (p *proxy) download(file string, arch string, callback chan *downloadRespon
 }
 
 // Copying files for cross-device.
+//noinspection GoUnhandledErrorResult
 func copyFile(src string, dst string) (err error) {
-	source, err := os.Open(src)
+	source, err := os.Open(src) // nolint: gosec
 	if err != nil {
 		return err
 	}

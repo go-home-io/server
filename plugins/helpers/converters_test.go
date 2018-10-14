@@ -6,6 +6,8 @@ import (
 
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testData struct {
@@ -51,61 +53,52 @@ func TestProperties(t *testing.T) {
 
 	for _, v := range data {
 		p, err := PropertyFixYaml(v.input, v.prop)
-		if err != nil {
-			t.Error("failed fix property " + v.prop.String())
-			t.FailNow()
-		}
-
-		if !PropertyDeepEqual(p, v.gold, v.prop) {
-			t.Error("failed deep equal property " + v.prop.String())
-			t.FailNow()
-		}
+		require.NoError(t, err, "fix yaml %s", v.prop.String())
+		require.True(t, PropertyDeepEqual(p, v.gold, v.prop), "equal %s", v.prop.String())
 
 		if -1 == v.cmd {
 			continue
 		}
 
 		p, err = CommandPropertyFixYaml(v.input, v.cmd)
-
-		if err != nil {
-			t.Error("failed fix command " + v.cmd.String())
-			t.Fail()
-		}
-
-		if !PropertyDeepEqual(p, v.gold, v.prop) {
-			t.Error("failed deep equal command " + v.prop.String())
-			t.Fail()
-		}
+		assert.NoError(t, err, "cmd fix yaml %s", v.cmd.String())
+		assert.True(t, PropertyDeepEqual(p, v.gold, v.prop), "cmd equal %s", v.prop.String())
 	}
 }
 
 // Tests unmarshal properties.
 func TestUnmarshalProperty(t *testing.T) {
-	in := map[enums.Property]interface{}{
-		enums.PropOn:         true,
-		enums.PropBrightness: map[interface{}]interface{}{"value": 88},
-		enums.PropColor:      map[string]interface{}{"r": 129, "g": 10, "b": 23},
-		enums.PropHumidity:   map[interface{}]interface{}{"value": 88},
+	data := []struct {
+		prop enums.Property
+		in   interface{}
+		out  interface{}
+	}{
+		{
+			prop: enums.PropOn,
+			in:   true,
+			out:  true,
+		},
+		{
+			prop: enums.PropBrightness,
+			in:   map[interface{}]interface{}{"value": 88},
+			out:  common.Percent{Value: 88},
+		},
+		{
+			prop: enums.PropColor,
+			in:   map[string]interface{}{"r": 129, "g": 10, "b": 23},
+			out:  common.Color{R: 129, G: 10, B: 23},
+		},
+		{
+			prop: enums.PropHumidity,
+			in:   map[interface{}]interface{}{"value": 88},
+			out:  common.Float{Value: 88},
+		},
 	}
 
-	out := map[enums.Property]interface{}{
-		enums.PropOn:         true,
-		enums.PropBrightness: common.Percent{Value: 88},
-		enums.PropColor:      common.Color{R: 129, G: 10, B: 23},
-		enums.PropHumidity:   common.Float{Value: 88},
-	}
-
-	for i, v := range in {
-		p, err := UnmarshalProperty(v, i)
-		if err != nil {
-			t.Error("Unmarshal failed on " + i.String())
-			t.Fail()
-		}
-
-		if !PropertyDeepEqual(p, out[i], i) {
-			t.Error("Equal failed on " + i.String())
-			t.Fail()
-		}
+	for _, v := range data {
+		p, err := UnmarshalProperty(v.in, v.prop)
+		assert.NoError(t, err, "umarshal %s", v.prop.String())
+		assert.True(t, PropertyDeepEqual(p, v.out, v.prop), "equal %s", v.prop.String())
 	}
 }
 
@@ -150,10 +143,7 @@ func TestPlainProperty(t *testing.T) {
 
 	for _, v := range data {
 		out := PlainProperty(v.in, v.prop)
-		if !reflect.DeepEqual(out, v.out) {
-			t.Error("Failed " + v.prop.String())
-			t.Fail()
-		}
+		assert.True(t, reflect.DeepEqual(out, v.out), v.prop.String())
 	}
 }
 
@@ -198,10 +188,7 @@ func TestPlainValueProperty(t *testing.T) {
 
 	for _, v := range data {
 		out := PlainValueProperty(v.in, v.prop)
-		if !reflect.DeepEqual(out, v.out) {
-			t.Error("Failed " + v.prop.String())
-			t.Fail()
-		}
+		assert.True(t, reflect.DeepEqual(out, v.out), v.prop.String())
 	}
 }
 
@@ -236,9 +223,6 @@ func TestPropertyFixNum(t *testing.T) {
 
 	for _, v := range in {
 		r := PropertyFixNum(v.val, v.prop)
-		if !reflect.DeepEqual(r, v.out) {
-			t.Error("Failed on " + v.prop.String())
-			t.Fail()
-		}
+		assert.True(t, reflect.DeepEqual(r, v.out), v.prop.String())
 	}
 }

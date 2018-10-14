@@ -47,6 +47,7 @@ func NewWorker(settings providers.ISettingsProvider) (*GoHomeWorker, error) {
 }
 
 // Start a go-home worker.
+//noinspection GoUnhandledErrorResult
 func (w *GoHomeWorker) Start() {
 	w.busStart()
 

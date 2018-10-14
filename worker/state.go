@@ -3,7 +3,6 @@ package worker
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"errors"
 	"sync"
 	"time"
 
@@ -71,7 +70,7 @@ func newWorkerState(settings providers.ISettingsProvider) *workerState {
 
 	_, err := settings.Cron().AddFunc("@every 15s", w.checkStaleMaster)
 	if err != nil {
-		panic("Failed to start staled workers job")
+		w.Logger.Fatal("Failed to start staled workers job", err)
 	}
 
 	go w.start()
@@ -85,7 +84,7 @@ func (w *workerState) DevicesAssignmentMessage(msg *bus.DeviceAssignmentMessage)
 	w.mutex.Lock()
 	tmpSum := make([]string, 0)
 	for _, v := range msg.Devices {
-		t := md5.Sum([]byte(v.Config))
+		t := md5.Sum([]byte(v.Config)) // nolint: gosec
 		tmpSum = append(tmpSum, hex.EncodeToString(t[:]))
 	}
 
@@ -288,7 +287,7 @@ func (w *workerState) tryUnload(p ...providers.ILoadedProvider) {
 	}
 
 	if !waitWithTimeout(&wg, deviceUnloadTimeout) {
-		w.Logger.Fatal("Failed to unload provider, have to terminate", errors.New("unload failed"))
+		w.Logger.Fatal("Failed to unload provider, have to terminate", &ErrUnloadFailed{})
 	}
 }
 

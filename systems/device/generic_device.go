@@ -1,7 +1,6 @@
 package device
 
 import (
-	"errors"
 	"reflect"
 
 	"github.com/go-home-io/server/plugins/common"
@@ -9,6 +8,7 @@ import (
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
+	"github.com/pkg/errors"
 )
 
 // ConstructDevice has data required for a new device loader.
@@ -46,7 +46,7 @@ func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 	if err != nil {
 		pluginLogger.Error("Failed to load device plugin", err,
 			common.LogDeviceTypeToken, ctor.DeviceName)
-		return nil, err
+		return nil, errors.Wrap(err, "unknown type")
 	}
 
 	pluginLoadRequest := &providers.PluginLoadRequest{
@@ -61,14 +61,14 @@ func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 	if err != nil {
 		pluginLogger.Error("Failed to load device plugin", err,
 			common.LogDeviceTypeToken, ctor.DeviceName)
-		return nil, err
+		return nil, errors.Wrap(err, "plugin load failed")
 	}
 
 	deviceState, err := loadDevice(i, ctor.DeviceType)
 	if err != nil {
 		pluginLogger.Error("Failed to load device plugin", err,
 			common.LogDeviceTypeToken, ctor.DeviceName)
-		return nil, err
+		return nil, errors.Wrap(err, "plugin init failed")
 	}
 
 	deviceCtor := &wrapperConstruct{
@@ -111,7 +111,7 @@ func getExpectedType(deviceType enums.DeviceType) (reflect.Type, error) {
 		return device.TypeCamera, nil
 	}
 
-	return nil, errors.New("unknown device type")
+	return nil, &ErrUnknownDeviceType{}
 }
 
 // Executes load method of the device implementation.
@@ -131,5 +131,5 @@ func loadDevice(deviceInterface interface{}, deviceType enums.DeviceType) (inter
 		return deviceInterface.(device.ICamera).Load()
 	}
 
-	return nil, errors.New("unknown device type")
+	return nil, &ErrUnknownDeviceType{}
 }

@@ -22,7 +22,7 @@ type ILight interface {
 
 // LightState returns information about known light.
 type LightState struct {
-	TransitionTime    uint16       `json:"transition_time"`
+	TransitionTime    int          `json:"transition_time"`
 	BrightnessPercent uint8        `json:"brightness"`
 	On                bool         `json:"on"`
 	Color             common.Color `json:"color"`

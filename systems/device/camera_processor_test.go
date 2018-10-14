@@ -8,8 +8,11 @@ import (
 	"image/jpeg"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/corona10/goimagehash"
 	"github.com/go-home-io/server/plugins/device/enums"
+	"github.com/stretchr/testify/assert"
 )
 
 func getCamera() IProcessor {
@@ -18,6 +21,7 @@ width: 760
 quality: 50`)
 }
 
+//noinspection GoUnhandledErrorResult
 func getImage() (string, *goimagehash.ImageHash) {
 	img := image.NewRGBA(image.Rect(0, 0, 1, 1))
 	img.Set(0, 0, color.RGBA{R: 255, G: 255, B: 255})
@@ -31,29 +35,26 @@ func getImage() (string, *goimagehash.ImageHash) {
 // Tests camera processor constructor.
 func TestCameraProcessorCtor(t *testing.T) {
 	c := getCamera()
-
-	if c.(*cameraProcessor).width != 760 || c.(*cameraProcessor).quality != 50 ||
-		c.(*cameraProcessor).distance != defaultCameraDistance {
-		t.Fail()
-	}
+	assert.Equal(t, 760, c.(*cameraProcessor).width, "width")
+	assert.Equal(t, 50, c.(*cameraProcessor).quality, "quality")
+	assert.Equal(t, defaultCameraDistance, c.(*cameraProcessor).distance, "distance")
 }
 
 // Tests regular property validation.
 func TestCameraProcessorRegularProperty(t *testing.T) {
 	c := getCamera()
 	ok, out := c.IsPropertyGood(enums.PropArea, 20)
-	if !ok || len(out) != 1 || out[enums.PropArea] != 20 {
-		t.Fail()
-	}
+	assert.True(t, ok, "not ok")
+	require.Equal(t, 1, len(out), "length")
+	assert.Equal(t, 20, out[enums.PropArea], "area")
 }
 
 // Tests passing incorrect data.
 func TestCorruptedPicture(t *testing.T) {
 	c := getCamera()
 	ok, out := c.IsPropertyGood(enums.PropPicture, "wrong data")
-	if ok || out != nil {
-		t.Fail()
-	}
+	assert.False(t, ok)
+	assert.Nil(t, out)
 }
 
 // Tests passing a new image.
@@ -62,29 +63,17 @@ func TestNewImage(t *testing.T) {
 	img, _ := getImage()
 
 	ok, out := c.IsPropertyGood(enums.PropPicture, img)
-
-	if !ok || out == nil {
-		t.Error("Validation failed")
-		t.FailNow()
-	}
+	require.True(t, ok)
+	require.NotNil(t, out)
 
 	outB, err := base64.StdEncoding.DecodeString(out[enums.PropPicture].(string))
-	if err != nil {
-		t.Error("Received wrong base64 data")
-		t.FailNow()
-	}
+	require.NoError(t, err, "not a base64")
 
 	reader := bytes.NewReader(outB)
 	jp, err := jpeg.Decode(reader)
-	if err != nil {
-		t.Error("Didn't receive image: " + err.Error())
-		t.FailNow()
-	}
-
-	if jp.Bounds().Max.X != 760 || jp.Bounds().Max.Y != 760 {
-		t.Error("Received image is incorrect")
-		t.Fail()
-	}
+	require.NoError(t, err, "not an image")
+	assert.Equal(t, 760, jp.Bounds().Max.X, "x")
+	assert.Equal(t, 760, jp.Bounds().Max.Y, "y")
 }
 
 // Tests passing same image twice.
@@ -92,25 +81,16 @@ func TestSameImage(t *testing.T) {
 	c := getCamera()
 	img, _ := getImage()
 	ok, _ := c.IsPropertyGood(enums.PropPicture, img)
-	if !ok {
-		t.Error("Validation failed")
-		t.FailNow()
-	}
+	assert.True(t, ok, "first validation")
 
 	ok, _ = c.IsPropertyGood(enums.PropPicture, img)
-	if ok {
-		t.Error("Second validation failed")
-		t.Fail()
-	}
+	assert.False(t, ok, "second validation")
 }
 
 // Tests whether all extra properties correctly processed.
-func TestExtraProperties(t *testing.T){
+func TestExtraProperties(t *testing.T) {
 	c := getCamera()
 	for _, v := range c.GetExtraSupportPropertiesSpec() {
-		if !c.IsExtraProperty(v) {
-			t.Error("Failed extra property " + v.String())
-			t.Fail()
-		}
+		assert.True(t, c.IsExtraProperty(v), v.String())
 	}
 }

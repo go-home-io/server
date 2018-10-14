@@ -2,7 +2,6 @@
 package trigger
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -17,6 +16,7 @@ import (
 	"github.com/go-home-io/server/systems"
 	"github.com/go-home-io/server/utils"
 	"github.com/gobwas/glob"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -56,7 +56,7 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 	err := yaml.Unmarshal(ctor.RawConfig, cfg)
 	if err != nil {
 		ctor.Logger.Error("Failed to unmarshal trigger config", err)
-		return nil, err
+		return nil, errors.Wrap(err, "yaml un-marshal failed")
 	}
 
 	if "" == cfg.Name {
@@ -73,7 +73,7 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 	err = w.loadActions(cfg.Actions)
 	if err != nil {
 		ctor.Logger.Error("Failed to init trigger provider", err, "name", cfg.Name)
-		return nil, err
+		return nil, errors.Wrap(err, "load action failed")
 	}
 
 	w.loadActiveWindow(cfg.ActiveHrs)
@@ -98,7 +98,7 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 	plugin, err := ctor.Loader.LoadPlugin(request)
 	if err != nil {
 		ctor.Logger.Error("Failed to load trigger provider", err, "name", cfg.Name)
-		return nil, err
+		return nil, errors.Wrap(err, "plugin load failed")
 	}
 
 	w.trigger = plugin.(pluginTrigger.ITrigger)
@@ -144,7 +144,7 @@ func (w *wrapper) loadActions(data []map[string]interface{}) error {
 	}
 
 	if 0 == len(w.deviceActions) {
-		return errors.New("no actions defined")
+		return &ErrNoActions{}
 	}
 
 	return nil
@@ -166,7 +166,7 @@ func (w *wrapper) loadDeviceAction(data map[string]interface{}) {
 	}
 
 	if !w.validator.Validate(action) {
-		err := errors.New("invalid action config")
+		err := &ErrInvalidActionConfig{}
 		w.logger.Error("Failed to validate action", err, "name", w.ID)
 		return
 	}

@@ -2,7 +2,6 @@ package bus
 
 import (
 	"encoding/json"
-	"errors"
 
 	"github.com/go-home-io/server/plugins/bus"
 	"github.com/go-home-io/server/plugins/common"
@@ -122,7 +121,7 @@ func (w *messageParser) processWorkerMessage(b *MessageWithType, r *bus.RawMessa
 	default:
 		w.logger.Warn("Received unknown message type", "type", b.Type.String(),
 			common.LogSystemToken, logSystem)
-		err = errors.New("unknown message type")
+		err = &ErrUnknownType{}
 	}
 
 	return err
@@ -149,7 +148,7 @@ func (w *messageParser) processServerMessage(b *MessageWithType, r *bus.RawMessa
 	default:
 		w.logger.Warn("Received unknown message type", "type", b.Type.String(),
 			common.LogSystemToken, logSystem)
-		err = errors.New("unknown message type")
+		err = &ErrUnknownType{}
 	}
 
 	return err
