@@ -3,7 +3,6 @@ GO_BIN_FOLDER=$(GOPATH)/bin
 GOCMD=GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER) GO111MODULE=on go
 
 GOGET=$(GOCMD) get
-GOGET_NO_MOD=GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER) GO111MODULE=off go get
 GOBUILD=$(GOCMD) build -ldflags="-s -w"
 GOGENERATE=$(GOCMD) generate
 
@@ -16,9 +15,9 @@ BIN_FOLDER=${CURDIR}/bin
 BIN_NAME=$(BIN_FOLDER)/go-home
 PLUGINS_BINS=$(BIN_FOLDER)/plugins
 
-METALINER=PATH=${PATH}:$(BIN_FOLDER) $(BIN_FOLDER)/gometalinter --sort=linter --config=${CURDIR}/.gometalinter.json
+METALINER=GO111MODULE=off PATH=${PATH}:$(BIN_FOLDER) $(BIN_FOLDER)/gometalinter --sort=linter --config=${CURDIR}/.gometalinter.json
 
-.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test
+.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test lint-local
 
 define build_plugins_task =
 	set -e
@@ -102,19 +101,39 @@ define lint_all =
 
 	cd $(PLUGINS_LOCATION)
 	for plugin_type in *; do
-    		if [ -d "$${plugin_type}" ]; then
-    			for plugin in $${plugin_type}/*; do
-    				if [ -d "$${plugin}" ]; then
-    					echo "======================================="
-    					echo "Linting $${plugin}"
-    					echo "======================================="
-    					cd $${plugin}
-    					$(METALINER) --enable=megacheck_provider ./...
-    					cd $(PLUGINS_LOCATION)
-    				fi;
-    			done;
-    		fi;
-    	done;
+		if [ -d "$${plugin_type}" ]; then
+			for plugin in $${plugin_type}/*; do
+				if [ -d "$${plugin}" ]; then
+					echo "======================================="
+					echo "Linting $${plugin}"
+					echo "======================================="
+					cd $${plugin}
+					$(METALINER) --enable=megacheck_provider ./...
+					cd $(PLUGINS_LOCATION)
+				fi;
+			done;
+		fi;
+    done;
+endef
+
+define lint_cleanup =
+	set -e
+	echo "======================================="
+	echo "Cleaning up vendoring"
+	echo "======================================="
+	rm -rf vendor
+	cd $(PLUGINS_LOCATION)
+	for plugin_type in *; do
+		if [ -d "$${plugin_type}" ]; then
+			for plugin in $${plugin_type}/*; do
+				if [ -d "$${plugin}" ]; then
+					cd $${plugin}
+					rm -rf vendor
+					cd $(PLUGINS_LOCATION)
+				fi;
+			done;
+		fi;
+	done;
 endef
 
 utilities-build:
@@ -122,8 +141,6 @@ utilities-build:
 	$(GOGET) github.com/rakyll/statik
 
 utilities-ci:
-	#$(GOGET_NO_MOD) github.com/alecthomas/gometalinter
-	#$(METALINER) --install --update
 	curl -L https://git.io/vp6lP | sh
 	$(GOGET) github.com/mattn/goveralls
 
@@ -159,7 +176,7 @@ test:
 test-local: test
 	$(GOCMD) tool cover --html=$(BIN_FOLDER)/cover.out
 
-git: dep-ensure generate lint test-local
+git: dep-ensure generate lint-local test-local
 
 build-rpi-cache-docker:
 	docker build -t go-home-cahe -f Dockerfile.rpi.cache .
@@ -178,6 +195,11 @@ dep:
 SHELL = /bin/sh
 lint:
 	$(lint_all)
+
+.ONESHELL:
+SHELL = /bin/sh
+lint-local: dep lint
+	$(lint_cleanup)
 
 .ONESHELL:
 dep-ensure:

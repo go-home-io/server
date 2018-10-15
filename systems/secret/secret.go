@@ -18,9 +18,7 @@ const (
 type provider struct {
 	Secret secret.ISecret
 
-	logger       common.ILoggerProvider
-	pluginLogger common.ILoggerProvider
-
+	logger   common.ILoggerProvider
 	provider string
 }
 

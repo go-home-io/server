@@ -67,11 +67,11 @@ type deviceWrapper struct {
 	Spec        *device.Spec
 	CommandsStr []string
 
-	stopped      bool
 	stopChan     chan bool
 	updateMethod reflect.Value
 	commands     map[enums.Command]reflect.Value
 	children     []IDeviceWrapperProvider
+	stopped      bool
 
 	isPolling bool
 	processor IProcessor
@@ -388,12 +388,13 @@ func (w *deviceWrapper) periodicUpdates(duration time.Duration) {
 		return
 	}
 
-	tick := time.Tick(duration)
+	ticker := time.NewTicker(duration)
 	for {
 		select {
 		case <-w.stopChan:
+			ticker.Stop()
 			return
-		case <-tick:
+		case <-ticker.C:
 			go w.pullUpdate()
 		}
 	}
