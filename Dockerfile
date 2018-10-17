@@ -34,8 +34,15 @@ ENV GOOS=${GOOS}
 ARG GOARM
 ENV GOARM=${GOARM}
 
-
-RUN mkdir -p /app && \
+RUN if [ "x${GOARM}" != "x" ]; then \
+        apt-get install -y cross-gcc-dev && \
+        dpkg --add-architecture armhf && \
+        apt-get update && \
+        apt-get install -y crossbuild-essential-armhf && \
+        export CC=arm-linux-gnueabihf-gcc && \
+        export CGO_ENABLED=1; \
+    fi; \
+    mkdir -p /app && \
     VERSION=${VERSION} GOOS=${GOOS} GOARM=${GOARM} GOARCH=${GOARCH} make dep && \
     VERSION=${VERSION} GOOS=${GOOS} GOARM=${GOARM} GOARCH=${GOARCH} make generate && \
     VERSION=${VERSION} GOOS=${GOOS} GOARM=${GOARM} GOARCH=${GOARCH} make BIN_FOLDER=/app build
