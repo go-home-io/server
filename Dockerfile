@@ -1,5 +1,5 @@
 ARG RUN_IMAGE
-FROM golang:1.11.1
+FROM golang:1.11.1 as build
 
 ENV PROVIDERS=https://github.com/go-home-io/providers.git
 
