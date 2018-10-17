@@ -33,14 +33,14 @@ jobs:
         - ./build.sh ci
       after_success:
         - curl -d "repo=github.com/go-home-io/server" https://goreportcard.com/checks
-    - stage: docker-amd
+    - stage: docker
       if: tag IS present
       cache:
         - directories:
             - public
       script:
         - ./build.sh amd64
-    - stage: docker-arm
+    - ## Same stage
       if: tag IS present
       cache:
         - directories:
