@@ -41,10 +41,10 @@ RUN if [ "x${GOARM}" != "x" ]; then \
         apt-get update && \
         apt-get install -y crossbuild-essential-armhf && \
         export CC=arm-linux-gnueabihf-gcc && \
-        export BUILD_EXTRA='-a -tags netgo' && \
         export CGO_ENABLED=1; \
     fi; \
     mkdir -p /app && \
+    export BUILD_EXTRA='-a -tags netgo' && \
     VERSION=${VERSION} GOOS=${GOOS} GOARM=${GOARM} GOARCH=${GOARCH} make dep && \
     VERSION=${VERSION} GOOS=${GOOS} GOARM=${GOARM} GOARCH=${GOARCH} make generate && \
     VERSION=${VERSION} GOOS=${GOOS} GOARM=${GOARM} GOARCH=${GOARCH} make BIN_FOLDER=/app build

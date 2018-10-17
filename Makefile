@@ -17,7 +17,7 @@ PLUGINS_BINS=$(BIN_FOLDER)/plugins
 
 METALINER=GO111MODULE=off PATH=${PATH}:$(BIN_FOLDER) $(BIN_FOLDER)/gometalinter --sort=linter --config=${CURDIR}/.gometalinter.json
 
-.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test lint-local
+.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test lint-local vendor-cleanup
 
 define build_plugins_task =
 	set -e
@@ -199,9 +199,15 @@ lint:
 
 .ONESHELL:
 SHELL = /bin/sh
-lint-local: dep lint
+lint-local: dep lint vendor-cleanup
+
+.ONESHELL:
+SHELL = /bin/sh
+vendor-cleanup:
 	$(lint_cleanup)
 
 .ONESHELL:
 dep-ensure:
 	$(validate_dependencies)
+	cd ${CURDIR}
+	$(GOCMD) run cmd/mod/mod.go ${CURDIR} $(PLUGINS_LOCATION)
