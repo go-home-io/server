@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y make git gcc libc-dev ca-certificates c
     if [ "x${TRAVIS_TAG}" != "x" ]; then \
         cd providers && \
         git fetch --all --tags --prune && \
-        git checkout tags/${TRAVIS_TAG; \
+        git checkout tags/${TRAVIS_TAG}; \
     fi; && \
     cd ${HOME_DIR}
 
