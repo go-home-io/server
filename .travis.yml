@@ -6,7 +6,7 @@ git:
   depth: 3
 jobs:
   include:
-    - stage: dashboard
+    - stage: ci
       before_install:
         - sudo apt-get update
         - sudo apt-get install -y curl make
@@ -28,7 +28,7 @@ jobs:
         - rm -rf public
         - mkdir public
         - cp -r dashboard/build/* public/
-    - stage: ci
+    - ## ci stage
       script:
         - ./build.sh ci
       after_success:
@@ -40,7 +40,7 @@ jobs:
             - public
       script:
         - ./build.sh amd64
-    - ## Same stage
+    - ## docker stage
       if: tag IS present
       cache:
         - directories:
