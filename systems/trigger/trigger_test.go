@@ -321,6 +321,7 @@ func TestInvokeOutsideOfActiveWindow(t *testing.T) {
 	ctr := &ConstructTrigger{
 		Logger:    mocks.FakeNewLogger(nil),
 		Validator: utils.NewValidator(mocks.FakeNewLogger(nil)),
+		Name:      "test",
 		Loader:    mocks.FakeNewPluginLoader(fakePlugin),
 		Secret:    mocks.FakeNewSecretStore(nil, false),
 		FanOut:    mocks.FakeNewFanOut(),
@@ -330,7 +331,6 @@ func TestInvokeOutsideOfActiveWindow(t *testing.T) {
 		}).(providers.IServerProvider),
 	}
 	ctr.RawConfig = []byte(fmt.Sprintf(`
-name: test
 activeHrs: %s-%s
 actions:
     - system: device

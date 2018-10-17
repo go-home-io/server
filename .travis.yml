@@ -28,7 +28,6 @@ jobs:
         - rm -rf public
         - mkdir public
         - cp -r dashboard/build/* public/
-        - ls -la public/
     - stage: ci
       script:
         - ./build.sh ci
