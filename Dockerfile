@@ -4,7 +4,8 @@ FROM golang:1.11.1 as build
 ENV PROVIDERS=https://github.com/go-home-io/providers.git
 
 ENV PROVIDERS=https://github.com/go-home-io/providers.git \
-    HOME_DIR=${GOPATH}/src/github.com/go-home-io/server
+    HOME_DIR=${GOPATH}/src/github.com/go-home-io/server \
+    QEMU=https://github.com/multiarch/qemu-user-static/releases/download/v2.6.0/qemu-arm-static.tar.gz
 
 ARG TRAVIS_TAG
 ENV VERSION=${TRAVIS_TAG}
@@ -40,6 +41,7 @@ RUN if [ "x${GOARM}" != "x" ]; then \
         apt-get update && \
         apt-get install -y crossbuild-essential-armhf && \
         export CC=arm-linux-gnueabihf-gcc && \
+        export BUILD_EXTRA='-a -tags netgo' && \
         export CGO_ENABLED=1; \
     fi; \
     mkdir -p /app && \
@@ -67,16 +69,18 @@ RUN if [ "${LINT}" != "false" ]; then \
         GOOS=linux GOARCH=amd64 GOARM= BINTRAY_API_KEY=${BINTRAY_API_KEY} BINTRAY_API_USER=${BINTRAY_API_USER} go run cmd/bintray/upload.go /app/plugins ${VERSION} ${GOARCH}; \
     fi;
 
+RUN mkdir -p /out && \
+    cp /app/go-home /out/ && \
+    if [ "x${GOARM}" != "x" ]; then \
+          curl -L -o qemu-arm-static.tar.gz ${QEMU} && \
+          tar xzf qemu-arm-static.tar.gz && \
+          cp qemu-arm-static /out/; \
+    fi;
+
 ##################################################################################################
 
 FROM $RUN_IMAGE
 
-ENV HOME_DIR=/go-home
+COPY --from=build /out/* /usr/bin/
 
-WORKDIR ${HOME_DIR}
-
-RUN apk update && apk add ca-certificates
-
-COPY --from=build /app/go-home .
-
-CMD ["./go-home"]
+CMD ["go-home"]

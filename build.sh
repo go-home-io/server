@@ -5,7 +5,7 @@ set -e
 op=$1
 IMAGE_NAME=gohomeio/server
 IMAGE_VERSION=${TRAVIS_TAG}
-ALPINE_DOCKER=alpine:3.8
+ALPINE_DOCKER=debian:jessie-slim
 
 docker_login(){
     echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
@@ -47,12 +47,12 @@ build_amd64(){
     docker_push
 }
 
-build_arm32v6(){
-    RUN_IMAGE=arm32v6/${ALPINE_DOCKER}
+build_arm32v7(){
+    RUN_IMAGE=arm32v7/${ALPINE_DOCKER}
     LINT=false
-    ARCH=arm32v6
+    ARCH=arm32v7
     GOARCH=arm
-    GOARM=6
+    GOARM=7
     GOOS=linux
 
     docker_build
@@ -72,10 +72,10 @@ update_docker_configuration() {
 }
 
 build_manifest(){
-    docker pull ${IMAGE_NAME}:arm32v6-${IMAGE_VERSION}
+    docker pull ${IMAGE_NAME}:arm32v7-${IMAGE_VERSION}
     docker pull ${IMAGE_NAME}:amd64-${IMAGE_VERSION}
-	docker manifest create ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:arm32v6-${IMAGE_VERSION}  ${IMAGE_NAME}:amd64-${IMAGE_VERSION} --amend
-	docker manifest annotate ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:arm32v6-${IMAGE_VERSION} --os linux --arch arm
+	docker manifest create ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:arm32v7-${IMAGE_VERSION}  ${IMAGE_NAME}:amd64-${IMAGE_VERSION} --amend
+	docker manifest annotate ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:arm32v7-${IMAGE_VERSION} --os linux --arch arm
 	docker manifest push ${IMAGE_NAME}:${IMAGE_VERSION}
 }
 
@@ -91,15 +91,15 @@ amd64*)
     docker_login
     build_amd64
     ;;
-arm32v6*)
+arm32v7*)
     docker_login
-    build_arm32v6
+    build_arm32v7
     ;;
 docker*)
     update_docker_configuration
     docker_login
     build_amd64
-    build_arm32v6
+    build_arm32v7
     build_manifest
     ;;
 manifest*)

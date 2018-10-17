@@ -3,7 +3,7 @@ GO_BIN_FOLDER=$(GOPATH)/bin
 GOCMD=GOOS=${GOOS} GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER) GO111MODULE=on go
 
 GOGET=$(GOCMD) get
-GOBUILD=$(GOCMD) build -ldflags="-s -w"
+GOBUILD=$(GOCMD) build -ldflags="-s -w" ${BUILD_EXTRA}
 GOGENERATE=$(GOCMD) generate
 
 MOD=$(GOCMD) mod tidy

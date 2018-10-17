@@ -28,11 +28,11 @@ jobs:
         - rm -rf public
         - mkdir public
         - cp -r dashboard/build/* public/
-    - ## ci stage
-      script:
-        - ./build.sh ci
-      after_success:
-        - curl -d "repo=github.com/go-home-io/server" https://goreportcard.com/checks
+#    - ## ci stage
+#      script:
+#        - ./build.sh ci
+#      after_success:
+#        - curl -d "repo=github.com/go-home-io/server" https://goreportcard.com/checks
     - stage: docker
       if: tag IS present
       cache:
@@ -47,7 +47,7 @@ jobs:
             - public
       script:
         - docker run --rm --privileged multiarch/qemu-user-static:register --reset
-        - ./build.sh arm32v6
+        - ./build.sh arm32v7
     - stage: manifest
       if: tag IS present
       script:
