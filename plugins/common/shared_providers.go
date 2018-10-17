@@ -24,6 +24,7 @@ type ILoggerProvider interface {
 	Flush()
 }
 
+// IPluginLoggerProvider defines additional method for adding extra fields.
 type IPluginLoggerProvider interface {
 	ILoggerProvider
 	AddFields(map[string]string)

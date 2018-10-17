@@ -507,6 +507,8 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 	}
 }
 
+// Returns logger for a plugin.
+//nolint: unparam
 func (s *settingsProvider) getPluginLogger(system systems.SystemType, provider string) common.ILoggerProvider {
 	ctor := &logger.ConstructPluginLogger{
 		SystemLogger: s.pluginLogger,

@@ -26,6 +26,7 @@ type ConstructDevice struct {
 }
 
 // LoadDevice validates device type and loads requested plugin.
+// nolint: dupl
 func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 	logCtor := &logger.ConstructPluginLogger{
 		SystemLogger: ctor.Settings.PluginLogger(),

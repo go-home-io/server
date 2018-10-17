@@ -13,6 +13,7 @@ import (
 
 // Loads hub device.
 // Hub is different from other devices, since it can operate multiple different devices.
+// nolint: dupl
 func loadHub(ctor *ConstructDevice, pluginLogger common.IPluginLoggerProvider) ([]IDeviceWrapperProvider, error) {
 	wrappers := make([]IDeviceWrapperProvider, 0)
 

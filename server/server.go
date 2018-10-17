@@ -14,7 +14,7 @@ import (
 	busPlugin "github.com/go-home-io/server/plugins/bus"
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/providers"
-	_ "github.com/go-home-io/server/server/statik"
+	_ "github.com/go-home-io/server/server/statik" // Importing statik auto-generated files.
 	"github.com/go-home-io/server/systems/api"
 	"github.com/go-home-io/server/systems/bus"
 	"github.com/go-home-io/server/systems/group"
@@ -23,7 +23,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/rakyll/statik/fs" // Importing statik auto-generated files.
+	"github.com/rakyll/statik/fs"
 )
 
 const (
