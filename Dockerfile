@@ -13,7 +13,8 @@ ENV VERSION=${TRAVIS_TAG}
 WORKDIR ${HOME_DIR}
 COPY . .
 
-RUN apt-get update && apt-get install -y make git gcc libc-dev ca-certificates curl && \
+RUN apt-get update && \
+    apt-get install -y make git gcc libc-dev ca-certificates curl && \
     make utilities-build && \
     cd ${GOPATH} && \
     mkdir -p src/github.com/go-home-io && \
@@ -82,5 +83,8 @@ RUN mkdir -p /out && \
 FROM $RUN_IMAGE
 
 COPY --from=build /out/* /usr/bin/
+
+RUN apt-get update && \
+    apt-get install -y ca-certificates
 
 CMD ["go-home"]
