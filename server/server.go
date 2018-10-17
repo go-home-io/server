@@ -14,7 +14,7 @@ import (
 	busPlugin "github.com/go-home-io/server/plugins/bus"
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems"
+	_ "github.com/go-home-io/server/server/statik"
 	"github.com/go-home-io/server/systems/api"
 	"github.com/go-home-io/server/systems/bus"
 	"github.com/go-home-io/server/systems/group"
@@ -23,10 +23,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/rakyll/statik/fs"
-
-	// Importing statik auto-generated files.
-	_ "github.com/go-home-io/server/server/statik"
+	"github.com/rakyll/statik/fs" // Importing statik auto-generated files.
 )
 
 const (
@@ -206,8 +203,9 @@ func (s *GoHomeServer) startTriggers() {
 	s.triggers = make([]providers.ITriggerProvider, 0)
 	for _, v := range s.Settings.Triggers() {
 		ctor := &trigger.ConstructTrigger{
-			Logger:    s.Settings.PluginLogger(systems.SysTrigger, v.Provider),
+			Logger:    s.Settings.PluginLogger(),
 			Provider:  v.Provider,
+			Name:      v.Name,
 			RawConfig: v.RawConfig,
 			Loader:    s.Settings.PluginLoader(),
 			FanOut:    s.Settings.FanOut(),
@@ -233,7 +231,7 @@ func (s *GoHomeServer) startAPI(root *mux.Router, external *mux.Router) {
 			RawConfig:          v.RawConfig,
 			Server:             s,
 			Validator:          s.Settings.Validator(),
-			Logger:             s.Settings.PluginLogger(systems.SysAPI, v.Provider),
+			Logger:             s.Settings.PluginLogger(),
 			Secret:             s.Settings.Secrets(),
 			Loader:             s.Settings.PluginLoader(),
 			FanOut:             s.Settings.FanOut(),

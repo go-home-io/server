@@ -35,7 +35,6 @@ type triggerActionDevice struct {
 
 // Trigger config.
 type trigger struct {
-	Name      string                   `yaml:"name" validate:"required"`
 	Actions   []map[string]interface{} `yaml:"actions" validate:"gt=0"`
 	ActiveHrs string                   `yaml:"activeHrs"`
 }

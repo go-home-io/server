@@ -3,8 +3,6 @@ package settings
 import (
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems"
-	"github.com/go-home-io/server/systems/logger"
 )
 
 // SystemLogger returns default system logger.
@@ -17,13 +15,8 @@ func (s *settingsProvider) Secrets() common.ISecretProvider {
 }
 
 // PluginLogger returns logger specifically for plugin provider.
-func (s *settingsProvider) PluginLogger(system systems.SystemType, provider string) common.ILoggerProvider {
-	ctor := &logger.ConstructPluginLogger{
-		SystemLogger: s.pluginLogger,
-		Provider:     provider,
-		System:       system.String(),
-	}
-	return logger.NewPluginLogger(ctor)
+func (s *settingsProvider) PluginLogger() common.ILoggerProvider {
+	return s.pluginLogger
 }
 
 // ServiceBus returns service bus provider.

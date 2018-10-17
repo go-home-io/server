@@ -85,7 +85,7 @@ func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interfa
 	defer func() {
 		if recover() != nil {
 			os.Remove(fileName) // nolint: gosec
-			l.logger.Fatal("Error opening plugin, corrupted?")
+			l.logger.Fatal("Error opening plugin, corrupted? Removing the .so")
 		}
 	}()
 
@@ -176,11 +176,17 @@ func (l *pluginLoader) loadPlugin(request *providers.PluginLoadRequest,
 }
 
 // Calling Init method of a plugin.
-func (l *pluginLoader) initPlugin(request *providers.PluginLoadRequest, pluginObject interface{}) error {
+func (l *pluginLoader) initPlugin(request *providers.PluginLoadRequest, pluginObject interface{}) (err error) {
 	method := reflect.ValueOf(pluginObject).MethodByName(PluginInterfaceInitMethodName)
 	if !method.IsValid() {
 		return &ErrNoInit{}
 	}
+
+	defer func() {
+		if recover() != nil {
+			err = &ErrInitPanic{}
+		}
+	}()
 
 	var results []reflect.Value
 

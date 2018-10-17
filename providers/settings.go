@@ -3,13 +3,12 @@ package providers
 import (
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/systems"
 )
 
 // ISettingsProvider defines settings loader provider logic.
 type ISettingsProvider interface {
 	SystemLogger() common.ILoggerProvider
-	PluginLogger(system systems.SystemType, provider string) common.ILoggerProvider
+	PluginLogger() common.ILoggerProvider
 	ServiceBus() IBusProvider
 	NodeID() string
 	Cron() ICronProvider

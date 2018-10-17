@@ -1,51 +1,44 @@
-ARG BUILD_IMAGE
 ARG RUN_IMAGE
-ARG NODE_IMAGE
-FROM $NODE_IMAGE as node
+FROM golang:1.11.1
 
-ENV UI=https://github.com/nicknesk/gohome-prototype-react
-
-WORKDIR /
-
-RUN apk update && apk add git make && \
-    git clone ${UI} dashboard && \
-    cd dashboard && \
-    make dep && \
-    make utilities-ci && \
-    make build
-
-##################################################################################################
-
-FROM $BUILD_IMAGE as build
-
+ENV PROVIDERS=https://github.com/go-home-io/providers.git
 
 ENV PROVIDERS=https://github.com/go-home-io/providers.git \
     HOME_DIR=${GOPATH}/src/github.com/go-home-io/server
 
+ARG TRAVIS_TAG
+ENV VERSION=${TRAVIS_TAG}
+
 WORKDIR ${HOME_DIR}
-
 COPY . .
-COPY --from=node /dashboard/build/* ./public/
 
-RUN apk update && apk add make git gcc libc-dev ca-certificates curl && \
+RUN apt-get update && apt-get install -y make git gcc libc-dev ca-certificates curl && \
     make utilities-build && \
     cd ${GOPATH} && \
     mkdir -p src/github.com/go-home-io && \
     cd src/github.com/go-home-io && \
-    git clone ${PROVIDERS} && \
+    git clone ${PROVIDERS} providers && \
+    if [ "x${TRAVIS_TAG}" != "x" ]; then \
+        cd providers && \
+        git fetch --all --tags --prune && \
+        git checkout tags/${TRAVIS_TAG; \
+    fi; && \
     cd ${HOME_DIR}
 
 ARG GOARCH
 ENV GOARCH=${GOARCH}
 
-ARG TRAVIS_TAG
-ENV VERSION=${TRAVIS_TAG}
+ARG GOOS
+ENV GOOS=${GOOS}
 
 ARG GOARM
+ENV GOARM=${GOARM}
+
+
 RUN mkdir -p /app && \
-    VERSION=${VERSION} GOARM=${GOARM} GOARCH=${GOARCH} make dep && \
-    VERSION=${VERSION} GOARM=${GOARM} GOARCH=${GOARCH} make generate && \
-    VERSION=${VERSION} GOARM=${GOARM} GOARCH=${GOARCH} make BIN_FOLDER=/app build
+    VERSION=${VERSION} GOOS=${GOOS} GOARM=${GOARM} GOARCH=${GOARCH} make dep && \
+    VERSION=${VERSION} GOOS=${GOOS} GOARM=${GOARM} GOARCH=${GOARCH} make generate && \
+    VERSION=${VERSION} GOOS=${GOOS} GOARM=${GOARM} GOARCH=${GOARCH} make BIN_FOLDER=/app build
 
 ARG LINT
 ARG C_TOKEN
@@ -53,7 +46,6 @@ ARG TRAVIS
 ARG TRAVIS_JOB_ID
 ARG TRAVIS_BRANCH
 ARG TRAVIS_PULL_REQUEST
-
 ARG BINTRAY_API_USER
 ARG BINTRAY_API_KEY
 RUN if [ "${LINT}" != "false" ]; then \

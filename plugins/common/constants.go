@@ -9,8 +9,10 @@ const (
 	LogWorkerToken = "worker"
 	// LogDeviceTypeToken describes device type log entry.
 	LogDeviceTypeToken = "device_type"
-	// LogDeviceNameToken describes device name log entry.
-	LogDeviceNameToken = "device_name"
+	// LogIDToken describes entity ID entry.
+	LogIDToken = "id"
+	// LogNameToken describes entity name entry.
+	LogNameToken = "name"
 	// LogDeviceCommandToken describes device command log entry.
 	LogDeviceCommandToken = "device_cmd"
 	// LogDevicePropertyToken describes device property log entry.
@@ -23,6 +25,8 @@ const (
 	LogUserNameToken = "user"
 	// LogURLToken describes URL log entry.
 	LogURLToken = "url"
+	// LogTimeToken describes time log entry.
+	LogTimeToken = "time"
 )
 
 const (

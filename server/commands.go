@@ -33,18 +33,18 @@ func (s *GoHomeServer) InternalCommandInvokeDeviceCommand(
 
 		if !helpers.SliceContainsString(v.Commands, cmd.String()) {
 			s.Logger.Warn("Received command is not supported", common.LogSystemToken, logSystem,
-				common.LogDeviceNameToken, v.ID, common.LogDeviceCommandToken, cmd.String())
+				common.LogIDToken, v.ID, common.LogDeviceCommandToken, cmd.String())
 			continue
 		}
 
 		s.Logger.Debug("Invoking device operation", common.LogSystemToken, logSystem,
-			common.LogDeviceNameToken, v.ID, common.LogDeviceCommandToken, cmd.String())
+			common.LogIDToken, v.ID, common.LogDeviceCommandToken, cmd.String())
 
 		if v.Type == enums.DevGroup {
 			g, ok := s.groups[v.ID]
 			if !ok {
 				s.Logger.Warn("Received unknown group", common.LogSystemToken, logSystem,
-					common.LogDeviceNameToken, v.ID, common.LogDeviceCommandToken, cmd.String())
+					common.LogIDToken, v.ID, common.LogDeviceCommandToken, cmd.String())
 				continue
 			}
 			g.InvokeCommand(cmd, data)
@@ -61,28 +61,28 @@ func (s *GoHomeServer) commandInvokeDeviceCommand(user *providers.AuthenticatedU
 	knownDevice := s.state.GetDevice(deviceID)
 	if nil == knownDevice {
 		s.Logger.Warn("Failed to find device", common.LogSystemToken, logSystem,
-			common.LogDeviceNameToken, deviceID, common.LogUserNameToken, user.Username)
+			common.LogIDToken, deviceID, common.LogUserNameToken, user.Username)
 		return &ErrUnknownDevice{ID: deviceID}
 	}
 
 	// We don't want to allow to brute-forth device names, so returning generic error
 	if !knownDevice.Command(user) {
 		s.Logger.Warn("User doesn't have access to this device", common.LogSystemToken, logSystem,
-			common.LogDeviceNameToken, deviceID, common.LogUserNameToken, user.Username)
+			common.LogIDToken, deviceID, common.LogUserNameToken, user.Username)
 		return &ErrUnknownDevice{ID: deviceID}
 	}
 
 	command, err := enums.CommandString(cmdName)
 	if err != nil {
 		s.Logger.Warn("Received unknown command", common.LogSystemToken, logSystem,
-			common.LogDeviceNameToken, deviceID, common.LogDeviceCommandToken, cmdName,
+			common.LogIDToken, deviceID, common.LogDeviceCommandToken, cmdName,
 			common.LogUserNameToken, user.Username)
 		return &ErrUnknownCommand{Name: cmdName}
 	}
 
 	if !helpers.SliceContainsString(knownDevice.Commands, cmdName) {
 		s.Logger.Warn("Received command is not supported", common.LogSystemToken, logSystem,
-			common.LogDeviceNameToken, deviceID, common.LogDeviceCommandToken, cmdName,
+			common.LogIDToken, deviceID, common.LogDeviceCommandToken, cmdName,
 			common.LogUserNameToken, user.Username)
 		return &ErrUnsupportedCommand{Name: cmdName}
 	}
@@ -106,7 +106,7 @@ func (s *GoHomeServer) commandInvokeDeviceCommand(user *providers.AuthenticatedU
 	}
 
 	s.Logger.Debug("Invoking device operation", common.LogSystemToken, logSystem,
-		common.LogDeviceNameToken, deviceID, common.LogDeviceCommandToken, cmdName,
+		common.LogIDToken, deviceID, common.LogDeviceCommandToken, cmdName,
 		common.LogUserNameToken, user.Username)
 	s.Settings.ServiceBus().PublishToWorker(knownDevice.Worker,
 		bus.NewDeviceCommandMessage(deviceID, command, inputData))
@@ -119,7 +119,7 @@ func (s *GoHomeServer) commandGroupCommand(user *providers.AuthenticatedUser,
 	g, ok := s.groups[groupID]
 	if !ok {
 		s.Logger.Warn("Received unknown group", common.LogSystemToken, logSystem,
-			common.LogDeviceNameToken, groupID, common.LogDeviceCommandToken, cmd.String(),
+			common.LogIDToken, groupID, common.LogDeviceCommandToken, cmd.String(),
 			common.LogUserNameToken, user.Username)
 		return &ErrUnknownGroup{Name: groupID}
 	}

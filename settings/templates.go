@@ -61,6 +61,7 @@ func (p *provider) Process(rawFile []byte) []byte {
 
 // Returns environment variable.
 func (p *provider) getEnvVariable(name string) string {
-	p.Logger.Debug("Template is requesting environment variable", "name", name, common.LogSystemToken, logSystem)
+	p.Logger.Debug("Template is requesting environment variable",
+		common.LogNameToken, name, common.LogSystemToken, logSystem)
 	return os.Getenv(name)
 }

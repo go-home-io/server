@@ -11,6 +11,7 @@ import (
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
+	"github.com/go-home-io/server/systems/logger"
 	"github.com/go-home-io/server/utils"
 	"github.com/gobwas/glob"
 	"github.com/gorilla/mux"
@@ -51,9 +52,17 @@ type ConstructAPI struct {
 
 // NewExtendedAPIProvider creates a new API provider.
 func NewExtendedAPIProvider(ctor *ConstructAPI) (providers.IExtendedAPIProvider, error) {
+	logCtor := &logger.ConstructPluginLogger{
+		SystemLogger: ctor.Logger,
+		Provider:     ctor.Provider,
+		System:       systems.SysAPI.String(),
+		ExtraFields:  map[string]string{common.LogNameToken: ctor.Name},
+	}
+	log := logger.NewPluginLogger(logCtor)
+
 	w := &provider{
 		name:       ctor.Name,
-		logger:     ctor.Logger,
+		logger:     log,
 		serviceBus: ctor.ServiceBus,
 		server:     ctor.Server,
 		inQueue:    make(chan bus.RawMessage, 5),
@@ -63,7 +72,7 @@ func NewExtendedAPIProvider(ctor *ConstructAPI) (providers.IExtendedAPIProvider,
 	wkr := fmt.Sprintf(bus.ChExtendedAPIFormat, utils.NormalizeDeviceName(ctor.Name), "Wkr")
 
 	initData := &api.InitDataAPI{
-		Logger:       ctor.Logger,
+		Logger:       log,
 		Secret:       ctor.Secret,
 		IsMaster:     ctor.IsServer,
 		Communicator: w,
@@ -90,16 +99,15 @@ func NewExtendedAPIProvider(ctor *ConstructAPI) (providers.IExtendedAPIProvider,
 
 	plugin, err := ctor.Loader.LoadPlugin(request)
 	if err != nil {
-		ctor.Logger.Error("Failed to load api provider", err, common.LogProviderToken, w.name)
+		log.Error("Failed to load api provider", err)
 		return nil, errors.Wrap(err, "plugin load failed")
 	}
 
-	ctor.Logger.Info("Successfully registered extended API", common.LogProviderToken, w.name)
+	log.Info("Successfully registered extended API")
 
 	w.plugin = plugin.(api.IExtendedAPI)
 
-	ctor.Logger.Info("Extended API requested URL", common.LogProviderToken, w.ID(),
-		"urls", strings.Join(w.plugin.Routes(), " "), common.LogProviderToken, w.name)
+	log.Info("Extended API requested URL", "urls", strings.Join(w.plugin.Routes(), " "))
 	go w.busCycle()
 
 	return w, nil
@@ -146,7 +154,7 @@ func (p *provider) Publish(messages ...api.IExtendedAPIMessage) {
 // InvokeDeviceCommand invokes command. Called from server only.
 func (p *provider) InvokeDeviceCommand(deviceRegexp glob.Glob, cmd enums.Command, data map[string]interface{}) {
 	if nil == p.server {
-		p.logger.Warn("API provider tried to invoke device command from worker", common.LogProviderToken, p.name)
+		p.logger.Warn("API provider tried to invoke device command from worker")
 		return
 	}
 
@@ -159,12 +167,12 @@ func (p *provider) busCycle() {
 		pluginMsg := &api.ExtendedAPIMessage{}
 		err := json.Unmarshal(msg.Body, pluginMsg)
 		if err != nil {
-			p.logger.Error("Received corrupted API message", err, common.LogProviderToken, p.name)
+			p.logger.Error("Received corrupted API message", err)
 			continue
 		}
 
 		if utils.TimeNow()-pluginMsg.SendTime > bus.MsgTTLSeconds {
-			p.logger.Debug("Received API message is too old", common.LogProviderToken, p.name)
+			p.logger.Debug("Received API message is too old")
 			continue
 		}
 

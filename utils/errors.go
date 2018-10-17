@@ -1,5 +1,14 @@
 package utils
 
+// ErrInitPanic defines a panic during the Init call.
+type ErrInitPanic struct {
+}
+
+// Error formats output.
+func (*ErrInitPanic) Error() string {
+	return "panic in init"
+}
+
 // ErrNoEntryPoint defines an absent Load method in a plugin.
 type ErrNoEntryPoint struct {
 }

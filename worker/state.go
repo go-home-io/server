@@ -10,7 +10,6 @@ import (
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/plugins/helpers"
 	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems"
 	"github.com/go-home-io/server/systems/api"
 	"github.com/go-home-io/server/systems/bus"
 	"github.com/go-home-io/server/systems/device"
@@ -106,12 +105,12 @@ func (w *workerState) DevicesAssignmentMessage(msg *bus.DeviceAssignmentMessage)
 // DevicesCommandMessage processes a new device command message, received from server.
 func (w *workerState) DevicesCommandMessage(msg *bus.DeviceCommandMessage) {
 	w.Logger.Debug("Received device command message", common.LogSystemToken, logSystem,
-		common.LogDeviceNameToken, msg.DeviceID, common.LogDeviceCommandToken, msg.Command.String())
+		common.LogIDToken, msg.DeviceID, common.LogDeviceCommandToken, msg.Command.String())
 
 	wrapper, ok := w.devices[msg.DeviceID]
 	if !ok {
 		w.Logger.Warn("Failed to find device on this worker", common.LogSystemToken, logSystem,
-			common.LogDeviceNameToken, msg.DeviceID,
+			common.LogIDToken, msg.DeviceID,
 			common.LogDeviceCommandToken, msg.Command.String())
 		return
 	}
@@ -150,7 +149,7 @@ func (w *workerState) start() {
 			w.mutex.Unlock()
 			if !ok {
 				w.Logger.Warn("Received unknown device update", common.LogSystemToken, logSystem,
-					common.LogDeviceNameToken, update.ID)
+					common.LogIDToken, update.ID)
 				break
 			}
 
@@ -162,7 +161,7 @@ func (w *workerState) start() {
 			id := discover.Provider.ID()
 			if _, ok := w.devices[id]; ok {
 				w.Logger.Warn("Received duplicate discovery for the same device",
-					common.LogSystemToken, logSystem, common.LogDeviceNameToken, id)
+					common.LogSystemToken, logSystem, common.LogIDToken, id)
 			}
 
 			w.devices[id] = discover.Provider
@@ -199,7 +198,7 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 				Name:       a.Name,
 				Provider:   a.Plugin,
 				IsServer:   false,
-				Logger:     w.Settings.PluginLogger(systems.SysAPI, a.Plugin),
+				Logger:     w.Settings.PluginLogger(),
 				Loader:     w.Settings.PluginLoader(),
 				RawConfig:  []byte(a.Config),
 				ServiceBus: w.Settings.ServiceBus(),

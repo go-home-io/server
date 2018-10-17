@@ -8,6 +8,7 @@ import (
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
+	"github.com/go-home-io/server/systems/logger"
 	"github.com/pkg/errors"
 )
 
@@ -26,16 +27,26 @@ type ConstructDevice struct {
 
 // LoadDevice validates device type and loads requested plugin.
 func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
-	if ctor.DeviceType == enums.DevHub {
-		return loadHub(ctor)
+	logCtor := &logger.ConstructPluginLogger{
+		SystemLogger: ctor.Settings.PluginLogger(),
+		Provider:     ctor.DeviceName,
+		System:       systems.SysDevice.String(),
+		ExtraFields: map[string]string{
+			common.LogNameToken:       ctor.ConfigName,
+			common.LogDeviceTypeToken: ctor.DeviceType.String(),
+		},
 	}
 
-	pluginLogger := ctor.Settings.PluginLogger(systems.SysDevice, ctor.DeviceName)
+	log := logger.NewPluginLogger(logCtor)
+
+	if ctor.DeviceType == enums.DevHub {
+		return loadHub(ctor, log)
+	}
 
 	wrappers := make([]IDeviceWrapperProvider, 1)
 
 	loadData := &device.InitDataDevice{
-		Logger:                pluginLogger,
+		Logger:                log,
 		Secret:                ctor.Settings.Secrets(),
 		UOM:                   ctor.UOM,
 		DeviceDiscoveredChan:  make(chan *device.DiscoveredDevices, 3),
@@ -44,8 +55,7 @@ func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 
 	expectedType, err := getExpectedType(ctor.DeviceType)
 	if err != nil {
-		pluginLogger.Error("Failed to load device plugin", err,
-			common.LogDeviceTypeToken, ctor.DeviceName)
+		log.Error("Failed to load device plugin", err)
 		return nil, errors.Wrap(err, "unknown type")
 	}
 
@@ -59,15 +69,13 @@ func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 
 	i, err := ctor.Settings.PluginLoader().LoadPlugin(pluginLoadRequest)
 	if err != nil {
-		pluginLogger.Error("Failed to load device plugin", err,
-			common.LogDeviceTypeToken, ctor.DeviceName)
+		log.Error("Failed to load device plugin", err)
 		return nil, errors.Wrap(err, "plugin load failed")
 	}
 
 	deviceState, err := loadDevice(i, ctor.DeviceType)
 	if err != nil {
-		pluginLogger.Error("Failed to load device plugin", err,
-			common.LogDeviceTypeToken, ctor.DeviceName)
+		log.Error("Failed to load device plugin", err)
 		return nil, errors.Wrap(err, "plugin init failed")
 	}
 
@@ -76,9 +84,11 @@ func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 		DeviceInterface:   i,
 		IsRootDevice:      true,
 		DeviceConfigName:  ctor.ConfigName,
+		DeviceProvider:    ctor.DeviceName,
 		DeviceState:       deviceState,
 		LoadData:          loadData,
-		Logger:            pluginLogger,
+		Logger:            log,
+		SystemLogger:      ctor.Settings.PluginLogger(),
 		Secret:            ctor.Settings.Secrets(),
 		WorkerID:          ctor.Settings.NodeID(),
 		Validator:         ctor.Settings.Validator(),

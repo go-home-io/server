@@ -6,10 +6,28 @@ git:
   depth: 3
 before_install:
   - sudo apt-get update
-  - sudo apt-get install -y curl
-install: true
+  - sudo apt-get install -y curl make
+install:
+  - nvm install 8.11.4
+  - nvm use 8.11.4
 jobs:
   include:
+    - stage: dashboard
+      cache:
+        - directories:
+            - dashboard/node_modules
+            - public
+      script:
+        - git clone https://github.com/nicknesk/gohome-prototype-react db
+        - cp -r db/* dashboard/
+        - cd dashboard
+        - make dep
+        - make utilities-ci
+        - make build
+        - cd ..
+        - rm -rf public
+        - mkdir public
+        - cp -r /dashboard/build/* public/
     - stage: ci
       script:
         - ./build.sh ci
@@ -17,10 +35,19 @@ jobs:
         - curl -d "repo=github.com/go-home-io/server" https://goreportcard.com/checks
     - stage: docker-amd
       if: tag IS present
+      cache:
+        - directories:
+            - public
       script:
-        - ./build.sh docker
+        - ./build.sh amd64
     - stage: docker-arm
       if: tag IS present
+      cache:
+        - directories:
+            - public
       script:
-        - "travis_wait 45 sleep 2700 &"
-        - curl --fail --connect-timeout 60 --max-time 2700 http://${RPI_BUILD_URL}/${TRAVIS_TAG}/${RPI_BUILD_KEY}
+        - ./build.sh arm32v6
+    - stage: manifest
+      if: tag IS present
+      script:
+        - ./build.sh manifest

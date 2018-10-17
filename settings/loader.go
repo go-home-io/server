@@ -131,7 +131,8 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 
 	dataChan := configProvider.Load()
 	if nil == dataChan {
-		settings.logger.Fatal("Didn't get any configuration", errors.New("config provider returned nothing"))
+		settings.logger.Fatal("Didn't get any configuration",
+			errors.New("config provider returned nothing"))
 		return nil
 	}
 
@@ -141,11 +142,13 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 
 	allProviders = settings.loadDevicesAndGoHomeDefinitions(allProviders)
 	if settings.isWorker && nil == settings.wSettings {
-		settings.logger.Fatal("Didn't get workers settings", errors.New("config provider returned nothing"))
+		settings.logger.Fatal("Didn't get workers settings",
+			errors.New("config provider returned nothing"))
 	}
 
 	if !settings.isWorker && nil == settings.mSettings {
-		settings.logger.Fatal("Didn't get master settings", errors.New("config provider returned nothing"))
+		settings.logger.Fatal("Didn't get master settings",
+			errors.New("config provider returned nothing"))
 	}
 
 	allProviders = settings.loadLoggerProvider(allProviders)
@@ -377,8 +380,9 @@ func (s *settingsProvider) loadDeviceProvider(provider *rawProvider) (*providers
 	dup := false
 	for _, e := range s.devicesConfig {
 		if e.Selector.Name == selector.Name {
-			s.logger.Warn("Ignoring device since name is duplicated", common.LogDeviceTypeToken, provider.Provider,
-				common.LogSystemToken, provider.System, common.LogDeviceNameToken, selector.Name)
+			s.logger.Warn("Ignoring device since name is duplicated",
+				common.LogDeviceTypeToken, provider.Provider,
+				common.LogSystemToken, provider.System, common.LogNameToken, selector.Name)
 			dup = true
 			break
 		}
@@ -472,7 +476,7 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 		ctor := &bus.ConstructBus{
 			RawConfig: provider.Config,
 			Provider:  provider.Provider,
-			Logger:    s.PluginLogger(systems.SysBus, provider.Provider),
+			Logger:    s.getPluginLogger(systems.SysBus, provider.Provider),
 			Loader:    s.pluginLoader,
 			NodeID:    s.nodeID,
 			Secret:    s.secrets,
@@ -501,6 +505,15 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 		s.logger.Error("Failed to load plugin", err, common.LogProviderToken, provider.Provider,
 			common.LogSystemToken, provider.System)
 	}
+}
+
+func (s *settingsProvider) getPluginLogger(system systems.SystemType, provider string) common.ILoggerProvider {
+	ctor := &logger.ConstructPluginLogger{
+		SystemLogger: s.pluginLogger,
+		Provider:     provider,
+		System:       system.String(),
+	}
+	return logger.NewPluginLogger(ctor)
 }
 
 // Processes storage provider.
@@ -583,7 +596,7 @@ func (s *settingsProvider) loadAPI(provider *rawProvider) {
 	for _, v := range s.extendedAPIs {
 		if v.Name == d.Name {
 			s.logger.Warn("Duplicated API name, ignoring",
-				common.LogProviderToken, provider.Provider, "name", d.Name)
+				common.LogProviderToken, provider.Provider, common.LogNameToken, d.Name)
 			return
 		}
 	}
@@ -608,7 +621,11 @@ func (s *settingsProvider) getMasterComponents(provider *rawProvider) *providers
 	}
 
 	if "" == cmp.Name {
-		cmp.Name = cmp.Provider
+		s.logger.Warn("Generating random name since it's not configured. "+
+			"History will not be preserver between master restarts", common.LogDeviceTypeToken, provider.Provider,
+			common.LogSystemToken, provider.System)
+
+		cmp.Name = namesgenerator.GetRandomName(0)
 	}
 
 	return cmp

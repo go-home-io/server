@@ -24,6 +24,11 @@ type ILoggerProvider interface {
 	Flush()
 }
 
+type IPluginLoggerProvider interface {
+	ILoggerProvider
+	AddFields(map[string]string)
+}
+
 // MsgDeviceUpdate contains data with updates device's state.
 type MsgDeviceUpdate struct {
 	ID        string

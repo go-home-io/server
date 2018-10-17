@@ -140,7 +140,7 @@ func (s *provider) History(deviceID string) map[enums.Property]map[int64]interfa
 	for k, v := range d {
 		prop, err := enums.PropertyString(k)
 		if err != nil {
-			s.logger.Warn("Unknown device property", common.LogDeviceNameToken, deviceID,
+			s.logger.Warn("Unknown device property", common.LogIDToken, deviceID,
 				common.LogDevicePropertyToken, k)
 			continue
 		}
@@ -149,7 +149,7 @@ func (s *provider) History(deviceID string) map[enums.Property]map[int64]interfa
 		for t, val := range v {
 			f, err := PropertyLoad(prop, val)
 			if err != nil {
-				s.logger.Error("Failed to unmarshal device property", err, common.LogDeviceNameToken, deviceID,
+				s.logger.Error("Failed to unmarshal device property", err, common.LogIDToken, deviceID,
 					common.LogDevicePropertyToken, k)
 				continue
 			}
@@ -176,7 +176,7 @@ func (s *provider) processDeviceUpdate(msg *common.MsgDeviceUpdate) {
 
 		if err != nil {
 			s.logger.Error("Failed to prepare property before state saving", err,
-				common.LogDeviceNameToken, msg.ID, common.LogDevicePropertyToken, k.String())
+				common.LogIDToken, msg.ID, common.LogDevicePropertyToken, k.String())
 			continue
 		}
 

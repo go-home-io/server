@@ -67,7 +67,7 @@ func withFields(fields ...string) map[string]string {
 
 // Prepares final string.
 func output(msg string, fields map[string]string, c color.Attribute) {
-	newM := fmt.Sprintf("%s   %s", time.Now().Local().Format(time.StampMilli), msg)
+	newM := fmt.Sprintf("%s   %s", time.Now().Format(time.StampMilli), msg)
 
 	for k, v := range fields {
 		newM = fmt.Sprintf("%s\n          %s: %s", newM, k, v)

@@ -5,7 +5,6 @@ package mocks
 import (
 	"github.com/go-home-io/server/plugins/common"
 	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems"
 )
 
 type IFakeSettings interface {
@@ -49,7 +48,7 @@ func (f *fakeSettings) Secrets() common.ISecretProvider {
 	return nil
 }
 
-func (f *fakeSettings) PluginLogger(system systems.SystemType, provider string) common.ILoggerProvider {
+func (f *fakeSettings) PluginLogger() common.ILoggerProvider {
 	return f.logger
 }
 

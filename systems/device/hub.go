@@ -7,14 +7,14 @@ import (
 	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
+	"github.com/go-home-io/server/systems/logger"
 	"github.com/pkg/errors"
 )
 
 // Loads hub device.
 // Hub is different from other devices, since it can operate multiple different devices.
-func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
+func loadHub(ctor *ConstructDevice, pluginLogger common.IPluginLoggerProvider) ([]IDeviceWrapperProvider, error) {
 	wrappers := make([]IDeviceWrapperProvider, 0)
-	pluginLogger := ctor.Settings.PluginLogger(systems.SysDevice, ctor.DeviceName)
 
 	loadData := &device.InitDataDevice{
 		Logger:                pluginLogger,
@@ -50,9 +50,11 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 		DeviceInterface:   hub,
 		IsRootDevice:      true,
 		DeviceConfigName:  ctor.ConfigName,
+		DeviceProvider:    ctor.DeviceName,
 		DeviceState:       hubResults.State,
 		LoadData:          loadData,
 		Logger:            pluginLogger,
+		SystemLogger:      ctor.Settings.PluginLogger(),
 		Secret:            ctor.Settings.Secrets(),
 		WorkerID:          ctor.Settings.NodeID(),
 		Validator:         ctor.Settings.Validator(),
@@ -77,25 +79,38 @@ func loadHub(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 
 		dev, ok := v.Interface.(device.IDevice)
 		if !ok {
-			pluginLogger.Warn("One of the loaded devices is not implementing IDevice interface",
-				common.LogDeviceNameToken, hubWrapper.ID())
+			pluginLogger.Warn("One of the loaded devices is not implementing IDevice interface")
 			continue
 		}
 
 		err := dev.Init(subLoadData)
 		if err != nil {
-			pluginLogger.Error("Failed to load hub device", err, common.LogDeviceNameToken, hubWrapper.ID())
+			pluginLogger.Error("Failed to load hub device", err)
 			continue
 		}
+
+		logCtor := &logger.ConstructPluginLogger{
+			SystemLogger: ctor.Settings.PluginLogger(),
+			Provider:     ctor.DeviceName,
+			System:       systems.SysDevice.String(),
+			ExtraFields: map[string]string{
+				common.LogNameToken:       ctor.ConfigName,
+				common.LogDeviceTypeToken: v.Type.String(),
+			},
+		}
+
+		log := logger.NewPluginLogger(logCtor)
 
 		spawnedCtor := &wrapperConstruct{
 			DeviceType:        v.Type,
 			DeviceInterface:   v.Interface,
 			IsRootDevice:      false,
 			DeviceConfigName:  ctor.ConfigName,
+			DeviceProvider:    ctor.DeviceName,
 			DeviceState:       v.State,
 			LoadData:          subLoadData,
-			Logger:            pluginLogger,
+			Logger:            log,
+			SystemLogger:      ctor.Settings.PluginLogger(),
 			Secret:            ctor.Settings.Secrets(),
 			WorkerID:          ctor.Settings.NodeID(),
 			Validator:         ctor.Settings.Validator(),

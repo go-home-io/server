@@ -86,12 +86,12 @@ func TestWithinActiveWindowInvokes(t *testing.T) {
 	}
 
 	data := []string{
-		fmt.Sprintf("%s-%s", time.Now().Local().Add(-1*time.Hour).Format(time.Kitchen),
-			time.Now().Local().Add(1*time.Hour).Format(time.Kitchen)),
-		fmt.Sprintf("%s-%s", time.Now().Local().Add(-1*time.Hour).Format(time.Kitchen),
-			time.Now().Local().Add(22*time.Hour).Format(time.Kitchen)),
-		fmt.Sprintf("11:00PM-%s", time.Now().Local().Add(1*time.Minute).Format(time.Kitchen)),
-		fmt.Sprintf("%s-11:00PM", time.Now().Local().Add(-1*time.Minute).Format(time.Kitchen)),
+		fmt.Sprintf("%s-%s", time.Now().Add(-1*time.Hour).Format(time.Kitchen),
+			time.Now().Add(1*time.Hour).Format(time.Kitchen)),
+		fmt.Sprintf("%s-%s", time.Now().Add(-1*time.Hour).Format(time.Kitchen),
+			time.Now().Add(22*time.Hour).Format(time.Kitchen)),
+		fmt.Sprintf("11:00PM-%s", time.Now().Add(1*time.Minute).Format(time.Kitchen)),
+		fmt.Sprintf("%s-11:00PM", time.Now().Add(-1*time.Minute).Format(time.Kitchen)),
 	}
 
 	for _, v := range data {
@@ -115,10 +115,10 @@ func TestOutsideOfActiveWindowInvokes(t *testing.T) {
 	}
 
 	data := []string{
-		fmt.Sprintf("%s-%s", time.Now().Local().Add(-3*time.Hour).Format(time.Kitchen),
-			time.Now().Local().Add(-2*time.Hour).Format(time.Kitchen)),
-		fmt.Sprintf("%s-%s", time.Now().Local().Add(1*time.Hour).Format(time.Kitchen),
-			time.Now().Local().Add(-22*time.Hour).Format(time.Kitchen)),
+		fmt.Sprintf("%s-%s", time.Now().Add(-3*time.Hour).Format(time.Kitchen),
+			time.Now().Add(-2*time.Hour).Format(time.Kitchen)),
+		fmt.Sprintf("%s-%s", time.Now().Add(1*time.Hour).Format(time.Kitchen),
+			time.Now().Add(-22*time.Hour).Format(time.Kitchen)),
 	}
 
 	for _, v := range data {
@@ -335,8 +335,8 @@ activeHrs: %s-%s
 actions:
     - system: device
       entity: hub
-      command: "on"`, time.Now().Local().Add(-3*time.Hour).Format(time.Kitchen),
-		time.Now().Local().Add(-2*time.Hour).Format(time.Kitchen)))
+      command: "on"`, time.Now().Add(-3*time.Hour).Format(time.Kitchen),
+		time.Now().Add(-2*time.Hour).Format(time.Kitchen)))
 
 	pl, err := NewTrigger(ctr)
 	assert.NoError(t, err)

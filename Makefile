@@ -1,6 +1,6 @@
 # Go params
 GO_BIN_FOLDER=$(GOPATH)/bin
-GOCMD=GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER) GO111MODULE=on go
+GOCMD=GOOS=${GOOS} GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER) GO111MODULE=on go
 
 GOGET=$(GOCMD) get
 GOBUILD=$(GOCMD) build -ldflags="-s -w"
@@ -121,6 +121,7 @@ define lint_cleanup =
 	echo "======================================="
 	echo "Cleaning up vendoring"
 	echo "======================================="
+	cd $(CURDIR)
 	rm -rf vendor
 	cd $(PLUGINS_LOCATION)
 	for plugin_type in *; do

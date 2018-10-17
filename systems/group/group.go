@@ -10,6 +10,7 @@ import (
 	"github.com/go-home-io/server/plugins/helpers"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
+	"github.com/go-home-io/server/systems/logger"
 	"github.com/go-home-io/server/utils"
 	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
@@ -58,6 +59,7 @@ type ConstructGroup struct {
 
 // NewGroupProvider creates a new group provider.
 func NewGroupProvider(ctor *ConstructGroup) (providers.IGroupProvider, error) {
+
 	settings := &settings{}
 	err := yaml.Unmarshal(ctor.RawConfig, settings)
 	if err != nil {
@@ -65,8 +67,19 @@ func NewGroupProvider(ctor *ConstructGroup) (providers.IGroupProvider, error) {
 		return nil, errors.Wrap(err, "yaml un-marshal failed")
 	}
 
+	logCtor := &logger.ConstructPluginLogger{
+		SystemLogger: ctor.Settings.PluginLogger(),
+		Provider:     systems.SysDevice.String(),
+		System:       "group",
+		ExtraFields: map[string]string{
+			common.LogNameToken: settings.Name,
+			common.LogIDToken:   getID(settings.Name),
+		},
+	}
+	log := logger.NewPluginLogger(logCtor)
+
 	provider := &provider{
-		logger:     ctor.Settings.PluginLogger(systems.SysDevice, "group"),
+		logger:     log,
 		devicesExp: make([]glob.Glob, 0),
 		internalID: getID(settings.Name),
 		Name:       settings.Name,

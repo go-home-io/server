@@ -41,7 +41,7 @@ func TestFSConfig(t *testing.T) {
 
 	c := &fsConfig{}
 	err := c.Init(&config.InitDataConfig{
-		Logger:  mocks.FakeNewLogger(func(s string) {
+		Logger: mocks.FakeNewLogger(func(s string) {
 			println(s)
 		}),
 		Options: map[string]string{},
@@ -49,7 +49,7 @@ func TestFSConfig(t *testing.T) {
 	})
 
 	require.NoError(t, err)
-	
+
 	ii := 0
 	for d := range c.Load() {
 		println("FILE")

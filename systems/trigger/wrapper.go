@@ -3,8 +3,6 @@ package trigger
 
 import (
 	"fmt"
-	"math/rand"
-	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +12,7 @@ import (
 	pluginTrigger "github.com/go-home-io/server/plugins/trigger"
 	"github.com/go-home-io/server/providers"
 	"github.com/go-home-io/server/systems"
+	"github.com/go-home-io/server/systems/logger"
 	"github.com/go-home-io/server/utils"
 	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
@@ -45,6 +44,7 @@ type ConstructTrigger struct {
 	Secret    common.ISecretProvider
 	Validator providers.IValidatorProvider
 	Provider  string
+	Name      string
 	RawConfig []byte
 	FanOut    providers.IInternalFanOutProvider
 	Server    providers.IServerProvider
@@ -52,27 +52,31 @@ type ConstructTrigger struct {
 
 // NewTrigger creates a new trigger.
 func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
+	logCtor := &logger.ConstructPluginLogger{
+		SystemLogger: ctor.Logger,
+		Provider:     ctor.Provider,
+		System:       systems.SysAPI.String(),
+		ExtraFields:  map[string]string{common.LogNameToken: ctor.Name, common.LogIDToken: getID(ctor.Name)},
+	}
+	log := logger.NewPluginLogger(logCtor)
+
 	cfg := &trigger{}
 	err := yaml.Unmarshal(ctor.RawConfig, cfg)
 	if err != nil {
-		ctor.Logger.Error("Failed to unmarshal trigger config", err)
+		log.Error("Failed to unmarshal trigger config", err)
 		return nil, errors.Wrap(err, "yaml un-marshal failed")
 	}
 
-	if "" == cfg.Name {
-		cfg.Name = strconv.FormatInt(utils.TimeNow()+rand.Int63(), 10)
-		ctor.Logger.Warn("Trigger name is not specified, going to user random one", "name", cfg.Name)
-	}
-
 	w := &wrapper{
-		logger:    ctor.Logger,
-		name:      cfg.Name,
+		logger:    log,
+		name:      ctor.Name,
 		validator: ctor.Validator,
 		server:    ctor.Server,
+		ID:        getID(ctor.Name),
 	}
 	err = w.loadActions(cfg.Actions)
 	if err != nil {
-		ctor.Logger.Error("Failed to init trigger provider", err, "name", cfg.Name)
+		log.Error("Failed to init trigger provider", err)
 		return nil, errors.Wrap(err, "load action failed")
 	}
 
@@ -82,7 +86,7 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 
 	initData := &pluginTrigger.InitDataTrigger{
 		FanOut:    ctor.FanOut,
-		Logger:    ctor.Logger,
+		Logger:    log,
 		Triggered: callback,
 		Secret:    ctor.Secret,
 	}
@@ -97,7 +101,7 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 
 	plugin, err := ctor.Loader.LoadPlugin(request)
 	if err != nil {
-		ctor.Logger.Error("Failed to load trigger provider", err, "name", cfg.Name)
+		log.Error("Failed to load trigger provider", err)
 		return nil, errors.Wrap(err, "plugin load failed")
 	}
 
@@ -112,10 +116,6 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 // GetID returns trigger id.
 // Format is name.trigger.
 func (w *wrapper) GetID() string {
-	if "" == w.ID {
-		w.ID = fmt.Sprintf("%s.%s", utils.NormalizeDeviceName(w.name), systems.SysTrigger.String())
-	}
-
 	return w.ID
 }
 
@@ -131,7 +131,7 @@ func (w *wrapper) loadActions(data []map[string]interface{}) error {
 
 		sys, err := triggerSystemString(s.(string))
 		if err != nil {
-			w.logger.Warn("Unknown trigger system", common.LogSystemToken, s.(string), "name", w.ID)
+			w.logger.Warn("Unknown trigger system", common.LogSystemToken, s.(string))
 			continue
 		}
 
@@ -154,38 +154,38 @@ func (w *wrapper) loadActions(data []map[string]interface{}) error {
 func (w *wrapper) loadDeviceAction(data map[string]interface{}) {
 	tmp, err := yaml.Marshal(data)
 	if err != nil {
-		w.logger.Error("Failed to parse device action: marshal error", err, "name", w.ID)
+		w.logger.Error("Failed to parse device action: marshal error", err)
 		return
 	}
 
 	action := &triggerActionDevice{}
 	err = yaml.Unmarshal(tmp, action)
 	if err != nil {
-		w.logger.Error("Failed to parse device action: un-marshal error", err, "name", w.ID)
+		w.logger.Error("Failed to parse device action: un-marshal error", err)
 		return
 	}
 
 	if !w.validator.Validate(action) {
 		err := &ErrInvalidActionConfig{}
-		w.logger.Error("Failed to validate action", err, "name", w.ID)
+		w.logger.Error("Failed to validate action", err)
 		return
 	}
 
 	action.prepEntity, err = glob.Compile(action.Entity)
 	if err != nil {
-		w.logger.Error("Failed to compile regexp", err, "name", w.ID)
+		w.logger.Error("Failed to compile regexp", err)
 	}
 
 	action.cmd, err = enums.CommandString(action.Command)
 	if err != nil {
 		w.logger.Error("Failed to validate action properties: unknown command", err,
-			"name", w.ID, common.LogDeviceCommandToken, action.Command)
+			common.LogDeviceCommandToken, action.Command)
 		return
 	}
 
 	action.Args, err = helpers.CommandPropertyFixYaml(action.Args, action.cmd)
 	if err != nil {
-		w.logger.Error("Failed to validate action properties", err, "name", w.ID)
+		w.logger.Error("Failed to validate action properties", err)
 		return
 	}
 
@@ -193,13 +193,13 @@ func (w *wrapper) loadDeviceAction(data map[string]interface{}) {
 	if nil != action.Args {
 		tmp, err = yaml.Marshal(action.Args)
 		if err != nil {
-			w.logger.Error("Failed to parse device action: marshal error", err, "name", w.ID)
+			w.logger.Error("Failed to parse device action: marshal error", err)
 			return
 		}
 
 		err = yaml.Unmarshal(tmp, action.prepArgs)
 		if err != nil {
-			w.logger.Error("Failed to parse device action: un-marshal error", err, "name", w.ID)
+			w.logger.Error("Failed to parse device action: un-marshal error", err)
 			return
 		}
 
@@ -224,13 +224,13 @@ func (w *wrapper) processTriggers() {
 // TODO: Remove nolint after scripts implementation.
 func (w *wrapper) triggered(msg interface{}) { //nolint:unparam
 	if !w.isInActiveTimeWindow() {
-		w.logger.Debug("Triggered but outside of active window", "name", w.ID, common.LogDeviceNameToken)
+		w.logger.Debug("Triggered but outside of active window")
 		return
 	}
 
 	for _, v := range w.deviceActions {
-		w.logger.Info("Invoking trigger device action", "name", w.ID, common.LogDeviceNameToken,
-			v.Entity, common.LogDeviceCommandToken, v.Command)
+		w.logger.Info("Invoking trigger device action",
+			"target_id", v.Entity, common.LogDeviceCommandToken, v.Command)
 		w.server.InternalCommandInvokeDeviceCommand(v.prepEntity, v.cmd, v.prepArgs)
 	}
 }
@@ -241,7 +241,7 @@ func (w *wrapper) isInActiveTimeWindow() bool {
 		return true
 	}
 
-	nowT := time.Now().Local()
+	nowT := time.Now()
 	now := nowT.Hour()*60 + nowT.Minute()
 	if w.from > w.to {
 		return now <= w.to || now >= w.from
@@ -256,19 +256,19 @@ func (w *wrapper) loadActiveWindow(window string) {
 	if len(window) > 0 {
 		parts := strings.Split(window, "-")
 		if len(parts) != 2 {
-			w.logger.Warn("Active windows is wrong, ignoring", "name", w.ID)
+			w.logger.Warn("Active windows is wrong, ignoring")
 			return
 		}
 
 		from, err := time.Parse(time.Kitchen, parts[0])
 		if err != nil {
-			w.logger.Warn("Active windows FROM is wrong, ignoring", "name", w.ID)
+			w.logger.Warn("Active windows FROM is wrong, ignoring")
 			return
 		}
 
 		to, err := time.Parse(time.Kitchen, parts[1])
 		if err != nil {
-			w.logger.Warn("Active windows TO is wrong, ignoring", "name", w.ID)
+			w.logger.Warn("Active windows TO is wrong, ignoring")
 			return
 		}
 
@@ -276,4 +276,9 @@ func (w *wrapper) loadActiveWindow(window string) {
 		w.to = to.Hour()*60 + to.Minute()
 		w.activeWindow = true
 	}
+}
+
+// Returns trigger ID.
+func getID(name string) string {
+	return fmt.Sprintf("%s.%s", utils.NormalizeDeviceName(name), systems.SysTrigger.String())
 }

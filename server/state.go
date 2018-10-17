@@ -129,7 +129,7 @@ func (s *serverState) Discovery(msg *bus.DiscoveryMessage) {
 // Update processes incoming device update message.
 func (s *serverState) Update(msg *bus.DeviceUpdateMessage) {
 	s.Logger.Debug("Received update for the device", common.LogDeviceTypeToken, msg.DeviceType.String(),
-		common.LogSystemToken, logSystem, common.LogDeviceNameToken, msg.DeviceID)
+		common.LogSystemToken, logSystem, common.LogIDToken, msg.DeviceID)
 
 	s.deviceMutex.Lock()
 	defer s.deviceMutex.Unlock()
@@ -214,7 +214,7 @@ func (s *serverState) processDeviceStateUpdate(dv *knownDevice, newState map[str
 			t, err = helpers.PropertyFixYaml(v, prop)
 			if err != nil {
 				s.Logger.Error("Failed to convert property", err,
-					common.LogDevicePropertyToken, prop.String(), common.LogDeviceNameToken, dv.ID)
+					common.LogDevicePropertyToken, prop.String(), common.LogIDToken, dv.ID)
 				continue
 			}
 		} else {
@@ -291,7 +291,7 @@ func (s *serverState) reBalance(newWorkerID string) {
 		candidates := s.pickWorker(d)
 		if 0 == len(candidates) {
 			s.Logger.Warn("Failed to select a worker for the device", common.LogSystemToken, logSystem,
-				common.LogDeviceTypeToken, d.Plugin, "name", d.Selector.Name)
+				common.LogDeviceTypeToken, d.Plugin, common.LogNameToken, d.Selector.Name)
 			continue
 		}
 
@@ -307,7 +307,7 @@ func (s *serverState) reBalance(newWorkerID string) {
 
 		if "" == best {
 			s.Logger.Warn("Failed to select a worker: too many devices", common.LogSystemToken, logSystem,
-				common.LogDeviceTypeToken, d.Plugin, "name", d.Selector.Name)
+				common.LogDeviceTypeToken, d.Plugin, common.LogNameToken, d.Selector.Name)
 			continue
 		}
 
