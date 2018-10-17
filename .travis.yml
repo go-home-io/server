@@ -4,15 +4,15 @@ services:
   - docker
 git:
   depth: 3
-before_install:
-  - sudo apt-get update
-  - sudo apt-get install -y curl make
-install:
-  - nvm install 8.11.4
-  - nvm use 8.11.4
 jobs:
   include:
     - stage: dashboard
+      before_install:
+        - sudo apt-get update
+        - sudo apt-get install -y curl make
+      install:
+        - nvm install 8.11.4
+        - nvm use 8.11.4
       cache:
         - directories:
             - dashboard/node_modules
@@ -47,6 +47,7 @@ jobs:
         - directories:
             - public
       script:
+        - docker run --rm --privileged multiarch/qemu-user-static:register --reset
         - ./build.sh arm32v6
     - stage: manifest
       if: tag IS present

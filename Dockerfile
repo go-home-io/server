@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y make git gcc libc-dev ca-certificates c
         cd providers && \
         git fetch --all --tags --prune && \
         git checkout tags/${TRAVIS_TAG}; \
-    fi; && \
+    fi; \
     cd ${HOME_DIR}
 
 ARG GOARCH
