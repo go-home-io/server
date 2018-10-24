@@ -11,25 +11,31 @@ import (
 	"syscall"
 	"time"
 
-	busPlugin "github.com/go-home-io/server/plugins/bus"
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/providers"
-	_ "github.com/go-home-io/server/server/statik" // Importing statik auto-generated files.
-	"github.com/go-home-io/server/systems/api"
-	"github.com/go-home-io/server/systems/bus"
-	"github.com/go-home-io/server/systems/group"
-	"github.com/go-home-io/server/systems/trigger"
-	"github.com/go-home-io/server/systems/ui"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/rakyll/statik/fs"
+	busPlugin "go-home.io/x/server/plugins/bus"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/providers"
+	_ "go-home.io/x/server/server/statik" // Importing statik auto-generated files.
+	"go-home.io/x/server/systems/api"
+	"go-home.io/x/server/systems/bus"
+	"go-home.io/x/server/systems/group"
+	"go-home.io/x/server/systems/trigger"
+	"go-home.io/x/server/systems/ui"
 )
 
 const (
 	// Logger system representation.
 	logSystem = "server"
 )
+
+type knownMasterComponent struct {
+	Loaded    bool
+	Name      string
+	Interface interface{}
+}
 
 // GoHomeServer describes master node.
 type GoHomeServer struct {
@@ -40,8 +46,8 @@ type GoHomeServer struct {
 
 	state IServerStateProvider
 
-	triggers     []providers.ITriggerProvider
-	extendedAPIs []providers.IExtendedAPIProvider
+	triggers     []*knownMasterComponent
+	extendedAPIs []*knownMasterComponent
 	groups       map[string]providers.IGroupProvider
 	locations    []providers.ILocationProvider
 
@@ -158,6 +164,7 @@ func (s *GoHomeServer) registerAPI(router *mux.Router) {
 	apiRouter.HandleFunc("/group", s.getGroups).Methods(http.MethodGet)
 	apiRouter.HandleFunc("/state", s.getCurrentState).Methods(http.MethodGet)
 	apiRouter.HandleFunc("/worker", s.getWorkers).Methods(http.MethodGet)
+	apiRouter.HandleFunc("/status", s.getStatus).Methods(http.MethodGet)
 
 	apiRouter.Use(s.logMiddleware)
 	router.Use(s.authMiddleware)
@@ -194,13 +201,15 @@ func (s *GoHomeServer) busCycle() {
 			s.state.Discovery(dis)
 		case dup := <-s.MessageParser.GetDeviceUpdateMessageChan():
 			s.state.Update(dup)
+		case load := <-s.MessageParser.GetEntityLoadStatueMessageChan():
+			s.state.EntityLoad(load)
 		}
 	}
 }
 
 // Starts triggers.
 func (s *GoHomeServer) startTriggers() {
-	s.triggers = make([]providers.ITriggerProvider, 0)
+	s.triggers = make([]*knownMasterComponent, 0)
 	for _, v := range s.Settings.Triggers() {
 		ctor := &trigger.ConstructTrigger{
 			Logger:    s.Settings.PluginLogger(),
@@ -214,17 +223,23 @@ func (s *GoHomeServer) startTriggers() {
 			Server:    s,
 		}
 		tr, err := trigger.NewTrigger(ctor)
-		if err != nil {
-			continue
+		comp := &knownMasterComponent{
+			Name:      v.Name,
+			Interface: tr,
+			Loaded:    true,
 		}
 
-		s.triggers = append(s.triggers, tr)
+		if err != nil {
+			comp.Loaded = false
+		}
+
+		s.triggers = append(s.triggers, comp)
 	}
 }
 
 // Starts APIs.
 func (s *GoHomeServer) startAPI(root *mux.Router, external *mux.Router) {
-	s.extendedAPIs = make([]providers.IExtendedAPIProvider, 0)
+	s.extendedAPIs = make([]*knownMasterComponent, 0)
 	for _, v := range s.Settings.ExtendedAPIs() {
 		ctor := &api.ConstructAPI{
 			Provider:           v.Provider,
@@ -243,11 +258,17 @@ func (s *GoHomeServer) startAPI(root *mux.Router, external *mux.Router) {
 		}
 
 		a, err := api.NewExtendedAPIProvider(ctor)
-		if err != nil {
-			continue
+		comp := &knownMasterComponent{
+			Name:      v.Name,
+			Interface: a,
+			Loaded:    true,
 		}
 
-		s.extendedAPIs = append(s.extendedAPIs, a)
+		if err != nil {
+			comp.Loaded = false
+		}
+
+		s.extendedAPIs = append(s.extendedAPIs, comp)
 	}
 }
 

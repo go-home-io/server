@@ -1,7 +1,7 @@
 // Package providers contains interfaces for internal system providers.
 package providers
 
-import "github.com/go-home-io/server/plugins/bus"
+import "go-home.io/x/server/plugins/bus"
 
 // IBusProvider defines service bus provider logic.
 type IBusProvider interface {

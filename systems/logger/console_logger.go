@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/go-home-io/server/plugins/common"
+	"go-home.io/x/server/plugins/common"
 )
 
 // Default console logger.

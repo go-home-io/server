@@ -1,4 +1,4 @@
-module github.com/go-home-io/server
+module go-home.io/x/server
 
 require (
 	bou.ke/monkey v1.0.1
@@ -36,9 +36,9 @@ require (
 	github.com/stretchr/testify v1.2.2
 	github.com/ulikunitz/xz v0.5.4 // indirect
 	github.com/vkorn/go-bintray v0.0.0-20180801131521-627b4bc5e556
-	golang.org/x/crypto v0.0.0-20180820150726-614d502a4dac
+	golang.org/x/crypto v0.0.0-20180904163835-0709b304e793
 	golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81 // indirect
-	golang.org/x/sys v0.0.0-20180821140842-3b58ed4ad339 // indirect
+	golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1
 	gopkg.in/go-playground/validator.v9 v9.21.0
 	gopkg.in/robfig/cron.v2 v2.0.0-20150107220207-be2e0b0deed5

@@ -5,12 +5,12 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/secret"
-	"github.com/go-home-io/server/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/secret"
+	"go-home.io/x/server/utils"
 )
 
 // Fake plugin.

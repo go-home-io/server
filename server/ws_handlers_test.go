@@ -9,15 +9,16 @@ import (
 	"time"
 
 	"bou.ke/monkey"
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/providers"
 	"github.com/gobwas/glob"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems/security"
 )
 
 type wsSuite struct {
@@ -52,7 +53,7 @@ func (w *wsSuite) SetupTest() {
 		"g1":     {ID: "g1", Type: enums.DevGroup, Commands: []string{enums.CmdOn.String()}, Worker: "1"},
 	}
 
-	user := &providers.AuthenticatedUser{
+	user := &security.AuthenticatedUser{
 		Username: "usr1",
 		Rules: map[providers.SecSystem][]*providers.BakedRule{
 			providers.SecSystemDevice: {
@@ -81,7 +82,7 @@ func (w *wsSuite) SetupTest() {
 
 	w.ts = httptest.NewServer(http.HandlerFunc(srv.handleWS))
 
-	monkey.Patch(getContextUser, func(request *http.Request) *providers.AuthenticatedUser {
+	monkey.Patch(getContextUser, func(request *http.Request) providers.IAuthenticatedUser {
 		return user
 	})
 	defer monkey.UnpatchAll()

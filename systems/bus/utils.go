@@ -3,8 +3,8 @@ package bus
 import (
 	"encoding/json"
 
-	"github.com/go-home-io/server/plugins/bus"
-	"github.com/go-home-io/server/utils"
+	"go-home.io/x/server/plugins/bus"
+	"go-home.io/x/server/utils"
 )
 
 // Parses raw message and checks whether it should be skipped due to the age.

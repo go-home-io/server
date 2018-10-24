@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/creasty/defaults"
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/providers"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/providers"
 	"gopkg.in/go-playground/validator.v9"
 )
 

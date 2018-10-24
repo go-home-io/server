@@ -1,9 +1,9 @@
 package bus
 
 import (
-	"github.com/go-home-io/server/plugins/bus"
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/utils"
+	"go-home.io/x/server/plugins/bus"
+	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/utils"
 )
 
 // MessageWithType helper type for initial service bus message parsing.
@@ -44,6 +44,14 @@ type DeviceAssignmentMessage struct {
 	MessageWithType
 	Devices []*DeviceAssignment `json:"d"`
 	UOM     enums.UOM           `json:"u"`
+}
+
+// EntityLoadStatusMessage used by worker to notify master about entity load status.
+type EntityLoadStatusMessage struct {
+	MessageWithType
+	NodeID    string `json:"n"`
+	Name      string `json:"m"`
+	IsSuccess bool   `json:"s"`
 }
 
 // DeviceUpdateMessage used by worker to update service with devices state update.
@@ -119,5 +127,18 @@ func NewDeviceCommandMessage(deviceID string, command enums.Command,
 		Command:  command,
 		Payload:  data,
 		DeviceID: deviceID,
+	}
+}
+
+// NewEntityLoadStatusMessage constructs entity load message.
+func NewEntityLoadStatusMessage(entityName string, nodeID string, isSuccess bool) *EntityLoadStatusMessage {
+	return &EntityLoadStatusMessage{
+		MessageWithType: MessageWithType{
+			Type:     bus.MsgEntityLoadStatus,
+			SendTime: utils.TimeNow(),
+		},
+		Name:      entityName,
+		IsSuccess: isSuccess,
+		NodeID:    nodeID,
 	}
 }

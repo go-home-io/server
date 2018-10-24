@@ -6,15 +6,15 @@ import (
 	"time"
 
 	"github.com/fortytw2/leaktest"
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/plugins/api"
-	"github.com/go-home-io/server/plugins/bus"
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/utils"
 	"github.com/gobwas/glob"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/plugins/api"
+	"go-home.io/x/server/plugins/bus"
+	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/utils"
 )
 
 // Fake plugin patch.

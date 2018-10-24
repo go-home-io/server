@@ -3,8 +3,8 @@ package bus
 import (
 	"encoding/json"
 
-	"github.com/go-home-io/server/plugins/bus"
-	"github.com/go-home-io/server/plugins/common"
+	"go-home.io/x/server/plugins/bus"
+	"go-home.io/x/server/plugins/common"
 )
 
 // IMessageParserProvider describes messages parser.
@@ -18,6 +18,7 @@ type IMasterMessageParserProvider interface {
 
 	GetDiscoveryMessageChan() chan *DiscoveryMessage
 	GetDeviceUpdateMessageChan() chan *DeviceUpdateMessage
+	GetEntityLoadStatueMessageChan() chan *EntityLoadStatusMessage
 }
 
 // IWorkerMessageParserProvider describes messages parser for worker.
@@ -36,8 +37,9 @@ type messageParser struct {
 	deviceAssignmentChan chan *DeviceAssignmentMessage
 	deviceCommandsChan   chan *DeviceCommandMessage
 
-	discoveryMessageChan    chan *DiscoveryMessage
-	deviceUpdateMessageChan chan *DeviceUpdateMessage
+	discoveryMessageChan        chan *DiscoveryMessage
+	deviceUpdateMessageChan     chan *DeviceUpdateMessage
+	entityLoadStatusMessageChan chan *EntityLoadStatusMessage
 }
 
 // NewWorkerMessageParser constructs parser for worker.
@@ -53,10 +55,11 @@ func NewWorkerMessageParser(logger common.ILoggerProvider) IWorkerMessageParserP
 // NewMasterMessageParser constructs parser for server.
 func NewMasterMessageParser(logger common.ILoggerProvider) IMasterMessageParserProvider {
 	return &messageParser{
-		logger:                  logger,
-		discoveryMessageChan:    make(chan *DiscoveryMessage, 5),
-		deviceUpdateMessageChan: make(chan *DeviceUpdateMessage, 50),
-		isWorker:                false,
+		logger:                      logger,
+		discoveryMessageChan:        make(chan *DiscoveryMessage, 5),
+		deviceUpdateMessageChan:     make(chan *DeviceUpdateMessage, 50),
+		entityLoadStatusMessageChan: make(chan *EntityLoadStatusMessage, 50),
+		isWorker:                    false,
 	}
 }
 
@@ -78,6 +81,10 @@ func (w *messageParser) GetDiscoveryMessageChan() chan *DiscoveryMessage {
 // GetDeviceUpdateMessageChan returns channel used for device updates callbacks.
 func (w *messageParser) GetDeviceUpdateMessageChan() chan *DeviceUpdateMessage {
 	return w.deviceUpdateMessageChan
+}
+
+func (w *messageParser) GetEntityLoadStatueMessageChan() chan *EntityLoadStatusMessage {
+	return w.entityLoadStatusMessageChan
 }
 
 // ProcessIncomingMessage parses incoming service bus message.
@@ -144,6 +151,12 @@ func (w *messageParser) processServerMessage(b *MessageWithType, r *bus.RawMessa
 		err := json.Unmarshal(r.Body, &m)
 		if err == nil {
 			w.deviceUpdateMessageChan <- &m
+		}
+	case bus.MsgEntityLoadStatus:
+		var m EntityLoadStatusMessage
+		err := json.Unmarshal(r.Body, &m)
+		if err == nil {
+			w.entityLoadStatusMessageChan <- &m
 		}
 	default:
 		w.logger.Warn("Received unknown message type", "type", b.Type.String(),

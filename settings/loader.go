@@ -3,23 +3,24 @@ package settings
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 
 	"github.com/docker/docker/pkg/namesgenerator"
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems"
-	"github.com/go-home-io/server/systems/bus"
-	"github.com/go-home-io/server/systems/config"
-	"github.com/go-home-io/server/systems/fanout"
-	"github.com/go-home-io/server/systems/logger"
-	"github.com/go-home-io/server/systems/secret"
-	"github.com/go-home-io/server/systems/security"
-	"github.com/go-home-io/server/systems/storage"
-	"github.com/go-home-io/server/utils"
 	"github.com/pkg/errors"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems"
+	"go-home.io/x/server/systems/bus"
+	"go-home.io/x/server/systems/config"
+	"go-home.io/x/server/systems/fanout"
+	"go-home.io/x/server/systems/logger"
+	"go-home.io/x/server/systems/secret"
+	"go-home.io/x/server/systems/security"
+	"go-home.io/x/server/systems/storage"
+	"go-home.io/x/server/utils"
 	"gopkg.in/yaml.v2"
 )
 
@@ -216,7 +217,14 @@ func (s *settingsProvider) validate() {
 }
 
 // Processes single yaml file.
-func (s *settingsProvider) loadFile(fileData []byte, templateProvider ITemplateProvider) []*rawProvider {
+func (s *settingsProvider) loadFile(fileData []byte, templateProvider ITemplateProvider) (res []*rawProvider) {
+	defer func() {
+		if recover() != nil {
+			s.logger.Error("Got panic while processing file",
+				errors.New("panic"), common.LogSystemToken, logSystem)
+			res = make([]*rawProvider, 0)
+		}
+	}()
 
 	fileData = templateProvider.Process(fileData)
 
@@ -247,7 +255,7 @@ func (s *settingsProvider) loadFile(fileData []byte, templateProvider ITemplateP
 
 		if componentType == "" || componentProvider == "" {
 			s.logger.Warn("Failed to parse a record in the config file: system or provider is not defined",
-				common.LogSystemToken, logSystem)
+				common.LogSystemToken, logSystem, "raw", fmt.Sprintf("%+v", value))
 			continue
 		}
 

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/stretchr/testify/assert"
+	"go-home.io/x/server/plugins/device/enums"
 )
 
 // Tests that we're returning current time.

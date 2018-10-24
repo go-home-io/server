@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/go-home-io/server/providers"
+	"go-home.io/x/server/providers"
 	"gopkg.in/robfig/cron.v2"
 )
 

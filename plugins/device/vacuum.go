@@ -3,8 +3,8 @@ package device
 import (
 	"reflect"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/device/enums"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/device/enums"
 )
 
 // IVacuum defines vacuum device type.

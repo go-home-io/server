@@ -3,17 +3,18 @@ package worker
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"strconv"
 	"sync"
 	"time"
 
-	busPlugin "github.com/go-home-io/server/plugins/bus"
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/helpers"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems/api"
-	"github.com/go-home-io/server/systems/bus"
-	"github.com/go-home-io/server/systems/device"
-	"github.com/go-home-io/server/utils"
+	busPlugin "go-home.io/x/server/plugins/bus"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/helpers"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems/api"
+	"go-home.io/x/server/systems/bus"
+	"go-home.io/x/server/systems/device"
+	"go-home.io/x/server/utils"
 )
 
 // IWorkerStateProvider state abstraction.
@@ -26,7 +27,7 @@ type IWorkerStateProvider interface {
 
 var (
 	// Timeout before terminating device load.
-	deviceLoadTimeout = 50 * time.Second
+	deviceLoadTimeout = 2 * time.Second
 	// Timeout before unload fail panic.
 	deviceUnloadTimeout = 5 * time.Second
 )
@@ -48,6 +49,8 @@ type workerState struct {
 	lastAssignment     []string
 	lastAssignmentTime int64
 	failedDevices      *bus.DeviceAssignmentMessage
+	failedCount        int
+	failedRetryTime    time.Time
 }
 
 // Creating a new worker state object.
@@ -67,12 +70,8 @@ func newWorkerState(settings providers.ISettingsProvider) *workerState {
 		statusUpdatesChan: make(chan *device.UpdateEvent, 30),
 	}
 
-	_, err := settings.Cron().AddFunc("@every 15s", w.checkStaleMaster)
-	if err != nil {
-		w.Logger.Fatal("Failed to start staled workers job", err)
-	}
-
 	go w.start()
+	go w.timeCycle()
 	return &w
 }
 
@@ -133,14 +132,6 @@ func (w *workerState) checkStaleMaster() {
 
 // Starting worker state internal processes.
 func (w *workerState) start() {
-	// We generally don't want to overlap with discovery messages.
-	// Not that we care much, but discovery can bring a new assignment message
-	// so it doesn't make much sense to re-try at the same time.
-	_, err := w.Settings.Cron().AddFunc("@every 1m13s", w.retryLoad)
-	if err != nil {
-		w.Logger.Error("Failed to register retry cron", err, common.LogSystemToken, logSystem)
-	}
-
 	for {
 		select {
 		case update := <-w.statusUpdatesChan:
@@ -168,6 +159,29 @@ func (w *workerState) start() {
 			w.mutex.Unlock()
 		}
 	}
+}
+
+// Time-based logic.
+func (w *workerState) timeCycle() {
+	stale := time.Tick(15 * time.Second)
+	retry := time.Tick(1 * time.Second)
+
+	for {
+		select {
+		case <-stale:
+			w.checkStaleMaster()
+		case <-retry:
+			if w.failedCount > 0 && time.Now().After(w.failedRetryTime) {
+				w.retryLoad()
+			}
+		}
+	}
+}
+
+// Notifies master about load attempt.
+func (w *workerState) entityLoadNotification(name string, isSuccess bool) {
+	w.Settings.ServiceBus().Publish(busPlugin.ChDeviceUpdates,
+		bus.NewEntityLoadStatusMessage(name, w.Settings.NodeID(), isSuccess))
 }
 
 // Loading a new set of devices.
@@ -232,9 +246,14 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 
 	if len(failed.Devices) > 0 {
 		w.failedDevices = failed
-		w.Logger.Warn("Failed to reload some device, will retry later", common.LogSystemToken, logSystem)
+		// Gradually increasing reload interval.
+		w.failedRetryTime = getNextRetryTime(w.failedCount + 1)
+		w.Logger.Warn("Failed to reload some device, will retry later", common.LogSystemToken, logSystem,
+			"next_attempt", w.failedRetryTime.Format(time.Stamp), "retry_count", strconv.Itoa(w.failedCount))
+		w.failedCount++
 	} else {
 		w.failedDevices = nil
+		w.failedCount = 0
 	}
 
 	w.Logger.Info("Done re-loading devices", common.LogSystemToken, logSystem)
@@ -258,6 +277,7 @@ func (w *workerState) tryAPIAssignmentLoad(a *bus.DeviceAssignment, ctor *api.Co
 	}
 
 	if err != nil {
+		w.entityLoadNotification(ctor.Name, false)
 		failed.Devices = append(failed.Devices, a)
 		return
 	}
@@ -271,6 +291,7 @@ func (w *workerState) tryAPIAssignmentLoad(a *bus.DeviceAssignment, ctor *api.Co
 		return
 	}
 
+	w.entityLoadNotification(ctor.Name, true)
 	w.extendedAPIs[wrapper.ID()] = wrapper
 }
 
@@ -308,6 +329,7 @@ func (w *workerState) tryDeviceAssignmentLoad(a *bus.DeviceAssignment, ctor *dev
 	}
 
 	if err != nil {
+		w.entityLoadNotification(ctor.ConfigName, false)
 		failed.Devices = append(failed.Devices, a)
 		return
 	}
@@ -332,6 +354,7 @@ func (w *workerState) tryDeviceAssignmentLoad(a *bus.DeviceAssignment, ctor *dev
 		return
 	}
 
+	w.entityLoadNotification(ctor.ConfigName, true)
 	for _, v := range wrappers {
 		w.devices[v.ID()] = v
 		go w.Settings.ServiceBus().Publish(busPlugin.ChDeviceUpdates, v.GetUpdateMessage())
@@ -381,6 +404,7 @@ func (w *workerState) unloadDevices() {
 
 	w.Logger.Debug("Unloading devices", common.LogSystemToken, logSystem)
 	w.failedDevices = nil
+	w.failedCount = 0
 	for k, v := range w.devices {
 		go w.tryUnload(v)
 		delete(w.devices, k)
@@ -392,4 +416,9 @@ func (w *workerState) unloadDevices() {
 	}
 
 	w.Logger.Debug("Done un-loading", common.LogSystemToken, logSystem)
+}
+
+// Returns next retry time.
+func getNextRetryTime(failedCount int) time.Time {
+	return time.Now().Add(63 * time.Second).Add(time.Duration(10*failedCount) * time.Second)
 }

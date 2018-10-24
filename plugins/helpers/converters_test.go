@@ -4,10 +4,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/device/enums"
 )
 
 type testData struct {

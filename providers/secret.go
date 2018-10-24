@@ -1,6 +1,6 @@
 package providers
 
-import "github.com/go-home-io/server/plugins/common"
+import "go-home.io/x/server/plugins/common"
 
 // IInternalSecret defines internal secret provider wrapper.
 type IInternalSecret interface {

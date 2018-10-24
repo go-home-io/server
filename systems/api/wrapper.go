@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-home-io/server/plugins/api"
-	"github.com/go-home-io/server/plugins/bus"
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems"
-	"github.com/go-home-io/server/systems/logger"
-	"github.com/go-home-io/server/utils"
 	"github.com/gobwas/glob"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"go-home.io/x/server/plugins/api"
+	"go-home.io/x/server/plugins/bus"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems"
+	"go-home.io/x/server/systems/logger"
+	"go-home.io/x/server/utils"
 )
 
 // API wrapper provider
@@ -95,6 +95,10 @@ func NewExtendedAPIProvider(ctor *ConstructAPI) (providers.IExtendedAPIProvider,
 		SystemType:     systems.SysAPI,
 		ExpectedType:   api.TypeExtendedAPI,
 		InitData:       initData,
+	}
+
+	if !ctor.IsServer {
+		request.DownloadTimeoutSec = 5
 	}
 
 	plugin, err := ctor.Loader.LoadPlugin(request)

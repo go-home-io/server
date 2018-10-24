@@ -1,8 +1,8 @@
 package providers
 
 import (
-	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/gobwas/glob"
+	"go-home.io/x/server/plugins/device/enums"
 )
 
 // IServerProvider defines server interface which is required by

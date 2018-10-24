@@ -26,6 +26,8 @@ const (
 	MsgDeviceUpdate
 	// MsgDeviceCommand describes device command sent by master.
 	MsgDeviceCommand
+	// MsgEntityLoadStatus describes status of a config entity.
+	MsgEntityLoadStatus
 )
 
 const (

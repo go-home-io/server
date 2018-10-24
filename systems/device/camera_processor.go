@@ -9,7 +9,7 @@ import (
 
 	"github.com/corona10/goimagehash"
 	"github.com/disintegration/imaging"
-	"github.com/go-home-io/server/plugins/device/enums"
+	"go-home.io/x/server/plugins/device/enums"
 	"gopkg.in/yaml.v2"
 )
 

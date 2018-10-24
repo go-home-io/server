@@ -3,9 +3,9 @@ package logger
 import (
 	"testing"
 
-	"github.com/go-home-io/server/mocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"go-home.io/x/server/mocks"
 )
 
 // Tests that every operation invoked correctly.

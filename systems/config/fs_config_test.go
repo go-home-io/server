@@ -5,11 +5,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/plugins/config"
-	"github.com/go-home-io/server/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/plugins/config"
+	"go-home.io/x/server/utils"
 )
 
 const tmpDir = "./temp_config"
@@ -41,9 +41,7 @@ func TestFSConfig(t *testing.T) {
 
 	c := &fsConfig{}
 	err := c.Init(&config.InitDataConfig{
-		Logger: mocks.FakeNewLogger(func(s string) {
-			println(s)
-		}),
+		Logger:  mocks.FakeNewLogger(nil),
 		Options: map[string]string{},
 		Secret:  mocks.FakeNewSecretStore(nil, true),
 	})
@@ -52,7 +50,6 @@ func TestFSConfig(t *testing.T) {
 
 	ii := 0
 	for d := range c.Load() {
-		println("FILE")
 		if 0 == ii {
 			assert.Equal(t, "test_yaml", string(d), "data")
 		}

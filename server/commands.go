@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/plugins/helpers"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems/bus"
 	"github.com/gobwas/glob"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/plugins/helpers"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems/bus"
 )
 
 const (
@@ -56,19 +56,19 @@ func (s *GoHomeServer) InternalCommandInvokeDeviceCommand(
 }
 
 // Invokes device command if it's allowed for the user.
-func (s *GoHomeServer) commandInvokeDeviceCommand(user *providers.AuthenticatedUser,
+func (s *GoHomeServer) commandInvokeDeviceCommand(user providers.IAuthenticatedUser,
 	deviceID string, cmdName string, data []byte) error {
 	knownDevice := s.state.GetDevice(deviceID)
 	if nil == knownDevice {
 		s.Logger.Warn("Failed to find device", common.LogSystemToken, logSystem,
-			common.LogIDToken, deviceID, common.LogUserNameToken, user.Username)
+			common.LogIDToken, deviceID, common.LogUserNameToken, user.Name())
 		return &ErrUnknownDevice{ID: deviceID}
 	}
 
 	// We don't want to allow to brute-forth device names, so returning generic error
-	if !knownDevice.Command(user) {
+	if !user.DeviceCommand(knownDevice.ID) {
 		s.Logger.Warn("User doesn't have access to this device", common.LogSystemToken, logSystem,
-			common.LogIDToken, deviceID, common.LogUserNameToken, user.Username)
+			common.LogIDToken, deviceID, common.LogUserNameToken, user.Name())
 		return &ErrUnknownDevice{ID: deviceID}
 	}
 
@@ -76,14 +76,14 @@ func (s *GoHomeServer) commandInvokeDeviceCommand(user *providers.AuthenticatedU
 	if err != nil {
 		s.Logger.Warn("Received unknown command", common.LogSystemToken, logSystem,
 			common.LogIDToken, deviceID, common.LogDeviceCommandToken, cmdName,
-			common.LogUserNameToken, user.Username)
+			common.LogUserNameToken, user.Name())
 		return &ErrUnknownCommand{Name: cmdName}
 	}
 
 	if !helpers.SliceContainsString(knownDevice.Commands, cmdName) {
 		s.Logger.Warn("Received command is not supported", common.LogSystemToken, logSystem,
 			common.LogIDToken, deviceID, common.LogDeviceCommandToken, cmdName,
-			common.LogUserNameToken, user.Username)
+			common.LogUserNameToken, user.Name())
 		return &ErrUnsupportedCommand{Name: cmdName}
 	}
 
@@ -107,20 +107,20 @@ func (s *GoHomeServer) commandInvokeDeviceCommand(user *providers.AuthenticatedU
 
 	s.Logger.Debug("Invoking device operation", common.LogSystemToken, logSystem,
 		common.LogIDToken, deviceID, common.LogDeviceCommandToken, cmdName,
-		common.LogUserNameToken, user.Username)
+		common.LogUserNameToken, user.Name())
 	s.Settings.ServiceBus().PublishToWorker(knownDevice.Worker,
 		bus.NewDeviceCommandMessage(deviceID, command, inputData))
 	return nil
 }
 
 // Invokes group command
-func (s *GoHomeServer) commandGroupCommand(user *providers.AuthenticatedUser,
+func (s *GoHomeServer) commandGroupCommand(user providers.IAuthenticatedUser,
 	groupID string, cmd enums.Command, data map[string]interface{}) error {
 	g, ok := s.groups[groupID]
 	if !ok {
 		s.Logger.Warn("Received unknown group", common.LogSystemToken, logSystem,
 			common.LogIDToken, groupID, common.LogDeviceCommandToken, cmd.String(),
-			common.LogUserNameToken, user.Username)
+			common.LogUserNameToken, user.Name())
 		return &ErrUnknownGroup{Name: groupID}
 	}
 
@@ -129,20 +129,26 @@ func (s *GoHomeServer) commandGroupCommand(user *providers.AuthenticatedUser,
 }
 
 // Returns all allowed for the user devices.
-func (s *GoHomeServer) commandGetAllDevices(user *providers.AuthenticatedUser) []*knownDevice {
+func (s *GoHomeServer) commandGetAllDevices(user providers.IAuthenticatedUser) []*knownDevice {
 	allowedDevices := make([]*knownDevice, 0)
+	isWorkerAllowed := user.Workers()
 
 	for _, v := range s.state.GetAllDevices() {
-		if v.Get(user) {
+		worker := v.Worker
+		if !isWorkerAllowed {
+			worker = ""
+		}
+
+		if user.DeviceGet(v.ID) {
 			d := &knownDevice{
 				ID:         v.ID,
 				Type:       v.Type,
 				State:      v.State,
 				Name:       v.Name,
-				Worker:     v.Worker,
+				Worker:     worker,
 				Commands:   v.Commands,
 				LastSeen:   v.LastSeen,
-				IsReadOnly: !v.Command(user),
+				IsReadOnly: !user.DeviceCommand(v.ID),
 			}
 			allowedDevices = append(allowedDevices, d)
 		}
@@ -152,7 +158,7 @@ func (s *GoHomeServer) commandGetAllDevices(user *providers.AuthenticatedUser) [
 }
 
 // Returns all allowed for the user groups.
-func (s *GoHomeServer) commandGetAllGroups(user *providers.AuthenticatedUser) []*knownGroup {
+func (s *GoHomeServer) commandGetAllGroups(user providers.IAuthenticatedUser) []*knownGroup {
 	devices := s.commandGetAllDevices(user)
 	response := make([]*knownGroup, 0)
 	for _, v := range devices {
@@ -173,7 +179,7 @@ func (s *GoHomeServer) commandGetAllGroups(user *providers.AuthenticatedUser) []
 
 		for _, dev := range g.Devices() {
 			d := s.state.GetDevice(dev)
-			if nil == d || !d.Get(user) {
+			if nil == d || !user.DeviceGet(v.ID) {
 				continue
 			}
 
@@ -194,7 +200,7 @@ func (s *GoHomeServer) commandGetAllGroups(user *providers.AuthenticatedUser) []
 
 // Returns all allowed for the user locations.
 // nolint: gocyclo
-func (s *GoHomeServer) commandGetAllLocations(user *providers.AuthenticatedUser) []*knownLocation {
+func (s *GoHomeServer) commandGetAllLocations(user providers.IAuthenticatedUser) []*knownLocation {
 	devices := s.commandGetAllDevices(user)
 	groups := s.commandGetAllGroups(user)
 	response := make([]*knownLocation, 0)
@@ -210,7 +216,7 @@ func (s *GoHomeServer) commandGetAllLocations(user *providers.AuthenticatedUser)
 
 		for _, dev := range v.Devices() {
 			d := s.state.GetDevice(dev)
-			if nil == d || !d.Get(user) {
+			if nil == d || !user.DeviceGet(d.ID) {
 				continue
 			}
 

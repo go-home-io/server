@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/plugins/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/plugins/logger"
 )
 
 type fakePlugin struct {

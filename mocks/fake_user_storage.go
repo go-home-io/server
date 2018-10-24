@@ -5,7 +5,7 @@ package mocks
 import (
 	"errors"
 
-	"github.com/go-home-io/server/plugins/user"
+	"go-home.io/x/server/plugins/user"
 )
 
 type fakeUserStorage struct {

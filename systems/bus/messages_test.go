@@ -4,9 +4,9 @@ import (
 	"math"
 	"testing"
 
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/utils"
 	"github.com/stretchr/testify/assert"
+	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/utils"
 )
 
 func checkTime(t *testing.T, sendTime int64) {
@@ -38,4 +38,13 @@ func TestNewDeviceCommandMessage(t *testing.T) {
 	m := NewDeviceCommandMessage("test", enums.CmdOn, map[string]interface{}{"test": 1})
 	checkTime(t, m.SendTime)
 	assert.Equal(t, 1, len(m.Payload))
+}
+
+// Tests entity load ctor.
+func TestNewEntityLoadStatusMessage(t *testing.T) {
+	m := NewEntityLoadStatusMessage("test", "test_node", true)
+	checkTime(t, m.SendTime)
+	assert.Equal(t, "test", m.Name, "name")
+	assert.Equal(t, "test_node", m.NodeID, "node")
+	assert.True(t, m.IsSuccess, "success")
 }

@@ -1,11 +1,11 @@
 package config
 
 import (
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/config"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems"
-	"github.com/go-home-io/server/systems/logger"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/config"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems"
+	"go-home.io/x/server/systems/logger"
 )
 
 // IConfigProvider provides capabilities for loading system configuration.

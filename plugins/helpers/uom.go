@@ -3,7 +3,7 @@ package helpers
 import (
 	"strings"
 
-	"github.com/go-home-io/server/plugins/device/enums"
+	"go-home.io/x/server/plugins/device/enums"
 )
 
 // List of properties, which needs to be converted.
@@ -89,7 +89,7 @@ func getUOM(property enums.Property, current string) enums.UOM {
 	case enums.PropWindSpeed:
 		isImp = "mph" == current
 	case enums.PropPressure:
-		isImp = "in" == current
+		isImp = "inHg" == current
 	case enums.PropVisibility:
 		isImp = "mi" == current
 	}

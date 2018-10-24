@@ -1,6 +1,6 @@
 package providers
 
-import "github.com/go-home-io/server/plugins/common"
+import "go-home.io/x/server/plugins/common"
 
 // IInternalFanOutProvider defines internal interface for the fan-out channel.
 // It extends regular IFanOutProvider which is available for plugins.

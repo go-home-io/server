@@ -5,14 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/plugins/api"
-	"github.com/go-home-io/server/plugins/device"
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/systems/bus"
-	"github.com/go-home-io/server/utils"
+	"bou.ke/monkey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/plugins/api"
+	"go-home.io/x/server/plugins/device"
+	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/systems/bus"
+	"go-home.io/x/server/utils"
 )
 
 // Fake sensor plugin.
@@ -258,6 +259,100 @@ func TestFailedReload(t *testing.T) {
 	assert.True(t, d.loadCalled, "load not called")
 	assert.Equal(t, 1, len(state.devices), "didn't load device")
 	assert.Nil(t, state.failedDevices, "failed not nil")
+}
+
+// Tests reload.
+func TestSelfReload(t *testing.T) {
+	monkey.Patch(getNextRetryTime, func(_ int) time.Time { return time.Now().Add(500 * time.Millisecond) })
+	defer monkey.UnpatchAll()
+
+	settings := mocks.FakeNewSettings(nil, true, nil, nil)
+	state := newWorkerState(settings)
+	d := &fakeDevicePlugin{
+		loadError: errors.New("load"),
+	}
+	settings.(mocks.IFakeSettings).AddLoader(d)
+
+	state.DevicesAssignmentMessage(&bus.DeviceAssignmentMessage{
+		Devices: []*bus.DeviceAssignment{
+			{
+				Type:   enums.DevSensor,
+				Name:   "fake device",
+				IsAPI:  false,
+				Plugin: "fake device",
+			},
+		},
+	})
+
+	time.Sleep(1 * time.Second)
+	assert.True(t, d.loadCalled, "load not called")
+	assert.Equal(t, 0, len(state.devices), "loaded wrong device")
+	assert.NotNil(t, state.failedDevices, "no failed device")
+	assert.Equal(t, 1, len(state.failedDevices.Devices), "loaded wrong device")
+
+	d.loadCalled = false
+	d.loadError = nil
+
+	time.Sleep(1200 * time.Millisecond)
+
+	assert.True(t, d.loadCalled, "load not called")
+	assert.Equal(t, 1, len(state.devices), "didn't load device")
+	assert.Nil(t, state.failedDevices, "failed not nil")
+}
+
+// Tests proper unload
+func TestProperUnloadAfterTimeout(t *testing.T) {
+	deviceLoadTimeout = 1 * time.Second
+
+	settings := mocks.FakeNewSettings(nil, true, nil, nil)
+	state := newWorkerState(settings)
+	d1 := &fakeDevicePlugin{
+		loadTimeout: 3 * time.Second,
+	}
+	settings.(mocks.IFakeSettings).AddLoader(d1)
+
+	state.DevicesAssignmentMessage(&bus.DeviceAssignmentMessage{
+		Devices: []*bus.DeviceAssignment{
+			{
+				Type:   enums.DevSensor,
+				Name:   "fake device",
+				IsAPI:  false,
+				Plugin: "fake device",
+				Config: "fake device",
+			},
+		},
+	})
+
+	time.Sleep(1 * time.Second)
+	assert.True(t, d1.loadCalled, "load not called")
+	assert.False(t, d1.unloadCalled, "unload called")
+	assert.Equal(t, 0, len(state.devices), "loaded wrong device")
+	assert.NotNil(t, state.failedDevices, "no failed device")
+	assert.Equal(t, 1, len(state.failedDevices.Devices), "loaded wrong device")
+
+	d2 := &fakeDevicePlugin{}
+
+	settings.(mocks.IFakeSettings).AddLoader(d2)
+
+	state.DevicesAssignmentMessage(&bus.DeviceAssignmentMessage{
+		Devices: []*bus.DeviceAssignment{
+			{
+				Type:   enums.DevSensor,
+				Name:   "fake device2",
+				IsAPI:  false,
+				Plugin: "fake device2",
+				Config: "fake device2",
+			},
+		},
+	})
+
+	time.Sleep(1 * time.Second)
+	assert.True(t, d2.loadCalled, "load not called")
+	assert.Equal(t, 1, len(state.devices), "loaded wrong device")
+	assert.Nil(t, state.failedDevices, "no failed device")
+
+	time.Sleep(2200 * time.Millisecond)
+	assert.True(t, d1.unloadCalled, "unload not called")
 }
 
 // Tests timeout during device load.
@@ -538,13 +633,35 @@ func TestDeviceDiscoveryAndCommands(t *testing.T) {
 	require.False(t, d.unloadCalled, "unload called")
 	require.Nil(t, state.failedDevices, "found failed devices")
 
+	time.Sleep(1 * time.Second)
+	busCalled = false
+	assert.True(t, wait(&busCalled), "updates were not called")
+
 	busCalled = false
 	state.DevicesCommandMessage(&bus.DeviceCommandMessage{
 		Command:  enums.CmdOn,
 		DeviceID: "fake_hub.switch.fake_switch",
 	})
-
+	time.Sleep(100 * time.Millisecond)
 	assert.False(t, busCalled, "unknown device bus called")
+}
+
+// Waiting for a callback.
+func wait(called *bool) bool {
+	wait := time.NewTicker(10 * time.Millisecond)
+	defer wait.Stop()
+	for {
+		select {
+		case <-wait.C:
+			if !*called {
+				continue
+			}
+
+			return true
+		case <-time.After(3 * time.Second):
+			return false
+		}
+	}
 }
 
 // Tests API processing.

@@ -3,7 +3,7 @@ package storage
 import (
 	"reflect"
 
-	"github.com/go-home-io/server/plugins/common"
+	"go-home.io/x/server/plugins/common"
 )
 
 // IStorage defines state storage plugin interface.

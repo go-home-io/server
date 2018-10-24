@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-home-io/server/plugins/common"
 	"github.com/stretchr/testify/assert"
+	"go-home.io/x/server/plugins/common"
 )
 
 // Tests devices updates channels.

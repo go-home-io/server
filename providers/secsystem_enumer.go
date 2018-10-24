@@ -7,9 +7,9 @@ import (
 	"fmt"
 )
 
-const _SecSystemName = "alldevice"
+const _SecSystemName = "alldevicecore"
 
-var _SecSystemIndex = [...]uint8{0, 3, 9}
+var _SecSystemIndex = [...]uint8{0, 3, 9, 13}
 
 func (i SecSystem) String() string {
 	if i < 0 || i >= SecSystem(len(_SecSystemIndex)-1) {
@@ -18,11 +18,12 @@ func (i SecSystem) String() string {
 	return _SecSystemName[_SecSystemIndex[i]:_SecSystemIndex[i+1]]
 }
 
-var _SecSystemValues = []SecSystem{0, 1}
+var _SecSystemValues = []SecSystem{0, 1, 2}
 
 var _SecSystemNameToValueMap = map[string]SecSystem{
-	_SecSystemName[0:3]: 0,
-	_SecSystemName[3:9]: 1,
+	_SecSystemName[0:3]:  0,
+	_SecSystemName[3:9]:  1,
+	_SecSystemName[9:13]: 2,
 }
 
 // SecSystemString retrieves an enum value from the enum constants string name.

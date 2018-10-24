@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"github.com/go-home-io/server/plugins/common"
+	"go-home.io/x/server/plugins/common"
 )
 
 // Plugin logger implementation.

@@ -105,7 +105,7 @@ func readSumFile(fileName string, logger *log.Logger) (map[string]string, bool) 
 			logger.Fatalf("Corrupted file %s, line(%d): %s", fileName, ii, line)
 		}
 
-		if parts[0] == "github.com/go-home-io/server" {
+		if parts[0] == "go-home.io/x/server" {
 			continue
 		}
 

@@ -5,7 +5,7 @@ package mocks
 import (
 	"errors"
 
-	"github.com/go-home-io/server/providers"
+	"go-home.io/x/server/providers"
 )
 
 type IFakePlugin interface {

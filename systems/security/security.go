@@ -4,14 +4,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/user"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems"
-	"github.com/go-home-io/server/systems/logger"
 	"github.com/gobwas/glob"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/user"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems"
+	"go-home.io/x/server/systems/logger"
 )
 
 // Implements security provider.
@@ -118,7 +118,7 @@ func loadBasicAuthStorage(ctor *ConstructSecurityProvider) (user.IUserStorage, c
 }
 
 // GetUser returns found user with allowed roles if any.
-func (p *provider) GetUser(headers map[string][]string) (*providers.AuthenticatedUser, error) {
+func (p *provider) GetUser(headers map[string][]string) (providers.IAuthenticatedUser, error) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -129,10 +129,10 @@ func (p *provider) GetUser(headers map[string][]string) (*providers.Authenticate
 
 	authData, ok := p.cache.Get(usr)
 	if ok {
-		return authData.(*providers.AuthenticatedUser), nil
+		return authData.(*AuthenticatedUser), nil
 	}
 
-	authUser := &providers.AuthenticatedUser{
+	authUser := &AuthenticatedUser{
 		Username: usr,
 		Rules:    make(map[providers.SecSystem][]*providers.BakedRule),
 	}
@@ -209,10 +209,11 @@ func (p *provider) processRoles(roles []*providers.SecRole) {
 
 // Processing config's role rules.
 func (p *provider) processRule(rule *providers.SecRoleRule, roleName string) *providers.BakedRule {
-	system, err := providers.SecSystemString(rule.System)
+	system, err := getSystem(rule.System)
 	if err != nil {
 		return nil
 	}
+
 	baked := &providers.BakedRule{
 		Resources: make([]glob.Glob, 0),
 		Get:       false,
@@ -237,13 +238,30 @@ func (p *provider) processRule(rule *providers.SecRoleRule, roleName string) *pr
 		return nil
 	}
 
+	p.prepareVerbs(rule, baked)
+	return baked
+}
+
+// Processes verbs.
+func (p *provider) prepareVerbs(rule *providers.SecRoleRule, baked *providers.BakedRule) {
+	rule.Verbs = make([]providers.SecVerb, 0)
+
+	for _, v := range rule.StrVerb {
+		verb, err := getVerb(v)
+		if err != nil {
+			continue
+		}
+
+		rule.Verbs = append(rule.Verbs, verb)
+	}
+
 	for _, v := range rule.Verbs {
 		switch v {
 		case providers.SecVerbAll:
 			baked.Get = true
 			baked.Command = true
 			baked.History = true
-			return baked
+			return
 		case providers.SecVerbGet:
 			baked.Get = true
 		case providers.SecVerbCommand:
@@ -252,6 +270,31 @@ func (p *provider) processRule(rule *providers.SecRoleRule, roleName string) *pr
 			baked.History = true
 		}
 	}
+}
 
-	return baked
+// Gets correct system.
+func getSystem(in string) (providers.SecSystem, error) {
+	system, err := providers.SecSystemString(in)
+	if err != nil && isAll(in) {
+		err = nil
+		system = providers.SecSystemAll
+	}
+
+	return system, err
+}
+
+// Gets correct verb.
+func getVerb(in string) (providers.SecVerb, error) {
+	system, err := providers.SecVerbString(in)
+	if err != nil && isAll(in) {
+		err = nil
+		system = providers.SecVerbAll
+	}
+
+	return system, err
+}
+
+// Checks whether rule is "all".
+func isAll(expr string) bool {
+	return "*" == expr
 }

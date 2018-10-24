@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/plugins/helpers"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems"
-	"github.com/go-home-io/server/systems/logger"
-	"github.com/go-home-io/server/utils"
 	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/plugins/helpers"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems"
+	"go-home.io/x/server/systems/logger"
+	"go-home.io/x/server/utils"
 	"gopkg.in/yaml.v2"
 )
 

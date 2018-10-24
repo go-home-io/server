@@ -3,13 +3,13 @@ package device
 import (
 	"reflect"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/device"
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems"
-	"github.com/go-home-io/server/systems/logger"
 	"github.com/pkg/errors"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/device"
+	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems"
+	"go-home.io/x/server/systems/logger"
 )
 
 // ConstructDevice has data required for a new device loader.
@@ -61,11 +61,12 @@ func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 	}
 
 	pluginLoadRequest := &providers.PluginLoadRequest{
-		InitData:       loadData,
-		RawConfig:      []byte(ctor.RawConfig),
-		PluginProvider: ctor.DeviceName,
-		SystemType:     systems.SysDevice,
-		ExpectedType:   expectedType,
+		InitData:           loadData,
+		RawConfig:          []byte(ctor.RawConfig),
+		PluginProvider:     ctor.DeviceName,
+		SystemType:         systems.SysDevice,
+		ExpectedType:       expectedType,
+		DownloadTimeoutSec: 5,
 	}
 
 	i, err := ctor.Settings.PluginLoader().LoadPlugin(pluginLoadRequest)

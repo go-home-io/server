@@ -3,8 +3,8 @@ package utils
 import (
 	"testing"
 
-	"github.com/go-home-io/server/mocks"
 	"github.com/stretchr/testify/assert"
+	"go-home.io/x/server/mocks"
 )
 
 type testStruct struct {

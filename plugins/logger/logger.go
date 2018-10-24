@@ -4,7 +4,7 @@ package logger
 import (
 	"reflect"
 
-	"github.com/go-home-io/server/plugins/common"
+	"go-home.io/x/server/plugins/common"
 )
 
 // ILogger defines logger plugin interface.

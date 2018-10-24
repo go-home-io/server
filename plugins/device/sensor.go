@@ -3,7 +3,7 @@ package device
 import (
 	"reflect"
 
-	"github.com/go-home-io/server/plugins/device/enums"
+	"go-home.io/x/server/plugins/device/enums"
 )
 
 // ISensor defines sensor plugin interface.

@@ -1,6 +1,6 @@
 package common
 
-import "github.com/go-home-io/server/plugins/device/enums"
+import "go-home.io/x/server/plugins/device/enums"
 
 // ISecretProvider defines secrets provider which will be passed to every plugin.
 type ISecretProvider interface {

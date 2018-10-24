@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/go-home-io/server/plugins/common"
+	"go-home.io/x/server/plugins/common"
 )
 
 // IConfig defines config plugin interface.

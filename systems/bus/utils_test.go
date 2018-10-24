@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-home-io/server/plugins/bus"
-	"github.com/go-home-io/server/utils"
 	"github.com/stretchr/testify/assert"
+	"go-home.io/x/server/plugins/bus"
+	"go-home.io/x/server/utils"
 )
 
 // Tests incorrect JSON.

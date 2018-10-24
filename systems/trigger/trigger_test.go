@@ -5,13 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-home-io/server/mocks"
-	pluginTrigger "github.com/go-home-io/server/plugins/trigger"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go-home.io/x/server/mocks"
+	pluginTrigger "go-home.io/x/server/plugins/trigger"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/utils"
 )
 
 // Fake plugin implementation.

@@ -3,13 +3,19 @@ package server
 import (
 	"testing"
 
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/providers"
 	"github.com/gobwas/glob"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems/security"
 )
+
+func compileRegexp(r string) glob.Glob {
+	reg, _ := glob.Compile(r)
+	return reg
+}
 
 // Tests correct users' selection.
 func TestDeviceOperation(t *testing.T) {
@@ -31,7 +37,7 @@ func TestDeviceOperation(t *testing.T) {
 		"g1":     {ID: "g1", Type: enums.DevGroup, Commands: []string{enums.CmdOn.String()}, Worker: "1"},
 	}
 
-	user := &providers.AuthenticatedUser{
+	user := &security.AuthenticatedUser{
 		Username: "usr1",
 		Rules: map[providers.SecSystem][]*providers.BakedRule{
 			providers.SecSystemDevice: {
@@ -148,7 +154,7 @@ func TestUnknownDevice(t *testing.T) {
 		Settings: s,
 	}
 
-	user := &providers.AuthenticatedUser{
+	user := &security.AuthenticatedUser{
 		Username: "usr1",
 		Rules:    map[providers.SecSystem][]*providers.BakedRule{},
 	}
@@ -176,7 +182,7 @@ func TestDeviceForbidden(t *testing.T) {
 		Settings: s,
 	}
 
-	user := &providers.AuthenticatedUser{
+	user := &security.AuthenticatedUser{
 		Username: "usr1",
 		Rules:    map[providers.SecSystem][]*providers.BakedRule{},
 	}
@@ -200,7 +206,7 @@ func TestWrongCommand(t *testing.T) {
 		Settings: s,
 	}
 
-	user := &providers.AuthenticatedUser{
+	user := &security.AuthenticatedUser{
 		Username: "usr1",
 		Rules: map[providers.SecSystem][]*providers.BakedRule{
 			providers.SecSystemDevice: {
@@ -253,7 +259,7 @@ func TestGetAllDevices(t *testing.T) {
 		"device": {ID: "device", Commands: []string{enums.CmdOn.String()}, Worker: "2"},
 	}
 
-	user := &providers.AuthenticatedUser{
+	user := &security.AuthenticatedUser{
 		Username: "usr1",
 		Rules: map[providers.SecSystem][]*providers.BakedRule{
 			providers.SecSystemDevice: {
@@ -338,7 +344,7 @@ func TestInternalInvokeCommandGroup(t *testing.T) {
 
 // Tests groups invocation.
 func TestGetGroups(t *testing.T) {
-	user := &providers.AuthenticatedUser{
+	user := &security.AuthenticatedUser{
 		Username: "usr1",
 		Rules: map[providers.SecSystem][]*providers.BakedRule{
 			providers.SecSystemDevice: {
@@ -386,7 +392,7 @@ func TestGetGroups(t *testing.T) {
 
 // Tests locations invocation.
 func TestGetLocations(t *testing.T) {
-	user := &providers.AuthenticatedUser{
+	user := &security.AuthenticatedUser{
 		Username: "usr1",
 		Rules: map[providers.SecSystem][]*providers.BakedRule{
 			providers.SecSystemDevice: {

@@ -5,10 +5,10 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/secret"
-	"github.com/go-home-io/server/utils"
 	"github.com/pkg/errors"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/secret"
+	"go-home.io/x/server/utils"
 	"gopkg.in/yaml.v2"
 )
 

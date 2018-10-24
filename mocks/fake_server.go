@@ -3,9 +3,9 @@
 package mocks
 
 import (
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/providers"
 	"github.com/gobwas/glob"
+	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/providers"
 )
 
 type IFakeServer interface {

@@ -3,10 +3,10 @@ package security
 import (
 	"testing"
 
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/providers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/providers"
 )
 
 func getFakeProvider(usr string) providers.ISecurityProvider {
@@ -20,8 +20,8 @@ func getFakeProvider(usr string) providers.ISecurityProvider {
 				Rules: []providers.SecRoleRule{
 					{
 						System: providers.SecSystemAll.String(),
-						Verbs: []providers.SecVerb{providers.SecVerbAll,
-							providers.SecVerbHistory, providers.SecVerbGet},
+						StrVerb: []string{providers.SecVerbAll.String(),
+							providers.SecVerbHistory.String(), providers.SecVerbGet.String()},
 						Resources: []string{"res"},
 					},
 				},
@@ -32,8 +32,8 @@ func getFakeProvider(usr string) providers.ISecurityProvider {
 				Rules: []providers.SecRoleRule{
 					{
 						System: providers.SecSystemDevice.String(),
-						Verbs: []providers.SecVerb{providers.SecVerbCommand,
-							providers.SecVerbHistory, providers.SecVerbGet},
+						StrVerb: []string{providers.SecVerbCommand.String(),
+							providers.SecVerbHistory.String(), providers.SecVerbGet.String()},
 						Resources: []string{"res*"},
 					},
 				},
@@ -44,7 +44,7 @@ func getFakeProvider(usr string) providers.ISecurityProvider {
 				Rules: []providers.SecRoleRule{
 					{
 						System:    "wrong",
-						Verbs:     []providers.SecVerb{providers.SecVerbAll},
+						StrVerb:   []string{providers.SecVerbAll.String()},
 						Resources: []string{"res1"},
 					},
 				},
@@ -118,7 +118,7 @@ func TestWrongRoles(t *testing.T) {
 				Rules: []providers.SecRoleRule{
 					{
 						System:    providers.SecSystemAll.String(),
-						Verbs:     []providers.SecVerb{providers.SecVerbAll},
+						StrVerb:   []string{providers.SecVerbAll.String()},
 						Resources: []string{"[!]"},
 					},
 				},
@@ -129,7 +129,7 @@ func TestWrongRoles(t *testing.T) {
 				Rules: []providers.SecRoleRule{
 					{
 						System:    providers.SecSystemAll.String(),
-						Verbs:     []providers.SecVerb{providers.SecVerbAll},
+						StrVerb:   []string{providers.SecVerbAll.String()},
 						Resources: []string{"res\\s"},
 					},
 				},
@@ -140,7 +140,7 @@ func TestWrongRoles(t *testing.T) {
 				Rules: []providers.SecRoleRule{
 					{
 						System:    "wrong",
-						Verbs:     []providers.SecVerb{providers.SecVerbAll},
+						StrVerb:   []string{providers.SecVerbAll.String()},
 						Resources: []string{"res*"},
 					},
 				},
@@ -162,7 +162,7 @@ func TestCorrectUsers(t *testing.T) {
 	prov := getFakeProvider("usr1")
 	usr, err := prov.GetUser(nil)
 	require.NoError(t, err)
-	assert.Equal(t, 1, len(usr.Rules))
+	assert.Equal(t, 1, len(usr.(*AuthenticatedUser).Rules))
 }
 
 // Tests that incorrect user won't pass validation.
@@ -170,7 +170,7 @@ func TestIncorrectUsers(t *testing.T) {
 	prov := getFakeProvider("user1")
 	usr, err := prov.GetUser(nil)
 	require.NoError(t, err)
-	assert.Equal(t, 0, len(usr.Rules))
+	assert.Equal(t, 0, len(usr.(*AuthenticatedUser).Rules))
 }
 
 // Tests user not found scenario.
@@ -178,4 +178,35 @@ func TestUserNotFound(t *testing.T) {
 	prov := getFakeProvider("")
 	_, err := prov.GetUser(nil)
 	assert.Error(t, err)
+}
+
+// Tests that everything is allowed.
+func TestCorrectProcessing(t *testing.T) {
+	ctor := &ConstructSecurityProvider{
+		PluginLogger: mocks.FakeNewLogger(nil),
+		UserProvider: "test",
+		Loader:       mocks.FakeNewPluginLoader(mocks.FakeNewUserStorage("test")),
+		Roles: []*providers.SecRole{
+			{
+				Name: "1",
+				Rules: []providers.SecRoleRule{
+					{
+						System:    "*",
+						StrVerb:   []string{"*"},
+						Resources: []string{"*"},
+					},
+				},
+				Users: []string{"test"},
+			},
+		},
+	}
+
+	prov := NewSecurityProvider(ctor)
+	user, err := prov.GetUser(nil)
+	require.NoError(t, err)
+	checkAllAllowed(t, user)
+	// Trying two times.
+	user, err = prov.GetUser(nil)
+	require.NoError(t, err)
+	checkAllAllowed(t, user)
 }

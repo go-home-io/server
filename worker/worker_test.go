@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-home-io/server/mocks"
-	busPlugin "github.com/go-home-io/server/plugins/bus"
-	"github.com/go-home-io/server/systems/bus"
-	"github.com/go-home-io/server/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go-home.io/x/server/mocks"
+	busPlugin "go-home.io/x/server/plugins/bus"
+	"go-home.io/x/server/systems/bus"
+	"go-home.io/x/server/utils"
 )
 
 // Tests worker discovery

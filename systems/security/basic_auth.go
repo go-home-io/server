@@ -7,9 +7,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/user"
-	"github.com/go-home-io/server/utils"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/user"
+	"go-home.io/x/server/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 

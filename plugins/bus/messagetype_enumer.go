@@ -7,9 +7,9 @@ import (
 	"fmt"
 )
 
-const _MessageTypeName = "pingdevice_assignmentdevice_updatedevice_command"
+const _MessageTypeName = "pingdevice_assignmentdevice_updatedevice_commandentity_load_status"
 
-var _MessageTypeIndex = [...]uint8{0, 4, 21, 34, 48}
+var _MessageTypeIndex = [...]uint8{0, 4, 21, 34, 48, 66}
 
 func (i MessageType) String() string {
 	if i < 0 || i >= MessageType(len(_MessageTypeIndex)-1) {
@@ -18,13 +18,14 @@ func (i MessageType) String() string {
 	return _MessageTypeName[_MessageTypeIndex[i]:_MessageTypeIndex[i+1]]
 }
 
-var _MessageTypeValues = []MessageType{0, 1, 2, 3}
+var _MessageTypeValues = []MessageType{0, 1, 2, 3, 4}
 
 var _MessageTypeNameToValueMap = map[string]MessageType{
 	_MessageTypeName[0:4]:   0,
 	_MessageTypeName[4:21]:  1,
 	_MessageTypeName[21:34]: 2,
 	_MessageTypeName[34:48]: 3,
+	_MessageTypeName[48:66]: 4,
 }
 
 // MessageTypeString retrieves an enum value from the enum constants string name.

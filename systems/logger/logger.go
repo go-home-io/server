@@ -4,11 +4,11 @@ package logger
 import (
 	"strings"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/logger"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems"
 	"github.com/pkg/errors"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/logger"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems"
 	"gopkg.in/yaml.v2"
 )
 

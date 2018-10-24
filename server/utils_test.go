@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/providers"
 	"github.com/stretchr/testify/assert"
+	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/providers"
 )
 
 // Tests log middleware.

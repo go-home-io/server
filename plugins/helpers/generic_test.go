@@ -3,8 +3,8 @@ package helpers
 import (
 	"testing"
 
-	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/stretchr/testify/assert"
+	"go-home.io/x/server/plugins/device/enums"
 )
 
 // Tests ID -> name conversion.

@@ -4,11 +4,11 @@ package ui
 import (
 	"sync"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/helpers"
-	"github.com/go-home-io/server/providers"
 	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/helpers"
+	"go-home.io/x/server/providers"
 	"gopkg.in/yaml.v2"
 )
 

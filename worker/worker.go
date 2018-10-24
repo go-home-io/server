@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"syscall"
 
-	busPlugin "github.com/go-home-io/server/plugins/bus"
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems/bus"
+	busPlugin "go-home.io/x/server/plugins/bus"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems/bus"
 )
 
 const (

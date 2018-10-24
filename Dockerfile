@@ -1,10 +1,8 @@
 ARG RUN_IMAGE
 FROM golang:1.11.1 as build
 
-ENV PROVIDERS=https://github.com/go-home-io/providers.git
-
 ENV PROVIDERS=https://github.com/go-home-io/providers.git \
-    HOME_DIR=${GOPATH}/src/github.com/go-home-io/server \
+    HOME_DIR=${GOPATH}/src/go-home.io/x/server \
     QEMU=https://github.com/multiarch/qemu-user-static/releases/download/v2.6.0/qemu-arm-static.tar.gz
 
 ARG TRAVIS_TAG
@@ -17,8 +15,8 @@ RUN apt-get update && \
     apt-get install -y make git gcc libc-dev ca-certificates curl && \
     make utilities-build && \
     cd ${GOPATH} && \
-    mkdir -p src/github.com/go-home-io && \
-    cd src/github.com/go-home-io && \
+    mkdir -p src/go-home.io/x && \
+    cd src/go-home.io/x && \
     git clone ${PROVIDERS} providers && \
     if [ "x${TRAVIS_TAG}" != "x" ]; then \
         cd providers && \
@@ -85,6 +83,6 @@ FROM $RUN_IMAGE
 COPY --from=build /out/* /usr/bin/
 
 RUN apt-get update && \
-    apt-get install -y ca-certificates
+    apt-get install -y ca-certificates --no-install-recommends
 
 CMD ["go-home"]

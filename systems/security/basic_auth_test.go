@@ -7,11 +7,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/plugins/user"
-	"github.com/go-home-io/server/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/plugins/user"
+	"go-home.io/x/server/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 

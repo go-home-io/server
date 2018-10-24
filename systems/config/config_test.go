@@ -3,10 +3,10 @@ package config
 import (
 	"testing"
 
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/config"
 	"github.com/stretchr/testify/assert"
+	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/config"
 )
 
 // Fake config plugin.

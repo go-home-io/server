@@ -1,12 +1,12 @@
 package secret
 
 import (
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/secret"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems"
-	"github.com/go-home-io/server/systems/logger"
 	"github.com/pkg/errors"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/secret"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems"
+	"go-home.io/x/server/systems/logger"
 )
 
 const (

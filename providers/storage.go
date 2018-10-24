@@ -1,8 +1,8 @@
 package providers
 
 import (
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/device/enums"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/device/enums"
 )
 
 // IStorageProvider defines state history storage provider.

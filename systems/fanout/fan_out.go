@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/utils"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/utils"
 )
 
 // Implements IInternalFanOutProvider.

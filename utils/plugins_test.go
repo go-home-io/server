@@ -6,12 +6,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/plugins/device"
-	"github.com/go-home-io/server/providers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/plugins/device"
+	"go-home.io/x/server/providers"
 )
 
 type wrongSettings struct {

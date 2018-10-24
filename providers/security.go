@@ -7,9 +7,19 @@ import (
 	"github.com/gobwas/glob"
 )
 
-// ISecurityProvider defines secutiry provider.
+// ISecurityProvider defines security provider.
 type ISecurityProvider interface {
-	GetUser(map[string][]string) (*AuthenticatedUser, error)
+	GetUser(map[string][]string) (IAuthenticatedUser, error)
+}
+
+// IAuthenticatedUser describes authenticated user.
+type IAuthenticatedUser interface {
+	Name() string
+	DeviceGet(string) bool
+	DeviceCommand(string) bool
+	DeviceHistory(string) bool
+	Workers() bool
+	Entities() bool
 }
 
 // SecVerb describes allowed rules for the role.
@@ -34,13 +44,16 @@ const (
 	SecSystemAll SecSystem = iota
 	// SecSystemDevice describes devices' system.
 	SecSystemDevice
+	// SecSystemCore describes core components.
+	SecSystemCore
 )
 
 // SecRoleRule has data, describing single security rule.
 type SecRoleRule struct {
-	System    string    `yaml:"system" validate:"required,oneof=* device"`
+	System    string    `yaml:"system" validate:"required,oneof=* device core"`
 	Resources []string  `yaml:"resources" validate:"unique,min=1"`
-	Verbs     []SecVerb `yaml:"verbs" validate:"unique,min=1,oneof=* get command history"`
+	Verbs     []SecVerb `yaml:"-"`
+	StrVerb   []string  `yaml:"verbs" validate:"unique,min=1,oneof=* get command history"`
 }
 
 // SecRole has data, describing single security role.
@@ -57,10 +70,4 @@ type BakedRule struct {
 	Get       bool
 	Command   bool
 	History   bool
-}
-
-// AuthenticatedUser has data with authenticated user, returned by user store.
-type AuthenticatedUser struct {
-	Username string
-	Rules    map[SecSystem][]*BakedRule
 }

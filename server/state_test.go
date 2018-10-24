@@ -5,15 +5,15 @@ import (
 	"time"
 
 	"github.com/fortytw2/leaktest"
-	"github.com/go-home-io/server/mocks"
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/helpers"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems/bus"
-	"github.com/go-home-io/server/systems/fanout"
-	"github.com/go-home-io/server/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/helpers"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems/bus"
+	"go-home.io/x/server/systems/fanout"
+	"go-home.io/x/server/utils"
 )
 
 // Settings mock.

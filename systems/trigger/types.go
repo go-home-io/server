@@ -3,8 +3,8 @@
 package trigger
 
 import (
-	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/gobwas/glob"
+	"go-home.io/x/server/plugins/device/enums"
 )
 
 // triggerSystem describes known for trigger systems.

@@ -63,11 +63,11 @@ func (*ErrNoInit) Error() string {
 	return "init method not found"
 }
 
-// ErrProxy defines download through proxy error.
-type ErrProxy struct {
+// ErrDownload defines download error.
+type ErrDownload struct {
 }
 
 // Error formats output.
-func (*ErrProxy) Error() string {
+func (*ErrDownload) Error() string {
 	return "proxy download failed"
 }

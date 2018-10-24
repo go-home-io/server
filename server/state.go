@@ -6,23 +6,26 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/device/enums"
-	"github.com/go-home-io/server/plugins/helpers"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/settings"
-	"github.com/go-home-io/server/systems/bus"
-	"github.com/go-home-io/server/utils"
 	"github.com/gobwas/glob"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/plugins/helpers"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/settings"
+	"go-home.io/x/server/systems"
+	"go-home.io/x/server/systems/bus"
+	"go-home.io/x/server/utils"
 )
 
 // IServerStateProvider defines server state logic.
 type IServerStateProvider interface {
 	Discovery(msg *bus.DiscoveryMessage)
 	Update(msg *bus.DeviceUpdateMessage)
+	EntityLoad(msg *bus.EntityLoadStatusMessage)
 	GetAllDevices() []*knownDevice
 	GetDevice(string) *knownDevice
 	GetWorkers() []*knownWorker
+	GetEntities() []*knownEntity
 }
 
 // Worker properties.
@@ -34,13 +37,21 @@ type knownWorker struct {
 	MaxDevices       int                     `json:"max_devices"`
 }
 
+type knownEntity struct {
+	Name   string             `json:"name"`
+	Status entityStatus       `json:"status"`
+	Worker string             `json:"worker"`
+	Type   systems.SystemType `json:"type"`
+}
+
 // Connected workers' state.
 type serverState struct {
 	Settings providers.ISettingsProvider
 	Logger   common.ILoggerProvider
 
-	KnownWorkers map[string]*knownWorker
-	KnownDevices map[string]*knownDevice
+	KnownWorkers  map[string]*knownWorker
+	KnownDevices  map[string]*knownDevice
+	KnownEntities map[string]*knownEntity
 
 	workerMutex *sync.Mutex
 	deviceMutex *sync.Mutex
@@ -51,15 +62,29 @@ type serverState struct {
 // Constructs a new server state.
 func newServerState(settings providers.ISettingsProvider) *serverState {
 	s := serverState{
-		KnownWorkers: make(map[string]*knownWorker),
-		KnownDevices: make(map[string]*knownDevice),
-		Settings:     settings,
-		Logger:       settings.SystemLogger(),
+		KnownWorkers:  make(map[string]*knownWorker),
+		KnownDevices:  make(map[string]*knownDevice),
+		KnownEntities: make(map[string]*knownEntity),
+		Settings:      settings,
+		Logger:        settings.SystemLogger(),
 
 		workerMutex: &sync.Mutex{},
 		deviceMutex: &sync.Mutex{},
 
 		fanOut: settings.FanOut(),
+	}
+
+	for _, v := range s.Settings.DevicesConfig() {
+		s.KnownEntities[v.Name] = &knownEntity{
+			Name:   v.Name,
+			Status: entityAssignmentFailed,
+		}
+
+		if v.IsAPI {
+			s.KnownEntities[v.Name].Type = systems.SysAPI
+		} else {
+			s.KnownEntities[v.Name].Type = systems.SysDevice
+		}
 	}
 
 	_, err := settings.Cron().AddFunc("@every 15s", s.checkStaleWorkers)
@@ -159,6 +184,27 @@ func (s *serverState) Update(msg *bus.DeviceUpdateMessage) {
 	s.processDeviceStateUpdate(dv, msg.State, firstOccurrence)
 }
 
+func (s *serverState) EntityLoad(msg *bus.EntityLoadStatusMessage) {
+	s.deviceMutex.Lock()
+	defer s.deviceMutex.Unlock()
+
+	s.Logger.Debug("Received device load report", common.LogSystemToken, logSystem,
+		common.LogNameToken, msg.Name, common.LogWorkerToken, msg.NodeID)
+
+	if s.KnownEntities[msg.Name].Worker != msg.NodeID {
+		s.Logger.Warn("Entity was loaded on a wrong worker", common.LogSystemToken, logSystem,
+			common.LogNameToken, msg.Name, "expected", s.KnownEntities[msg.Name].Worker, "actual", msg.NodeID)
+		s.KnownEntities[msg.Name].Status = entityWrongWorker
+		return
+	}
+
+	if msg.IsSuccess {
+		s.KnownEntities[msg.Name].Status = entityLoaded
+	} else {
+		s.KnownEntities[msg.Name].Status = entityLoadFailed
+	}
+}
+
 // GetAllDevices returns list of all known devices.
 // nolint: dupl
 func (s *serverState) GetAllDevices() []*knownDevice {
@@ -191,6 +237,20 @@ func (s *serverState) GetWorkers() []*knownWorker {
 	}
 
 	return workers
+}
+
+// GetEntities returns known entities.
+// nolint: dupl
+func (s *serverState) GetEntities() []*knownEntity {
+	s.workerMutex.Lock()
+	defer s.workerMutex.Unlock()
+
+	entities := make([]*knownEntity, 0)
+	for _, v := range s.KnownEntities {
+		entities = append(entities, v)
+	}
+
+	return entities
 }
 
 // Processes device state updates.
@@ -292,6 +352,10 @@ func (s *serverState) reBalance(newWorkerID string) {
 		if 0 == len(candidates) {
 			s.Logger.Warn("Failed to select a worker for the device", common.LogSystemToken, logSystem,
 				common.LogDeviceTypeToken, d.Plugin, common.LogNameToken, d.Selector.Name)
+
+			s.KnownEntities[d.Name].Status = entityAssignmentFailed
+			s.KnownEntities[d.Name].Worker = ""
+
 			continue
 		}
 
@@ -306,6 +370,9 @@ func (s *serverState) reBalance(newWorkerID string) {
 		}
 
 		if "" == best {
+			s.KnownEntities[d.Name].Status = entityAssignmentFailed
+			s.KnownEntities[d.Name].Worker = ""
+
 			s.Logger.Warn("Failed to select a worker: too many devices", common.LogSystemToken, logSystem,
 				common.LogDeviceTypeToken, d.Plugin, common.LogNameToken, d.Selector.Name)
 			continue
@@ -331,12 +398,24 @@ func (s *serverState) reBalance(newWorkerID string) {
 			continue
 		}
 
+		s.updateAssignment(n, d)
 		s.Settings.ServiceBus().PublishToWorker(n, bus.NewDeviceAssignmentMessage(d, s.Settings.MasterSettings().UOM))
 		s.KnownWorkers[n].Devices = make([]*bus.DeviceAssignment, len(d))
 		copy(s.KnownWorkers[n].Devices, d)
 	}
 
 	s.Logger.Debug("Finished re-balancing", common.LogSystemToken, logSystem)
+}
+
+// Updates devices assignments.
+func (s *serverState) updateAssignment(workerID string, devices []*bus.DeviceAssignment) {
+	for _, v := range devices {
+		if entityAssignmentFailed == s.KnownEntities[v.Name].Status {
+			s.KnownEntities[v.Name].Status = entityAssigned
+		}
+
+		s.KnownEntities[v.Name].Worker = workerID
+	}
 }
 
 // Validates whether worker has all this devices already, so we don't need

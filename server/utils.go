@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-home-io/server/providers"
+	"go-home.io/x/server/providers"
 )
 
 // Plain HTTP_200 API response.
@@ -43,9 +43,14 @@ func respondOkError(writer http.ResponseWriter, err error) {
 	}
 }
 
-// Return HTTP_UNAUTH status.
+// Return HTTP_UN-AUTH status.
 func respondUnAuth(writer http.ResponseWriter) {
-	http.Error(writer, "Forbidden", http.StatusUnauthorized)
+	http.Error(writer, "Unauthorized", http.StatusUnauthorized)
+}
+
+// Return HTTP_FORBIDDEN status.
+func respondForbidden(writer http.ResponseWriter) {
+	http.Error(writer, "Forbidden", http.StatusForbidden)
 }
 
 // Plain HTTP_500 API response.
@@ -90,8 +95,8 @@ func (s *GoHomeServer) authMiddleware(next http.Handler) http.Handler {
 }
 
 // Gets current user out of context.
-func getContextUser(request *http.Request) *providers.AuthenticatedUser {
-	return request.Context().Value(ctxtUserName).(*providers.AuthenticatedUser)
+func getContextUser(request *http.Request) providers.IAuthenticatedUser {
+	return request.Context().Value(ctxtUserName).(providers.IAuthenticatedUser)
 }
 
 // Private CIDRs.

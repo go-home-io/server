@@ -11,12 +11,13 @@ import (
 	"plugin"
 	"reflect"
 	"strings"
+	"time"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/providers"
-	"github.com/go-home-io/server/systems"
 	"github.com/mholt/archiver"
 	"github.com/pkg/errors"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/providers"
+	"go-home.io/x/server/systems"
 	"gopkg.in/yaml.v2"
 )
 
@@ -90,7 +91,7 @@ func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interfa
 	}()
 
 	if _, err := os.Stat(fileName); err != nil {
-		err = l.downloadFile(pKey, fileName)
+		err = l.downloadFile(pKey, fileName, time.Duration(request.DownloadTimeoutSec)*time.Second)
 		if err != nil {
 			return nil, errors.Wrap(err, "download failed")
 		}
@@ -226,11 +227,12 @@ func (l *pluginLoader) getActualFileName(pluginKey string) string {
 
 // Downloads plugin from bintray CDN.
 //noinspection GoUnhandledErrorResult
-func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
+func (l *pluginLoader) downloadFile(pluginKey string, actualName string, timeout time.Duration) error {
 	name := strings.Replace(pluginKey, "/", "_", -1)
 	name = fmt.Sprintf("%s-%s.so.tar.gz", name, Version)
 	if "" != l.pluginsProxy {
-		return l.downloadFileThroughProxy(name)
+		_, err := l.downloadFileFromRemote(fmt.Sprintf("%s/%s/%s", l.pluginsProxy, Arch, name), timeout)
+		return err
 	}
 
 	archName := fmt.Sprintf("%s.tar.gz", actualName)
@@ -248,12 +250,10 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 		}
 
 		defer out.Close()
-		downloadURL := fmt.Sprintf(PluginCDNUrlFormat, Arch, name)
-		res, err := http.Get(downloadURL) // nolint: gosec
+		res, err := l.downloadFileFromRemote(fmt.Sprintf(PluginCDNUrlFormat, Arch, name), timeout)
 		if err != nil {
 			os.Remove(archName) // nolint: gosec
-			l.logger.Println("Failed to get " + downloadURL)
-			return errors.Wrap(err, "http get failed")
+			return err
 		}
 
 		defer res.Body.Close()
@@ -275,13 +275,18 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string) error {
 	return nil
 }
 
-// Downloads plugin from bintray through proxy.
-func (l *pluginLoader) downloadFileThroughProxy(name string) error {
-	r, err := http.Get(fmt.Sprintf("%s/%s/%s", l.pluginsProxy, Arch, name))
-	if err != nil || r.StatusCode != http.StatusOK {
-		l.logger.Printf("Failed to download %s through proxy", name)
-		return &ErrProxy{}
+// Downloads plugin from remote.
+func (l *pluginLoader) downloadFileFromRemote(url string, timeout time.Duration) (*http.Response, error) {
+	client := http.Client{
+		Timeout: timeout,
 	}
 
-	return nil
+	r, err := client.Get(url)
+
+	if err != nil || r.StatusCode != http.StatusOK {
+		l.logger.Printf("Failed to download %s", url)
+		return nil, &ErrDownload{}
+	}
+
+	return r, nil
 }

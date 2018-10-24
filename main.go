@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/go-home-io/server/server"
-	"github.com/go-home-io/server/settings"
-	"github.com/go-home-io/server/worker"
 	"github.com/jessevdk/go-flags"
+	"go-home.io/x/server/server"
+	"go-home.io/x/server/settings"
+	"go-home.io/x/server/worker"
 )
 
 func main() {

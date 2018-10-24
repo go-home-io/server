@@ -1,4 +1,4 @@
-//go:generate enumer -type=SystemType -transform=kebab -trimprefix=Sys
+//go:generate enumer -type=SystemType -transform=kebab -trimprefix=Sys -json -text -yaml
 
 package systems
 

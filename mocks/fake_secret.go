@@ -5,7 +5,7 @@ package mocks
 import (
 	"errors"
 
-	"github.com/go-home-io/server/plugins/common"
+	"go-home.io/x/server/plugins/common"
 )
 
 type fakeSecret struct {

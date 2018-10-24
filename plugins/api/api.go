@@ -3,10 +3,10 @@ package api
 import (
 	"reflect"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/gobwas/glob"
 	"github.com/gorilla/mux"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/device/enums"
 )
 
 // IExtendedAPI defines extended API plugin interface.

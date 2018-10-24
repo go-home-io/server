@@ -8,11 +8,10 @@ import (
 	"image/jpeg"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/corona10/goimagehash"
-	"github.com/go-home-io/server/plugins/device/enums"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go-home.io/x/server/plugins/device/enums"
 )
 
 func getCamera() IProcessor {

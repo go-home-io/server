@@ -10,14 +10,14 @@ MOD=$(GOCMD) mod tidy
 MOD_RESTORE=$(GOGET) -v -d ./... && $(GOCMD) mod vendor
 GOVERALLS=$(GO_BIN_FOLDER)/goveralls
 
-PLUGINS_LOCATION=$(GOPATH)/src/github.com/go-home-io/providers/
+PLUGINS_LOCATION=$(GOPATH)/src/go-home.io/x/providers/
 BIN_FOLDER=${CURDIR}/bin
 BIN_NAME=$(BIN_FOLDER)/go-home
 PLUGINS_BINS=$(BIN_FOLDER)/plugins
 
 METALINER=GO111MODULE=off PATH=${PATH}:$(BIN_FOLDER) $(BIN_FOLDER)/gometalinter --sort=linter --config=${CURDIR}/.gometalinter.json
 
-.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test lint-local vendor-cleanup
+.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test lint-local vendor-cleanup run-only-server
 
 define build_plugins_task =
 	set -e
@@ -148,8 +148,8 @@ utilities-ci:
 utilities: utilities-build utilities-ci
 
 build-server:
-	$(GOBUILD) -ldflags "-X github.com/go-home-io/server/utils.Version=${VERSION} \
-		-X github.com/go-home-io/server/utils.Arch=${GOARCH}" -o $(BIN_NAME)
+	$(GOBUILD) -ldflags "-X go-home.io/x/server/utils.Version=${VERSION} \
+		-X go-home.io/x/server/utils.Arch=${GOARCH}" -o $(BIN_NAME)
 
 build: build-plugins build-server
 
@@ -158,8 +158,10 @@ generate:
 	@cd $(PLUGINS_LOCATION)
 	$(GOGENERATE) -v ./...
 
-run-server:
+run-only-server:
 	$(BIN_NAME) -c provider:fs -c location:${CURDIR}/configs -p ${CURDIR}/bin/plugins
+
+run-server: build run-only-server
 
 run-only-worker:
 	$(BIN_NAME) -c provider:fs -c location:${CURDIR}/configs -p ${CURDIR}/bin/plugins -w
@@ -177,7 +179,7 @@ test:
 test-local: test
 	$(GOCMD) tool cover --html=$(BIN_FOLDER)/cover.out
 
-git: dep-ensure generate lint-local test-local
+git: vendor-cleanup dep-ensure generate lint-local test-local
 
 build-rpi-cache-docker:
 	docker build -t go-home-cahe -f Dockerfile.rpi.cache .

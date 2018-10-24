@@ -1,6 +1,6 @@
 package device
 
-import "github.com/go-home-io/server/plugins/device/enums"
+import "go-home.io/x/server/plugins/device/enums"
 
 // IProcessor defines device post-processor.
 type IProcessor interface {

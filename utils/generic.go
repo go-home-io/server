@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-home-io/server/plugins/device/enums"
+	"go-home.io/x/server/plugins/device/enums"
 )
 
 // TimeNow returns epoch UTC.

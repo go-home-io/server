@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/go-home-io/server/plugins/common"
-	"github.com/go-home-io/server/providers"
 	"github.com/gorilla/websocket"
+	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/providers"
 )
 
 type wsCmd struct {
@@ -20,7 +20,7 @@ func (s *GoHomeServer) handleWS(writer http.ResponseWriter, request *http.Reques
 	usr := getContextUser(request)
 	c, err := s.wsSettings.Upgrade(writer, request, nil)
 	if err != nil {
-		s.Logger.Error("Failed to establish a WS connection", err, common.LogUserNameToken, usr.Username)
+		s.Logger.Error("Failed to establish a WS connection", err, common.LogUserNameToken, usr.Name())
 		return
 	}
 
@@ -28,7 +28,8 @@ func (s *GoHomeServer) handleWS(writer http.ResponseWriter, request *http.Reques
 }
 
 // Processes incoming WS connections.
-func (s *GoHomeServer) processWSConnection(conn *websocket.Conn, usr *providers.AuthenticatedUser) {
+//noinspection GoUnhandledErrorResult
+func (s *GoHomeServer) processWSConnection(conn *websocket.Conn, usr providers.IAuthenticatedUser) {
 	stop := make(chan bool, 1)
 	go s.processIncomingWSMessages(conn, stop, usr)
 	subID, upd := s.Settings.FanOut().SubscribeDeviceUpdates()
@@ -47,7 +48,7 @@ func (s *GoHomeServer) processWSConnection(conn *websocket.Conn, usr *providers.
 				}
 
 				kd := s.state.GetDevice(msg.ID)
-				if kd.Get(usr) {
+				if usr.DeviceGet(kd.ID) {
 					conn.WriteJSON(kd) // nolint: gosec
 				}
 			}
@@ -58,12 +59,12 @@ func (s *GoHomeServer) processWSConnection(conn *websocket.Conn, usr *providers.
 // Processes incoming WS messages.
 //noinspection GoUnhandledErrorResult
 func (s *GoHomeServer) processIncomingWSMessages(conn *websocket.Conn, stop chan bool,
-	usr *providers.AuthenticatedUser) {
+	usr providers.IAuthenticatedUser) {
 	defer conn.Close()
 	for {
 		mt, message, err := conn.ReadMessage()
 		if err != nil {
-			s.Logger.Info("Closing WS connection for user", common.LogUserNameToken, usr.Username)
+			s.Logger.Info("Closing WS connection for user", common.LogUserNameToken, usr.Name())
 			stop <- true
 			return
 		}
@@ -77,13 +78,13 @@ func (s *GoHomeServer) processIncomingWSMessages(conn *websocket.Conn, stop chan
 		cmd := &wsCmd{}
 		err = json.Unmarshal(message, cmd)
 		if err != nil {
-			s.Logger.Error("Failed to un-marshal WS command", err, common.LogUserNameToken, usr.Username)
+			s.Logger.Error("Failed to un-marshal WS command", err, common.LogUserNameToken, usr.Name())
 			continue
 		}
 
 		data, err := json.Marshal(cmd.Val)
 		if err != nil {
-			s.Logger.Error("Failed to marshal WS command", err, common.LogUserNameToken, usr.Username)
+			s.Logger.Error("Failed to marshal WS command", err, common.LogUserNameToken, usr.Name())
 			continue
 		}
 

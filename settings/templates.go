@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/go-home-io/server/plugins/common"
+	"go-home.io/x/server/plugins/common"
 )
 
 // ITemplateProvider defines template logic.
