@@ -89,7 +89,7 @@ func getUOM(property enums.Property, current string) enums.UOM {
 	case enums.PropWindSpeed:
 		isImp = "mph" == current
 	case enums.PropPressure:
-		isImp = "inHg" == current
+		isImp = "inhg" == current
 	case enums.PropVisibility:
 		isImp = "mi" == current
 	}

@@ -12,6 +12,7 @@ func (*fakeCron) RemoveFunc(id int) {
 
 }
 
+// FakeNewCron creates a fake cron provider.
 func FakeNewCron() *fakeCron {
 	return &fakeCron{}
 }

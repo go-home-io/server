@@ -30,7 +30,7 @@ func TestUOMConvertString(t *testing.T) {
 		enums.PropTemperature: {enums.UOMImperial: "f", enums.UOMMetric: "c"},
 		enums.PropWindSpeed:   {enums.UOMImperial: "mph", enums.UOMMetric: "kmh"},
 		enums.PropVisibility:  {enums.UOMImperial: "mi", enums.UOMMetric: "km"},
-		enums.PropPressure:    {enums.UOMImperial: "in", enums.UOMMetric: "bar"},
+		enums.PropPressure:    {enums.UOMImperial: "inHg", enums.UOMMetric: "mbar"},
 	}
 	for _, v := range convertRequired {
 		s, ok := str[v]

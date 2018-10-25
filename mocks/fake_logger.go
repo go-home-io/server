@@ -49,7 +49,7 @@ func (p *fakeLogger) Flush() {
 	}
 }
 
-// Creating a fake logger.
+// FakeNewLogger creates a fake logger provider.
 func FakeNewLogger(callback func(string)) *fakeLogger {
 	return &fakeLogger{
 		callback: callback,

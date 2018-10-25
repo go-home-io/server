@@ -8,6 +8,7 @@ import (
 	"go-home.io/x/server/providers"
 )
 
+// IFakePlugin adds additional capabilities to a fake plugin loader.
 type IFakePlugin interface {
 	FakeInit(interface{})
 }
@@ -29,6 +30,7 @@ func (f *fakePluginLoader) LoadPlugin(r *providers.PluginLoadRequest) (interface
 	return f.returnObj, nil
 }
 
+// FakeNewPluginLoader creates a new fake plugin loader.
 func FakeNewPluginLoader(returnObj interface{}) providers.IPluginLoaderProvider {
 	return &fakePluginLoader{
 		returnObj: returnObj,

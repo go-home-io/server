@@ -36,6 +36,7 @@ func (f *fakeSecret) Set(name string, value string) error {
 	return nil
 }
 
+// FakeNewSecretStore creates a fake secret store provider.
 func FakeNewSecretStore(data map[string]string, readOnly bool) common.ISecretProvider {
 	return &fakeSecret{
 		data: data,

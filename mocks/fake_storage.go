@@ -20,6 +20,7 @@ func (*fakeStorage) History(string) map[enums.Property]map[int64]interface{} {
 	return nil
 }
 
+// FakeNewStorage creates a new fake storage provider.
 func FakeNewStorage() *fakeStorage {
 	return &fakeStorage{}
 }

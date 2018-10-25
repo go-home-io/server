@@ -20,6 +20,7 @@ func (f *fakeSecurity) GetUser(map[string][]string) (providers.IAuthenticatedUse
 	return nil, errors.New("not found")
 }
 
+// FakeNewSecurityProvider creates a fake security provider.
 func FakeNewSecurityProvider(allow bool) *fakeSecurity {
 	return &fakeSecurity{
 		allow: allow,

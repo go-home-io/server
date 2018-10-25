@@ -7,6 +7,7 @@ import (
 	"go-home.io/x/server/providers"
 )
 
+//IFakeSettings adds additional capabilities to a fake server provider.
 type IFakeSettings interface {
 	AddLoader(returnOj interface{})
 	AddSBCallback(func(...interface{}))
@@ -111,6 +112,7 @@ func (f *fakeSettings) AddSBCallback(cb func(...interface{})) {
 	f.bus.(*fakeServiceBus).publishCallback = cb
 }
 
+// FakeNewSettings creates a new fake settings provider.
 func FakeNewSettings(sbPublish func(string, ...interface{}), isWorker bool,
 	devices []*providers.RawDevice, logCallback func(string)) providers.ISettingsProvider {
 	return &fakeSettings{
@@ -123,6 +125,7 @@ func FakeNewSettings(sbPublish func(string, ...interface{}), isWorker bool,
 	}
 }
 
+// FakeNewSettingsWithUserStorage creates a new fake setting provider with custom users' storage.
 func FakeNewSettingsWithUserStorage(sec providers.ISecurityProvider) *fakeSettings {
 	return &fakeSettings{
 		security: sec,

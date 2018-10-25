@@ -23,6 +23,7 @@ func (f *fakeUserStorage) Authorize(headers map[string][]string) (username strin
 	return f.usr, nil
 }
 
+// FakeNewUserStorage creates a fake user storage provider.
 func FakeNewUserStorage(usr string) user.IUserStorage {
 	return &fakeUserStorage{
 		usr: usr,

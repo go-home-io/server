@@ -71,13 +71,14 @@ func (s *fakeServiceBus) FakePublish(name string, msg bus.RawMessage) error {
 	return nil
 }
 
-// Creating a fake service bus.
+// FakeNewServiceBus creates a new fake service bus provider.
 func FakeNewServiceBus(publish func(string, ...interface{})) *fakeServiceBus {
 	return &fakeServiceBus{
 		publishToWorkerCallback: publish,
 	}
 }
 
+// FakeNewServiceBusRegular creates a new fake service bus provider with overwritten master communication channel.
 func FakeNewServiceBusRegular(publish func(...interface{})) *fakeServiceBus {
 	return &fakeServiceBus{
 		publishCallback: publish,

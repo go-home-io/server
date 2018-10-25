@@ -31,6 +31,7 @@ func (f *fakeGroups) InvokeCommand(enums.Command, map[string]interface{}) {
 	}
 }
 
+// FakeNewGroupProvider creates a new fake group provider.
 func FakeNewGroupProvider(groupID string, devices []string, callback func()) providers.IGroupProvider {
 	return &fakeGroups{
 		devices:  devices,
@@ -39,6 +40,7 @@ func FakeNewGroupProvider(groupID string, devices []string, callback func()) pro
 	}
 }
 
+// FakeNewLocationProvider creates a new fake location provider.
 func FakeNewLocationProvider(groupID string, devices []string, callback func()) providers.ILocationProvider {
 	return &fakeGroups{
 		devices:  devices,

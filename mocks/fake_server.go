@@ -8,6 +8,7 @@ import (
 	"go-home.io/x/server/providers"
 )
 
+// IFakeServer adds additional capabilities to a fake server.
 type IFakeServer interface {
 	AddDevice(device *providers.KnownDevice)
 }
@@ -38,6 +39,7 @@ func (f *fakeServer) AddDevice(device *providers.KnownDevice) {
 	f.device = device
 }
 
+// FakeNewServer creates a new fake server.
 func FakeNewServer(callback func()) IFakeServer {
 	return &fakeServer{
 		callback: callback,

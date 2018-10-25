@@ -49,6 +49,8 @@ func main() {
 		logger.Fatalf("Failed to get plugin files: %s", fError.Error())
 	}
 
+	fileList = append(fileList, fmt.Sprintf("%s/plugins/go.sum", mainFolder))
+
 	for _, v := range fileList {
 		pluginName := v[:len(v)-len("/go.sum")]
 		pluginName = pluginName[len(pluginsFolder)-1:]

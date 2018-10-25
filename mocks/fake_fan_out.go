@@ -37,6 +37,7 @@ func (f *fakeFanOut) ChannelInTriggerUpdates() chan string {
 	return f.inTriggerUpdates
 }
 
+// FakeNewFanOut creates a new fake fan out provider.
 func FakeNewFanOut() providers.IInternalFanOutProvider {
 	return &fakeFanOut{
 		inTriggerUpdates:  make(chan string, 10),

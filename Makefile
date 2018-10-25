@@ -54,6 +54,7 @@ define validate_dependencies =
 					echo "======================================="
 					echo "Validating $${plugin}"
 					echo "======================================="
+					$(GOGET) go-home.io/x/server/plugins@master
 					$(MOD)
 					cd $(PLUGINS_LOCATION)
 				fi;
