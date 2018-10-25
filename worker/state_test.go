@@ -300,7 +300,7 @@ func TestSelfReload(t *testing.T) {
 	assert.Nil(t, state.failedDevices, "failed not nil")
 }
 
-// Tests proper unload
+// Tests proper unload.
 func TestProperUnloadAfterTimeout(t *testing.T) {
 	deviceLoadTimeout = 1 * time.Second
 
@@ -323,7 +323,7 @@ func TestProperUnloadAfterTimeout(t *testing.T) {
 		},
 	})
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(1100 * time.Millisecond)
 	assert.True(t, d1.loadCalled, "load not called")
 	assert.False(t, d1.unloadCalled, "unload called")
 	assert.Equal(t, 0, len(state.devices), "loaded wrong device")
@@ -346,7 +346,7 @@ func TestProperUnloadAfterTimeout(t *testing.T) {
 		},
 	})
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(1100 * time.Millisecond)
 	assert.True(t, d2.loadCalled, "load not called")
 	assert.Equal(t, 1, len(state.devices), "loaded wrong device")
 	assert.Nil(t, state.failedDevices, "no failed device")
@@ -389,7 +389,7 @@ func TestLoadTimeout(t *testing.T) {
 	d.loadCalled = false
 	d.unloadCalled = false
 	state.retryLoad()
-	time.Sleep(1 * time.Second)
+	time.Sleep(1100 * time.Millisecond)
 	assert.True(t, d.loadCalled, "load not called")
 	assert.False(t, d.unloadCalled, "unload called")
 	assert.Nil(t, state.failedDevices, "has failed")
@@ -448,7 +448,7 @@ func TestLoadTimeoutWithNewMessage(t *testing.T) {
 	})
 
 	state.retryLoad()
-	time.Sleep(1 * time.Second)
+	time.Sleep(1100 * time.Millisecond)
 
 	assert.False(t, d.loadCalled, "first load")
 	assert.True(t, d2.loadCalled, "second load")
