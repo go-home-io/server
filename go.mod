@@ -2,7 +2,6 @@ module go-home.io/x/server
 
 require (
 	bou.ke/monkey v1.0.1
-	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
 	github.com/corona10/goimagehash v0.2.0
 	github.com/creasty/defaults v1.2.1
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -16,7 +15,6 @@ require (
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/gobwas/glob v0.2.3
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
-	github.com/google/go-cmp v0.2.0
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux v1.6.2
@@ -32,7 +30,6 @@ require (
 	github.com/pkg/errors v0.8.0
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rakyll/statik v0.1.5
-	github.com/savaki/jq v0.0.0-20161209013833-0e6baecebbf8
 	github.com/stretchr/testify v1.2.2
 	github.com/ulikunitz/xz v0.5.4 // indirect
 	github.com/vkorn/go-bintray v0.0.0-20180801131521-627b4bc5e556
