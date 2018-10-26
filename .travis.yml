@@ -29,6 +29,8 @@ jobs:
         - cp -r dashboard/build/* public/
     - ## ci stage
       script:
+        - mkdir public
+        - echo "ci" > public/ci.html
         - ./build.sh ci
       after_success:
         - curl -d "repo=github.com/go-home-io/server" https://goreportcard.com/checks
