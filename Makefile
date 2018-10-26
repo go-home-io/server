@@ -1,10 +1,12 @@
 # Go params
 GO_BIN_FOLDER=$(GOPATH)/bin
-GOCMD=GOOS=${GOOS} GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER) GO111MODULE=on go
+GO_PREFIX=GOOS=${GOOS} GOARM=${GOARM} GOARCH=${GOARCH} PATH=${PATH}:$(GO_BIN_FOLDER)
+GOCMD=$(GO_PREFIX) GO111MODULE=on go
+GOCMD_NO_MOD=$(GO_PREFIX) GO111MODULE=off go
 
 GOGET=$(GOCMD) get
 GOBUILD=$(GOCMD) build -ldflags="-s -w" ${BUILD_EXTRA}
-GOGENERATE=$(GOCMD) generate
+GOGENERATE=$(GOCMD_NO_MOD) generate
 
 MOD=$(GOCMD) mod tidy
 MOD_RESTORE=$(GOGET) -v -d ./... && $(GOCMD) mod vendor
@@ -17,7 +19,7 @@ PLUGINS_BINS=$(BIN_FOLDER)/plugins
 
 METALINER=GO111MODULE=off PATH=${PATH}:$(BIN_FOLDER) $(BIN_FOLDER)/gometalinter --sort=linter --config=${CURDIR}/.gometalinter.json
 
-.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test lint-local vendor-cleanup run-only-server dep-shared-update
+.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test lint-local vendor-cleanup run-only-server dep-shared-update generate-local
 
 define build_plugins_task =
 	set -e
@@ -286,3 +288,5 @@ dep-shared-update:
 SHELL = /bin/sh
 generate:
 	$(go_generate)
+
+generate-local: dep generate vendor-cleanup
