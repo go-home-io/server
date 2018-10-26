@@ -37,6 +37,7 @@ type knownWorker struct {
 	MaxDevices       int                     `json:"max_devices"`
 }
 
+// Config entities.
 type knownEntity struct {
 	Name   string             `json:"name"`
 	Status entityStatus       `json:"status"`
@@ -184,12 +185,19 @@ func (s *serverState) Update(msg *bus.DeviceUpdateMessage) {
 	s.processDeviceStateUpdate(dv, msg.State, firstOccurrence)
 }
 
+// EntityLoad processes entity load status.
 func (s *serverState) EntityLoad(msg *bus.EntityLoadStatusMessage) {
 	s.deviceMutex.Lock()
 	defer s.deviceMutex.Unlock()
 
 	s.Logger.Debug("Received device load report", common.LogSystemToken, logSystem,
 		common.LogNameToken, msg.Name, common.LogWorkerToken, msg.NodeID)
+
+	_, ok := s.KnownEntities[msg.Name]
+	if !ok {
+		s.Logger.Warn("Received unknown entity", common.LogSystemToken, logSystem, common.LogNameToken, msg.Name)
+		return
+	}
 
 	if s.KnownEntities[msg.Name].Worker != msg.NodeID {
 		s.Logger.Warn("Entity was loaded on a wrong worker", common.LogSystemToken, logSystem,

@@ -7,7 +7,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/pkg/errors"
 	"go-home.io/x/server/plugins/common"
 	"go-home.io/x/server/plugins/device/enums"
@@ -363,7 +362,7 @@ func (s *settingsProvider) loadDeviceProvider(provider *rawProvider) (*providers
 		s.logger.Warn("Generating random name since it's not configured. "+
 			"History will not be preserver between master restarts", common.LogDeviceTypeToken, provider.Provider,
 			common.LogSystemToken, provider.System)
-		selector.Name = namesgenerator.GetRandomName(0)
+		selector.Name = utils.GetRandomName()
 	}
 
 	selector.Name = strings.ToLower(selector.Name)
@@ -635,7 +634,7 @@ func (s *settingsProvider) getMasterComponents(provider *rawProvider) *providers
 			"History will not be preserver between master restarts", common.LogDeviceTypeToken, provider.Provider,
 			common.LogSystemToken, provider.System)
 
-		cmp.Name = namesgenerator.GetRandomName(0)
+		cmp.Name = utils.GetRandomName()
 	}
 
 	return cmp

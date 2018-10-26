@@ -5,7 +5,7 @@ require (
 	github.com/corona10/goimagehash v0.2.0
 	github.com/creasty/defaults v1.2.1
 	github.com/disintegration/imaging v1.5.0
-	github.com/docker/docker v1.13.1
+	github.com/docker/docker v0.7.3-0.20181024220401-bc4c1c238b55
 	github.com/dsnet/compress v0.0.0-20171208185109-cc9eb1d7ad76 // indirect
 	github.com/enr/go-commons v0.0.0-20150504121636-bcd3f40eeea8 // indirect
 	github.com/fatih/color v1.7.0
@@ -30,7 +30,7 @@ require (
 	github.com/stretchr/testify v1.2.2
 	github.com/ulikunitz/xz v0.5.4 // indirect
 	github.com/vkorn/go-bintray v0.0.0-20180801131521-627b4bc5e556
-	go-home.io/x/server/plugins v0.0.0-20181025003827-3ceb9900099c
+	go-home.io/x/server/plugins v0.0.0-20181025030525-18e916b213bc
 	golang.org/x/crypto v0.0.0-20180904163835-0709b304e793
 	golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81 // indirect
 	golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33 // indirect

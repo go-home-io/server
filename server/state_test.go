@@ -925,3 +925,45 @@ func TestUpdatesFanOut(t *testing.T) {
 	require.NotNil(t, msg, "wrong data message")
 	assert.Equal(t, 1, len(msg.State), "wrong data message state")
 }
+
+// Tests wrong worker entity.
+func TestEntityLoad(t *testing.T) {
+	s := getFakeSettings(nil, nil, nil)
+	state := newServerState(s)
+	state.KnownEntities = map[string]*knownEntity{"test": {Worker: "1"}}
+
+	state.EntityLoad(&bus.EntityLoadStatusMessage{
+		NodeID:    "1",
+		Name:      "test1",
+		IsSuccess: true,
+	})
+
+	require.Equal(t, 1, len(state.KnownEntities), "didn't receive entity first time")
+
+	state.EntityLoad(&bus.EntityLoadStatusMessage{
+		NodeID:    "1",
+		Name:      "test",
+		IsSuccess: true,
+	})
+
+	require.Equal(t, 1, len(state.KnownEntities), "didn't receive entity first time")
+	assert.Equal(t, entityLoaded, state.KnownEntities["test"].Status, "wrong status first time")
+
+	state.EntityLoad(&bus.EntityLoadStatusMessage{
+		NodeID:    "2",
+		Name:      "test",
+		IsSuccess: true,
+	})
+
+	require.Equal(t, 1, len(state.KnownEntities), "didn't receive entity second time")
+	assert.Equal(t, entityWrongWorker, state.KnownEntities["test"].Status, "wrong status second time")
+
+	state.EntityLoad(&bus.EntityLoadStatusMessage{
+		NodeID:    "1",
+		Name:      "test",
+		IsSuccess: false,
+	})
+
+	require.Equal(t, 1, len(state.KnownEntities), "didn't receive entity third time")
+	assert.Equal(t, entityLoadFailed, state.KnownEntities["test"].Status, "wrong status third time")
+}

@@ -17,7 +17,7 @@ PLUGINS_BINS=$(BIN_FOLDER)/plugins
 
 METALINER=GO111MODULE=off PATH=${PATH}:$(BIN_FOLDER) $(BIN_FOLDER)/gometalinter --sort=linter --config=${CURDIR}/.gometalinter.json
 
-.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test lint-local vendor-cleanup run-only-server
+.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test lint-local vendor-cleanup run-only-server dep-shared-update
 
 define build_plugins_task =
 	set -e
@@ -44,6 +44,9 @@ define validate_dependencies =
 	echo "======================================="
 	echo "Validating server"
 	echo "======================================="
+	cd plugins
+	$(MOD)
+	cd ..
 	$(MOD)
 	cd $(PLUGINS_LOCATION)
 	for plugin_type in *; do
@@ -53,6 +56,33 @@ define validate_dependencies =
 					cd $${plugin}
 					echo "======================================="
 					echo "Validating $${plugin}"
+					echo "======================================="
+					$(MOD)
+					cd $(PLUGINS_LOCATION)
+				fi;
+			done;
+		fi;
+	done;
+endef
+
+define update_shared_package_dependency =
+	set -e
+	echo "======================================="
+	echo "Updating server"
+	echo "======================================="
+	cd plugins
+	$(MOD)
+	cd ..
+	$(GOGET) go-home.io/x/server/plugins@master
+	$(MOD)
+	cd $(PLUGINS_LOCATION)
+	for plugin_type in *; do
+		if [ -d "$${plugin_type}" ]; then
+			for plugin in $${plugin_type}/*; do
+				if [ -d "$${plugin}" ]; then
+					cd $${plugin}
+					echo "======================================="
+					echo "Updating $${plugin}"
 					echo "======================================="
 					$(GOGET) go-home.io/x/server/plugins@master
 					$(MOD)
@@ -68,6 +98,8 @@ define restore_dependencies =
 	echo "======================================="
 	echo "Validating server"
 	echo "======================================="
+	$(MOD_RESTORE)
+	cd plugins
 	$(MOD_RESTORE)
 	cd $(PLUGINS_LOCATION)
 	for plugin_type in *; do
@@ -100,6 +132,13 @@ define lint_all =
         fi;
 	done;
 
+	cd plugins
+	for fld in $$($(GOCMD) list ./...); do
+		cd $${GOPATH}/src/$${fld}
+		pwd
+		$(METALINER) --enable=megacheck .
+	done;
+
 	cd $(PLUGINS_LOCATION)
 	for plugin_type in *; do
 		if [ -d "$${plugin_type}" ]; then
@@ -124,6 +163,8 @@ define lint_cleanup =
 	echo "======================================="
 	cd $(CURDIR)
 	rm -rf vendor
+	cd plugins
+	rm -rf vendor
 	cd $(PLUGINS_LOCATION)
 	for plugin_type in *; do
 		if [ -d "$${plugin_type}" ]; then
@@ -131,6 +172,29 @@ define lint_cleanup =
 				if [ -d "$${plugin}" ]; then
 					cd $${plugin}
 					rm -rf vendor
+					cd $(PLUGINS_LOCATION)
+				fi;
+			done;
+		fi;
+	done;
+endef
+
+define go_generate =
+	set -e
+	echo "======================================="
+	echo "Autogenerating"
+	echo "======================================="
+	cd $(CURDIR)
+	$(GOGENERATE) -v ./...
+	cd plugins
+	$(GOGENERATE) -v ./...
+	cd $(PLUGINS_LOCATION)
+	for plugin_type in *; do
+		if [ -d "$${plugin_type}" ]; then
+			for plugin in $${plugin_type}/*; do
+				if [ -d "$${plugin}" ]; then
+					cd $${plugin}
+					$(GOGENERATE) -v ./...
 					cd $(PLUGINS_LOCATION)
 				fi;
 			done;
@@ -154,11 +218,6 @@ build-server:
 
 build: build-plugins build-server
 
-generate:
-	$(GOGENERATE) -v ./...
-	@cd $(PLUGINS_LOCATION)
-	$(GOGENERATE) -v ./...
-
 run-only-server:
 	$(BIN_NAME) -c provider:fs -c location:${CURDIR}/configs -p ${CURDIR}/bin/plugins
 
@@ -171,9 +230,9 @@ run-worker: build run-only-worker
 
 test:
 	@set -e
-	$(GOCMD) test -failfast --covermode=count -coverprofile=$(BIN_FOLDER)/cover.out.tmp ./...
+	$(GOCMD) test -failfast --covermode=count -coverprofile=$(BIN_FOLDER)/cover.out.tmp ./... ./plugins/...
 	@cat $(BIN_FOLDER)/cover.out.tmp | grep -v "fake_" | grep -v "_enumer" | \
-	    grep -v "mocks" | grep -v "public" | grep -v "statik" | grep -v "server/api_" | \
+	    grep -v "mocks" | grep -v "public" | grep -v "statik" | \
 	    grep -v "cmd/" | grep -v "errors.go" > $(BIN_FOLDER)/cover.out
 	@rm -f $(BIN_FOLDER)/cover.out.tmp
 
@@ -200,8 +259,6 @@ SHELL = /bin/sh
 lint:
 	$(lint_all)
 
-.ONESHELL:
-SHELL = /bin/sh
 lint-local: dep lint vendor-cleanup
 
 .ONESHELL:
@@ -210,7 +267,22 @@ vendor-cleanup:
 	$(lint_cleanup)
 
 .ONESHELL:
+SHELL = /bin/sh
 dep-ensure:
+	set -e
 	$(validate_dependencies)
 	cd ${CURDIR}
 	$(GOCMD) run cmd/mod/mod.go ${CURDIR} $(PLUGINS_LOCATION)
+
+.ONESHELL:
+SHELL = /bin/sh
+dep-shared-update:
+	set -e
+	$(update_shared_package_dependency)
+	cd ${CURDIR}
+	@$(MAKE) dep-ensure
+
+.ONESHELL:
+SHELL = /bin/sh
+generate:
+	$(go_generate)

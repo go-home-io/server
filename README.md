@@ -59,7 +59,7 @@ gmake run-only-server
 
 Since [gometalinter](https://github.com/alecthomas/gometalinter) has certain limitation when it comes to modules support, `lint-local` target exists for local validation.
 
-To run all required validations simply run
+To run all required validations simply run:
 
 ```bash
 gmake git

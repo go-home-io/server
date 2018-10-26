@@ -89,7 +89,7 @@ func TestForbidden(t *testing.T) {
 			providers.SecSystemAll: {
 				{
 					Get:     false,
-					History: true,
+					History: false,
 					Command: false,
 					Resources: []glob.Glob{
 						compileRegexp("hub*"),

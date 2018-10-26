@@ -71,6 +71,7 @@ func (s *GoHomeServer) deviceCommand(writer http.ResponseWriter, request *http.R
 	b, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		respondError(writer, "Failed to read body")
+		return
 	}
 	respondOkError(writer, s.commandInvokeDeviceCommand(getContextUser(request),
 		vars[string(urlDeviceID)], vars[string(urlCommandName)], b))
@@ -81,6 +82,11 @@ func (s *GoHomeServer) getStateHistory(writer http.ResponseWriter, request *http
 	user := getContextUser(request)
 	vars := mux.Vars(request)
 	kd := s.state.GetDevice(vars[string(urlDeviceID)])
+
+	if nil == kd {
+		respondError(writer, "Unknown device")
+		return
+	}
 
 	if !user.DeviceHistory(kd.ID) {
 		respondForbidden(writer)

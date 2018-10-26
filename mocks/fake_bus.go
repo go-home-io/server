@@ -8,12 +8,22 @@ import (
 	"go-home.io/x/server/plugins/bus"
 )
 
+// IFakeServiceBus adds additional capabilities to a fake service bus provider.
+type IFakeServiceBus interface {
+	SetPingError(error)
+}
+
 // Service bus provider.
 type fakeServiceBus struct {
 	publishToWorkerCallback func(string, ...interface{})
 	publishCallback         func(...interface{})
+	pingError               error
 
 	sub chan bus.RawMessage
+}
+
+func (s *fakeServiceBus) SetPingError(e error) {
+	s.pingError = e
 }
 
 func (s *fakeServiceBus) SubscribeStr(channel string, queue chan bus.RawMessage) error {
@@ -59,7 +69,7 @@ func (s *fakeServiceBus) PublishToWorker(workerName string, messages ...interfac
 
 // Internal ping.
 func (s *fakeServiceBus) Ping() error {
-	return nil
+	return s.pingError
 }
 
 func (s *fakeServiceBus) FakePublish(name string, msg bus.RawMessage) error {
@@ -75,6 +85,7 @@ func (s *fakeServiceBus) FakePublish(name string, msg bus.RawMessage) error {
 func FakeNewServiceBus(publish func(string, ...interface{})) *fakeServiceBus {
 	return &fakeServiceBus{
 		publishToWorkerCallback: publish,
+		pingError:               nil,
 	}
 }
 
@@ -82,5 +93,6 @@ func FakeNewServiceBus(publish func(string, ...interface{})) *fakeServiceBus {
 func FakeNewServiceBusRegular(publish func(...interface{})) *fakeServiceBus {
 	return &fakeServiceBus{
 		publishCallback: publish,
+		pingError:       nil,
 	}
 }

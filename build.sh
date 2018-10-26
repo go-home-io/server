@@ -105,7 +105,7 @@ docker*)
 manifest*)
     update_docker_configuration
     docker_login
-	build_manifest
+    build_manifest
     ;;
 *)
     echo "Wrong command"

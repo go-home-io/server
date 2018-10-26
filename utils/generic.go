@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/docker/pkg/namesgenerator"
 	"go-home.io/x/server/plugins/device/enums"
 )
 
@@ -66,6 +67,12 @@ func GetDefaultConfigsDir() string {
 	}
 
 	return fmt.Sprintf("%s/configs", GetCurrentWorkingDir())
+}
+
+// GetRandomName returns random name for the device.
+// Method uses Docker names generator.
+func GetRandomName() string {
+	return namesgenerator.GetRandomName(0)
 }
 
 // ConfigDir allows to re-write default config directory.

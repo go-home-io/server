@@ -1,7 +1,7 @@
 bou.ke/monkey v1.0.1 h1:zEMLInw9xvNakzUUPjfS4Ds6jYPqCFx3m7bRmG5NH2U=
 bou.ke/monkey v1.0.1/go.mod h1:FgHuK96Rv2Nlf+0u1OOVDpCMdsWyOFmeeketDHE7LIg=
-github.com/Knetic/govaluate v3.0.0+incompatible h1:7o6+MAPhYTCF0+fdvoz1xDedhRb4f6s9Tn1Tt7/WTEg=
-github.com/Knetic/govaluate v3.0.0+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
+github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible h1:1G1pk05UrOh0NlF1oeaaix1x8XzrfjIDK47TY0Zehcw=
+github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/corona10/goimagehash v0.2.0 h1:klxzJe/rlnA8DffjEqOEL93/pVMl9J2Glf/qvGbMR7Y=
 github.com/corona10/goimagehash v0.2.0/go.mod h1:BQtzmQ2tNr04YeCPYBOiIWe/69WJF5IRGPLmzxvcAKg=
 github.com/creasty/defaults v1.2.1 h1:nEJEkblPW2TQiisfJtaQ2p4Y3LNXejR7DO/jTT6l2NQ=
@@ -10,6 +10,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/disintegration/imaging v1.5.0 h1:uYqUhwNmLU4K1FN44vhqS4TZJRAA4RhBINgbQlKyGi0=
 github.com/disintegration/imaging v1.5.0/go.mod h1:9B/deIUIrliYkyMTuXJd6OUFLcrZ2tf+3Qlwnaf/CjU=
+github.com/docker/docker v0.7.3-0.20181024220401-bc4c1c238b55 h1:dbaLSElkFaEldnHO1zTfVCwDRNPTbHnSvIhfAMNTXpg=
+github.com/docker/docker v0.7.3-0.20181024220401-bc4c1c238b55/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker v1.13.1 h1:5VBhsO6ckUxB0A8CE5LlUJdXzik9cbEbBTQ/ggeml7M=
 github.com/docker/docker v1.13.1/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/dsnet/compress v0.0.0-20171208185109-cc9eb1d7ad76 h1:eX+pdPPlD279OWgdx7f6KqIRSONuK7egk+jDx7OM3Ac=
@@ -68,8 +70,6 @@ github.com/ulikunitz/xz v0.5.4 h1:zATC2OoZ8H1TZll3FpbX+ikwmadbO699PE06cIkm9oU=
 github.com/ulikunitz/xz v0.5.4/go.mod h1:2bypXElzHzzJZwzH67Y6wb67pO62Rzfn7BSiF4ABRW8=
 github.com/vkorn/go-bintray v0.0.0-20180801131521-627b4bc5e556 h1:a9WEoutqyHDVkIB7wtZvpuKXp6/P21NyhnfX6pO4hlI=
 github.com/vkorn/go-bintray v0.0.0-20180801131521-627b4bc5e556/go.mod h1:BjbVAtTTx2WCtCdrGzRqV7ANJ5GgvhynQt0WZmVWBJU=
-go-home.io/x/server/plugins v0.0.0-20181025003827-3ceb9900099c h1:3GKOqgbTsCfcWdQiShIWEAgO7DQUPJGSq+BMBxvKcVM=
-go-home.io/x/server/plugins v0.0.0-20181025003827-3ceb9900099c/go.mod h1:Fcyb4DVLFuR6jo79b+EZwh9TobrUXRwUxR62rqUH+p4=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793 h1:u+LnwYTOOW7Ukr/fppxEb1Nwz0AtPflrblfvUudpo+I=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81 h1:00VmoueYNlNz/aHIilyyQz/MHSqGoWJzpFv/HW8xpzI=

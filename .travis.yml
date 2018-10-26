@@ -18,11 +18,10 @@ jobs:
             - dashboard/node_modules
             - public
       script:
-        - git clone https://github.com/nicknesk/gohome-prototype-react db
+        - git clone https://github.com/go-home-io/dashboard db
         - cp -r db/* dashboard/
         - cd dashboard
         - make dep
-        - make utilities-ci
         - make build
         - cd ..
         - rm -rf public
@@ -33,6 +32,7 @@ jobs:
         - ./build.sh ci
       after_success:
         - curl -d "repo=github.com/go-home-io/server" https://goreportcard.com/checks
+        - curl -d "repo=github.com/go-home-io/providers" https://goreportcard.com/checks
     - stage: docker
       if: tag IS present
       cache:

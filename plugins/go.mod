@@ -1,7 +1,7 @@
 module go-home.io/x/server/plugins
 
 require (
-	github.com/Knetic/govaluate v3.0.0+incompatible
+	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // Older version has issues
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gobwas/glob v0.2.3
 	github.com/google/go-cmp v0.2.0

@@ -27,6 +27,7 @@ func FakeNewSecurityProvider(allow bool) *fakeSecurity {
 	}
 }
 
+// IFakeAuthenticatedUser adds additional capabilities to a fake user.
 type IFakeAuthenticatedUser interface {
 	SetAllow(bool)
 }

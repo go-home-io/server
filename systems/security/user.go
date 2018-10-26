@@ -65,7 +65,7 @@ func (u *AuthenticatedUser) isAllowed(rules []*providers.BakedRule, verb provide
 				continue
 			}
 		case providers.SecVerbHistory:
-			if !v.Get {
+			if !v.History {
 				continue
 			}
 		default:
