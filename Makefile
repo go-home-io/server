@@ -134,7 +134,7 @@ define lint_all =
         fi;
 	done;
 
-	cd plugins
+	cd ${CURDIR}/plugins
 	for fld in $$($(GOCMD) list ./...); do
 		cd $${GOPATH}/src/$${fld}
 		pwd
