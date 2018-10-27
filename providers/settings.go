@@ -52,7 +52,7 @@ type MasterSettings struct {
 	Port         int                   `yaml:"port" validate:"required,port" default:"8000"`
 	DelayedStart int                   `yaml:"delayedStart" validate:"gte=0"`
 	UOM          enums.UOM             `yaml:"units" default:"imperial"`
-	Timezone     string                `yaml:"timezone" default:"UTC"`
+	Timezone     string                `yaml:"timezone" default:"Local"`
 	Locations    []*RawMasterComponent `yaml:"-"`
 	Tz           *time.Location        `yaml:"-"`
 }

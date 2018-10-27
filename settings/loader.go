@@ -214,17 +214,16 @@ func (s *settingsProvider) validateMasterSettings() {
 	if nil == s.mSettings {
 		s.logger.Warn("Master settings are not defined, using the default ones",
 			common.LogSystemToken, logSystem)
-		tz, _ := time.LoadLocation("UTC") // nolint: gosec
 
 		s.mSettings = &providers.MasterSettings{
-			Tz:   tz,
+			Tz:   time.Now().Location(),
 			Port: 8080,
 		}
 	} else {
 		tz, err := time.LoadLocation(s.mSettings.Timezone)
 		if err != nil {
-			s.logger.Warn("Timezone parse error, going to use UTC", common.LogSystemToken, logSystem)
-			tz, _ = time.LoadLocation("UTC") // nolint: gosec
+			tz = time.Now().Location()
+			s.logger.Warn("Timezone parse error, going to use Local one", common.LogSystemToken, logSystem)
 		}
 
 		s.mSettings.Tz = tz
