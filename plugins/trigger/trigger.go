@@ -2,6 +2,7 @@ package trigger
 
 import (
 	"reflect"
+	"time"
 
 	"go-home.io/x/server/plugins/common"
 )
@@ -16,6 +17,7 @@ type InitDataTrigger struct {
 	Logger    common.ILoggerProvider
 	Secret    common.ISecretProvider
 	FanOut    common.IFanOutProvider
+	Timezone  *time.Location
 	Triggered chan interface{}
 }
 

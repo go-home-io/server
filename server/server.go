@@ -221,6 +221,7 @@ func (s *GoHomeServer) startTriggers() {
 			Secret:    s.Settings.Secrets(),
 			Validator: s.Settings.Validator(),
 			Server:    s,
+			Timezone:  s.Settings.MasterSettings().Tz,
 		}
 		tr, err := trigger.NewTrigger(ctor)
 		comp := &knownMasterComponent{

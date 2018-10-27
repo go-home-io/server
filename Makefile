@@ -241,8 +241,6 @@ test:
 test-local: test
 	$(GOCMD) tool cover --html=$(BIN_FOLDER)/cover.out
 
-git: vendor-cleanup dep-ensure generate lint-local test-local
-
 build-rpi-cache-docker:
 	docker build -t go-home-cahe -f Dockerfile.rpi.cache .
 
@@ -290,3 +288,6 @@ generate:
 	$(go_generate)
 
 generate-local: dep generate vendor-cleanup
+
+git: vendor-cleanup dep-ensure dep generate lint test-local
+	$(lint_cleanup)

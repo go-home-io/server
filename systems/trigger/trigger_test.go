@@ -14,6 +14,15 @@ import (
 	"go-home.io/x/server/utils"
 )
 
+func getUTC() *time.Location {
+	utc, _ := time.LoadLocation("UTC") // nolint: gosec
+	return utc
+}
+
+func getNow() time.Time {
+	return time.Now().In(getUTC())
+}
+
 // Fake plugin implementation.
 type fakePlugin struct {
 	callback chan interface{}
@@ -83,15 +92,16 @@ func TestWithinActiveWindowInvokes(t *testing.T) {
 			called++
 		}).(providers.IServerProvider),
 		deviceActions: []*triggerActionDevice{{}},
+		timezone:      getUTC(),
 	}
 
 	data := []string{
-		fmt.Sprintf("%s-%s", time.Now().Add(-1*time.Hour).Format(time.Kitchen),
-			time.Now().Add(1*time.Hour).Format(time.Kitchen)),
-		fmt.Sprintf("%s-%s", time.Now().Add(-1*time.Hour).Format(time.Kitchen),
-			time.Now().Add(22*time.Hour).Format(time.Kitchen)),
-		fmt.Sprintf("11:00PM-%s", time.Now().Add(1*time.Minute).Format(time.Kitchen)),
-		fmt.Sprintf("%s-11:00PM", time.Now().Add(-1*time.Minute).Format(time.Kitchen)),
+		fmt.Sprintf("%s-%s", getNow().Add(-1*time.Hour).Format(time.Kitchen),
+			getNow().Add(1*time.Hour).Format(time.Kitchen)),
+		fmt.Sprintf("%s-%s", getNow().Add(-1*time.Hour).Format(time.Kitchen),
+			getNow().Add(22*time.Hour).Format(time.Kitchen)),
+		fmt.Sprintf("11:00PM-%s", getNow().Add(1*time.Minute).Format(time.Kitchen)),
+		fmt.Sprintf("%s-11:00PM", getNow().Add(-1*time.Minute).Format(time.Kitchen)),
 	}
 
 	for _, v := range data {
@@ -112,13 +122,14 @@ func TestOutsideOfActiveWindowInvokes(t *testing.T) {
 			called++
 		}).(providers.IServerProvider),
 		deviceActions: []*triggerActionDevice{{}},
+		timezone:      getUTC(),
 	}
 
 	data := []string{
-		fmt.Sprintf("%s-%s", time.Now().Add(-3*time.Hour).Format(time.Kitchen),
-			time.Now().Add(-2*time.Hour).Format(time.Kitchen)),
-		fmt.Sprintf("%s-%s", time.Now().Add(1*time.Hour).Format(time.Kitchen),
-			time.Now().Add(-22*time.Hour).Format(time.Kitchen)),
+		fmt.Sprintf("%s-%s", getNow().Add(-3*time.Hour).Format(time.Kitchen),
+			getNow().Add(-2*time.Hour).Format(time.Kitchen)),
+		fmt.Sprintf("%s-%s", getNow().Add(1*time.Hour).Format(time.Kitchen),
+			getNow().Add(-22*time.Hour).Format(time.Kitchen)),
 	}
 
 	for _, v := range data {
@@ -166,6 +177,7 @@ func (w *wdSuite) SetupTest() {
 		Secret:    mocks.FakeNewSecretStore(nil, false),
 		FanOut:    mocks.FakeNewFanOut(),
 		Provider:  "test",
+		Timezone:  getUTC(),
 	}
 }
 
@@ -254,6 +266,7 @@ func TestInvoke(t *testing.T) {
 		Server: mocks.FakeNewServer(func() {
 			invoked = true
 		}).(providers.IServerProvider),
+		Timezone: getUTC(),
 	}
 
 	ctr.RawConfig = []byte(fmt.Sprintf(`
@@ -281,6 +294,7 @@ func TestNoSystemData(t *testing.T) {
 		Secret:    mocks.FakeNewSecretStore(nil, false),
 		FanOut:    mocks.FakeNewFanOut(),
 		Provider:  "test",
+		Timezone:  getUTC(),
 	}
 
 	ctr.RawConfig = []byte(fmt.Sprintf(`
@@ -301,6 +315,7 @@ func TestNoPlugin(t *testing.T) {
 		Secret:    mocks.FakeNewSecretStore(nil, false),
 		FanOut:    mocks.FakeNewFanOut(),
 		Provider:  "test",
+		Timezone:  getUTC(),
 	}
 	ctr.RawConfig = []byte(fmt.Sprintf(`
 actions:
@@ -329,14 +344,15 @@ func TestInvokeOutsideOfActiveWindow(t *testing.T) {
 		Server: mocks.FakeNewServer(func() {
 			invoked = true
 		}).(providers.IServerProvider),
+		Timezone: getUTC(),
 	}
 	ctr.RawConfig = []byte(fmt.Sprintf(`
 activeHrs: %s-%s
 actions:
     - system: device
       entity: hub
-      command: "on"`, time.Now().Add(-3*time.Hour).Format(time.Kitchen),
-		time.Now().Add(-2*time.Hour).Format(time.Kitchen)))
+      command: "on"`, getNow().Add(-3*time.Hour).Format(time.Kitchen),
+		getNow().Add(-2*time.Hour).Format(time.Kitchen)))
 
 	pl, err := NewTrigger(ctr)
 	assert.NoError(t, err)

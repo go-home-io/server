@@ -27,6 +27,7 @@ type wrapper struct {
 	ID        string
 	name      string
 	server    providers.IServerProvider
+	timezone  *time.Location
 
 	deviceActions []*triggerActionDevice
 
@@ -48,6 +49,7 @@ type ConstructTrigger struct {
 	RawConfig []byte
 	FanOut    providers.IInternalFanOutProvider
 	Server    providers.IServerProvider
+	Timezone  *time.Location
 }
 
 // NewTrigger creates a new trigger.
@@ -73,6 +75,7 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 		validator: ctor.Validator,
 		server:    ctor.Server,
 		ID:        getID(ctor.Name),
+		timezone:  ctor.Timezone,
 	}
 	err = w.loadActions(cfg.Actions)
 	if err != nil {
@@ -89,6 +92,7 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 		Logger:    log,
 		Triggered: callback,
 		Secret:    ctor.Secret,
+		Timezone:  ctor.Timezone,
 	}
 
 	request := &providers.PluginLoadRequest{
@@ -241,7 +245,7 @@ func (w *wrapper) isInActiveTimeWindow() bool {
 		return true
 	}
 
-	nowT := time.Now()
+	nowT := time.Now().In(w.timezone)
 	now := nowT.Hour()*60 + nowT.Minute()
 	if w.from > w.to {
 		return now <= w.to || now >= w.from

@@ -110,17 +110,17 @@ func TestGetWorkersForbiddenAPI(t *testing.T) {
 }
 
 // Test get entities.
-func TestGetEntitiesStatusAPI(t *testing.T){
+func TestGetEntitiesStatusAPI(t *testing.T) {
 	monkey.Patch(getContextUser, getFakeRootUser)
 	defer monkey.UnpatchAll()
 
 	srv := getServer()
 	srv.triggers = []*knownMasterComponent{{
-		Name:"test",
+		Name: "test",
 	}}
 	srv.extendedAPIs = []*knownMasterComponent{{
-		Name:"test1",
-		Loaded:true,
+		Name:   "test1",
+		Loaded: true,
 	}}
 
 	req, err := http.NewRequest("GET", "/test", nil)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"go-home.io/x/server/plugins/common"
@@ -192,26 +193,46 @@ func (s *settingsProvider) validate() {
 	}
 
 	if s.isWorker {
-		if nil == s.wSettings {
-			s.logger.Warn("Worker settings are not defined, using the default ones",
-				common.LogSystemToken, logSystem)
-			s.wSettings = &providers.WorkerSettings{
-				MaxDevices: 99,
-			}
+		s.validateWorkerSettings()
+	} else {
+		s.validateMasterSettings()
+	}
+}
+
+func (s *settingsProvider) validateWorkerSettings() {
+	if nil == s.wSettings {
+		s.logger.Warn("Worker settings are not defined, using the default ones",
+			common.LogSystemToken, logSystem)
+		s.wSettings = &providers.WorkerSettings{
+			MaxDevices: 99,
+		}
+	}
+}
+
+// Validates master settings.
+func (s *settingsProvider) validateMasterSettings() {
+	if nil == s.mSettings {
+		s.logger.Warn("Master settings are not defined, using the default ones",
+			common.LogSystemToken, logSystem)
+		tz, _ := time.LoadLocation("UTC") // nolint: gosec
+
+		s.mSettings = &providers.MasterSettings{
+			Tz:   tz,
+			Port: 8080,
 		}
 	} else {
-		if nil == s.mSettings {
-			s.logger.Warn("Master settings are not defined, using the default ones",
-				common.LogSystemToken, logSystem)
-			s.mSettings = &providers.MasterSettings{
-				Port: 8080,
-			}
+		tz, err := time.LoadLocation(s.mSettings.Timezone)
+		if err != nil {
+			s.logger.Warn("Timezone parse error, going to use UTC", common.LogSystemToken, logSystem)
+			tz, _ = time.LoadLocation("UTC") // nolint: gosec
 		}
 
-		if nil == s.storage {
-			s.logger.Warn("Storage provider is not defined", common.LogSystemToken, logSystem)
-			s.storage = storage.NewEmptyStorageProvider()
-		}
+		s.mSettings.Tz = tz
+	}
+
+	if nil == s.storage {
+		s.logger.Warn("Storage provider is not defined", common.LogSystemToken, logSystem)
+		s.storage = storage.NewEmptyStorageProvider()
 	}
 }
 
