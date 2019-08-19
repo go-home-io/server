@@ -15,6 +15,14 @@ type fakePlugin struct {
 	callback func(string)
 }
 
+func (f *fakePlugin) GetSpecs() *logger.LogSpecs {
+	return &logger.LogSpecs{IsHistorySupported: false}
+}
+
+func (f *fakePlugin) Query(*logger.LogHistoryRequest) []*logger.LogHistoryEntry {
+	panic("implement me")
+}
+
 func (f *fakePlugin) Init(*logger.InitDataLogger) error {
 	return nil
 }
