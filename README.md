@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.com/go-home-io/server.svg?branch=master)](https://travis-ci.com/go-home-io/server) 
+[![Build Status](https://travis-ci.com/go-home-io/server.svg?branch=master)](https://travis-ci.com/go-home-io/server) [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgo-home-io%2Fserver.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgo-home-io%2Fserver?ref=badge_shield)
+
 [![Coverage Status](https://img.shields.io/coveralls/github/go-home-io/server/master.svg)](https://coveralls.io/github/go-home-io/server?branch=master) 
 [![Go Report Card](https://goreportcard.com/badge/github.com/go-home-io/server)](https://goreportcard.com/report/github.com/go-home-io/server)
 [![BCH compliance](https://bettercodehub.com/edge/badge/go-home-io/server?branch=master)](https://bettercodehub.com/) 
@@ -79,3 +80,6 @@ Which includes:
 ```bash
 GO111MODULE=off go get github.com/vkorn/go-miio
 ```
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgo-home-io%2Fserver.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgo-home-io%2Fserver?ref=badge_large)
