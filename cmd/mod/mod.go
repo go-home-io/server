@@ -90,12 +90,12 @@ func readSumFile(fileName string, logger *log.Logger) (map[string]string, bool) 
 	result := make(map[string]string)
 	dup := false
 
-	file, err := os.Open(fileName) //nolint: gosec
+	file, err := os.Open(fileName) //nolint: gosec, errcheck
 	if err != nil {
 		logger.Fatalf("Failed to open file %s", fileName)
 	}
 
-	defer file.Close() // nolint: gosec
+	defer file.Close() // nolint: gosec, errcheck
 
 	scanner := bufio.NewScanner(file)
 	ii := 0

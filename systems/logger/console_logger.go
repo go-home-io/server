@@ -41,10 +41,6 @@ func (p *consoleLogger) Fatal(msg string, err error, fields ...string) {
 	os.Exit(1)
 }
 
-// Flush don't needed for a console worker.
-func (p *consoleLogger) Flush() {
-}
-
 // NewConsoleLogger constructs a new console worker.
 func NewConsoleLogger() common.ILoggerProvider {
 	return &consoleLogger{}
@@ -53,7 +49,7 @@ func NewConsoleLogger() common.ILoggerProvider {
 // Helper method to add generic fields to the output.
 func withFields(fields ...string) map[string]string {
 	fLen := len(fields)
-	result := make(map[string]string, int(fLen/2))
+	result := make(map[string]string, fLen/2)
 	for ii := 0; ii < fLen; ii += 2 {
 		if ii+1 >= fLen {
 			break
@@ -80,5 +76,5 @@ func output(msg string, fields map[string]string, c color.Attribute) {
 func colorPrint(msg string, c color.Attribute) {
 	msgC := color.New(c)
 	//noinspection GoUnhandledErrorResult
-	msgC.Println(msg) // nolint: gosec
+	msgC.Println(msg) // nolint: gosec, errcheck
 }

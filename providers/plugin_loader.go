@@ -3,12 +3,14 @@ package providers
 import (
 	"reflect"
 
+	"go-home.io/x/server/plugins/common"
 	"go-home.io/x/server/systems"
 )
 
 // IPluginLoaderProvider defines plugin loader provider logic.
 type IPluginLoaderProvider interface {
 	LoadPlugin(*PluginLoadRequest) (interface{}, error)
+	UpdateLogger(common.ILoggerProvider)
 }
 
 // PluginLoadRequest has data required for loading a new plugin.

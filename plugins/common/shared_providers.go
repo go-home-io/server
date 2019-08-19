@@ -21,7 +21,6 @@ type ILoggerProvider interface {
 	Warn(msg string, fields ...string)
 	Error(msg string, err error, fields ...string)
 	Fatal(msg string, err error, fields ...string)
-	Flush()
 }
 
 // IPluginLoggerProvider defines additional method for adding extra fields.

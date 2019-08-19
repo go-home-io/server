@@ -37,7 +37,7 @@ func PropertySave(property enums.Property, value interface{}) (interface{}, erro
 
 // PropertyLoad restores actual property from the database.
 func PropertyLoad(property enums.Property, value interface{}) (interface{}, error) {
-	switch property {
+	switch property { // nolint: gocritic
 	case enums.PropColor:
 		data := common.Color{}
 		err := json.Unmarshal([]byte(value.(string)), &data)

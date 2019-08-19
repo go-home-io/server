@@ -1,0 +1,33 @@
+run:
+  concurrency: 4
+  deadline: 5m
+  issues-exit-code: 1
+  tests: false
+  skip-dirs:
+    - statik
+    - public
+    - mocks
+    - /usr/local/go/src
+  skip-files:
+    - fake_([a-zA-Z]+).go
+    - ([a-zA-Z]+)_enumer.go
+    - /usr/local/go/*
+  modules-download-mode: readonly
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters:
+  enable-all: true
+  disable:
+    - gochecknoglobals
+    - typecheck
+    - prealloc
+
+linters-settings:
+  gocyclo:
+    min-complexity: 13
+
+issues:
+  exclude-use-default: false

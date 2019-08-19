@@ -5,7 +5,7 @@ require (
 	github.com/corona10/goimagehash v0.2.0
 	github.com/creasty/defaults v1.2.1
 	github.com/disintegration/imaging v1.5.0
-	github.com/docker/docker v0.7.3-0.20181024220401-bc4c1c238b55
+	github.com/docker/docker v1.4.2-0.20190818020526-0c46a20f9471
 	github.com/dsnet/compress v0.0.0-20171208185109-cc9eb1d7ad76 // indirect
 	github.com/enr/go-commons v0.0.0-20150504121636-bcd3f40eeea8 // indirect
 	github.com/fatih/color v1.7.0
@@ -41,3 +41,5 @@ require (
 )
 
 replace go-home.io/x/server/plugins => ./plugins
+
+go 1.13

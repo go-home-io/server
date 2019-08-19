@@ -5,6 +5,7 @@ package mocks
 import (
 	"errors"
 
+	"go-home.io/x/server/plugins/common"
 	"go-home.io/x/server/providers"
 )
 
@@ -28,6 +29,9 @@ func (f *fakePluginLoader) LoadPlugin(r *providers.PluginLoadRequest) (interface
 	}
 
 	return f.returnObj, nil
+}
+
+func (f *fakePluginLoader) UpdateLogger(common.ILoggerProvider) {
 }
 
 // FakeNewPluginLoader creates a new fake plugin loader.

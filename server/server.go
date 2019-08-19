@@ -117,8 +117,8 @@ func (s *GoHomeServer) Start() {
 }
 
 // GetDevice returns known device.
-func (s *GoHomeServer) GetDevice(ID string) *providers.KnownDevice {
-	kd := s.state.GetDevice(ID)
+func (s *GoHomeServer) GetDevice(id string) *providers.KnownDevice {
+	kd := s.state.GetDevice(id)
 	if nil == kd {
 		return nil
 	}
@@ -221,7 +221,7 @@ func (s *GoHomeServer) startTriggers() {
 			Secret:    s.Settings.Secrets(),
 			Validator: s.Settings.Validator(),
 			Server:    s,
-			Timezone:  s.Settings.MasterSettings().Tz,
+			Timezone:  s.Settings.Timezone(),
 		}
 		tr, err := trigger.NewTrigger(ctor)
 		comp := &knownMasterComponent{

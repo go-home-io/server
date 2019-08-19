@@ -11,7 +11,7 @@ type IProcessor interface {
 
 // Constructs a new device processor if required for the device.
 func newDeviceProcessor(deviceType enums.DeviceType, rawConfig string) IProcessor {
-	switch deviceType {
+	switch deviceType { // nolint: gocritic
 	case enums.DevCamera:
 		return newCameraProcessor(rawConfig)
 	}

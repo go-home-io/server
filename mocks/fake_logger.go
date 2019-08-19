@@ -42,13 +42,6 @@ func (p *fakeLogger) Fatal(msg string, err error, fields ...string) {
 	}
 }
 
-// Flushes logger buffer if any.
-func (p *fakeLogger) Flush() {
-	if p.callback != nil {
-		p.callback("flush")
-	}
-}
-
 // FakeNewLogger creates a fake logger provider.
 func FakeNewLogger(callback func(string)) *fakeLogger {
 	return &fakeLogger{

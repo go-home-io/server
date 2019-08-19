@@ -57,8 +57,6 @@ gmake run-only-server
 
 #### Preparing commit
 
-Since [gometalinter](https://github.com/alecthomas/gometalinter) has certain limitation when it comes to modules support, `lint-local` target exists for local validation.
-
 To run all required validations simply run:
 
 ```bash
@@ -68,7 +66,7 @@ gmake git
 Which includes: 
 * `dep-ensure` -- running `go mod tidy`
 * `generate` -- auto-generating all required files
-* `lint-local` -- running all configured linters
+* `lint` -- running all configured linters
 * `test-local` -- running all available tests
 
 

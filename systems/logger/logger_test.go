@@ -39,9 +39,6 @@ func (f *fakePlugin) Fatal(msg string, fields ...string) {
 	f.callback(msg)
 }
 
-func (f *fakePlugin) Flush() {
-}
-
 // Tests error plugin loading.
 func TestErrorLoad(t *testing.T) {
 	ctor := &ConstructLogger{
@@ -97,7 +94,6 @@ func TestLogger(t *testing.T) {
 	l.Warn("Warn")
 	l.Error("Error", errors.New(""))
 	l.Fatal("Fatal", errors.New(""))
-	l.Flush()
 
 	assert.True(t, debug, "debug")
 	assert.True(t, info, "info")

@@ -78,6 +78,7 @@ func (p *pSuite) SetupTest() {
 func (p *pSuite) TestConstruct() {
 	loader := NewPluginLoader(&ConstructPluginLoader{
 		Validator: nil,
+		Logger:    mocks.FakeNewLogger(nil),
 	})
 
 	_, err := loader.LoadPlugin(&providers.PluginLoadRequest{

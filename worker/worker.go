@@ -52,9 +52,13 @@ func (w *GoHomeWorker) Start() {
 	w.busStart()
 
 	w.sendDiscovery(true)
-	w.Settings.Cron().AddFunc("@every 1m", func() {
+	_, err := w.Settings.Cron().AddFunc("@every 1m", func() {
 		w.sendDiscovery(false)
 	})
+
+	if err != nil {
+		w.Logger.Fatal("Failed to start discovery routine", err)
+	}
 
 	w.Logger.Info("Successfully started go-home worker",
 		"max_devices", strconv.Itoa(w.Settings.WorkerSettings().MaxDevices))

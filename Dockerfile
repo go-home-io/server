@@ -1,9 +1,9 @@
 ARG RUN_IMAGE
-FROM golang:1.11.1 as build
+FROM golang:1.13beta1 as build
 
 ENV PROVIDERS=https://github.com/go-home-io/providers.git \
     HOME_DIR=${GOPATH}/src/go-home.io/x/server \
-    QEMU=https://github.com/multiarch/qemu-user-static/releases/download/v2.6.0/qemu-arm-static.tar.gz
+    QEMU=https://github.com/multiarch/qemu-user-static/releases/download/v4.0.0-4/qemu-arm-static.tar.gz
 
 ARG TRAVIS_TAG
 ENV VERSION=${TRAVIS_TAG}

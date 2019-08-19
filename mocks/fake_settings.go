@@ -3,6 +3,8 @@
 package mocks
 
 import (
+	"time"
+
 	"go-home.io/x/server/plugins/common"
 	"go-home.io/x/server/providers"
 )
@@ -115,6 +117,10 @@ func (f *fakeSettings) Triggers() []*providers.RawMasterComponent {
 
 func (f *fakeSettings) FanOut() providers.IInternalFanOutProvider {
 	return f.fanOut
+}
+
+func (f *fakeSettings) Timezone() *time.Location {
+	return time.Now().Location()
 }
 
 func (f *fakeSettings) AddLoader(returnOj interface{}) {

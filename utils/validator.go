@@ -54,7 +54,7 @@ func (v *validatorProvider) Validate(object interface{}) bool {
 	err = v.validator.Struct(object)
 	if err != nil {
 		for _, e := range err.(validator.ValidationErrors) {
-			v.logger.Warn("Validation error", common.LogFieldToken, e.Field())
+			v.logger.Error("Validation error", err, common.LogFieldToken, e.Field())
 		}
 
 		return false

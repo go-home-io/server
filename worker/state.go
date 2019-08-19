@@ -1,7 +1,7 @@
 package worker
 
 import (
-	"crypto/md5"
+	"crypto/md5" // nolint: gosec
 	"encoding/hex"
 	"strconv"
 	"sync"
@@ -240,7 +240,7 @@ func (w *workerState) loadDevices(msg *bus.DeviceAssignmentMessage) {
 
 	if !waitWithTimeout(&wg, deviceLoadTimeout) {
 		w.Logger.Warn("Got timeout while waiting for devices load")
-		w.lastAssignment = make([]string, 0)
+		//w.lastAssignment = make([]string, 0)
 		analyzeFailedToLoadDevices(devices, failed)
 	}
 
@@ -301,8 +301,8 @@ func (w *workerState) tryUnload(p ...providers.ILoadedProvider) {
 	wg.Add(len(p))
 	for _, v := range p {
 		go func(w *sync.WaitGroup, pr providers.ILoadedProvider) {
-			defer wg.Done()
-			v.Unload()
+			defer w.Done()
+			pr.Unload()
 		}(&wg, v)
 	}
 

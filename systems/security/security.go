@@ -113,7 +113,7 @@ func loadBasicAuthStorage(ctor *ConstructSecurityProvider) (user.IUserStorage, c
 	}
 
 	prov := &basicAuthProvider{}
-	prov.Init(initData) // nolint: gosec
+	prov.Init(initData) // nolint: gosec, errcheck
 	return prov, loggerProvider
 }
 
@@ -174,6 +174,7 @@ func (p *provider) processRoles(roles []*providers.SecRole) {
 		}
 
 		for _, o := range v.Users {
+			o := o
 			reg, err := glob.Compile(o)
 			if err != nil {
 				p.logger.Warn("Failed to compile role's user regexp", "regexp", o,
@@ -190,6 +191,7 @@ func (p *provider) processRoles(roles []*providers.SecRole) {
 		}
 
 		for _, o := range v.Rules {
+			o := o
 			rule := p.processRule(&o, v.Name)
 			if nil == rule {
 				continue

@@ -17,9 +17,9 @@ BIN_FOLDER=${CURDIR}/bin
 BIN_NAME=$(BIN_FOLDER)/go-home
 PLUGINS_BINS=$(BIN_FOLDER)/plugins
 
-METALINER=GO111MODULE=off PATH=${PATH}:$(BIN_FOLDER) $(BIN_FOLDER)/gometalinter --sort=linter --config=${CURDIR}/.gometalinter.json
+LINTER=$(GO_BIN_FOLDER)/golangci-lint -c ${CURDIR}/.golangci.yml run
 
-.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test lint-local vendor-cleanup run-only-server dep-shared-update generate-local
+.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test vendor-cleanup run-only-server dep-shared-update generate-local
 
 define build_plugins_task =
 	set -e
@@ -125,21 +125,8 @@ define lint_all =
 	echo "======================================="
 	echo "Linting server"
 	echo "======================================="
-    for fld in $$($(GOCMD) list ./...); do
-        cd $${GOPATH}/src/$${fld}
-        cwd=$$(pwd)
-        if [ "$${cwd}" != "$(CURDIR)" ]; then
-            echo $${cwd}
-            $(METALINER) --enable=megacheck .
-        fi;
-	done;
 
-	cd ${CURDIR}/plugins
-	for fld in $$($(GOCMD) list ./...); do
-		cd $${GOPATH}/src/$${fld}
-		pwd
-		$(METALINER) --enable=megacheck .
-	done;
+	$(LINTER)
 
 	cd $(PLUGINS_LOCATION)
 	for plugin_type in *; do
@@ -150,7 +137,7 @@ define lint_all =
 					echo "Linting $${plugin}"
 					echo "======================================="
 					cd $${plugin}
-					$(METALINER) --enable=megacheck_provider ./...
+					$(LINTER) --disable=unused --disable=unparam
 					cd $(PLUGINS_LOCATION)
 				fi;
 			done;
@@ -209,7 +196,7 @@ utilities-build:
 	$(GOGET) github.com/rakyll/statik
 
 utilities-ci:
-	curl -L https://git.io/vp6lP | sh
+	$(GOCMD_NO_MOD) get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 	$(GOGET) github.com/mattn/goveralls
 
 utilities: utilities-build utilities-ci
@@ -241,9 +228,6 @@ test:
 test-local: test
 	$(GOCMD) tool cover --html=$(BIN_FOLDER)/cover.out
 
-build-rpi-cache-docker:
-	docker build -t go-home-cahe -f Dockerfile.rpi.cache .
-
 .ONESHELL:
 SHELL = /bin/sh
 build-plugins:
@@ -258,8 +242,6 @@ dep:
 SHELL = /bin/sh
 lint:
 	$(lint_all)
-
-lint-local: dep lint vendor-cleanup
 
 .ONESHELL:
 SHELL = /bin/sh

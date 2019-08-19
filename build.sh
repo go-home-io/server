@@ -74,9 +74,9 @@ update_docker_configuration() {
 build_manifest(){
     docker pull ${IMAGE_NAME}:arm32v7-${IMAGE_VERSION}
     docker pull ${IMAGE_NAME}:amd64-${IMAGE_VERSION}
-	docker manifest create ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:arm32v7-${IMAGE_VERSION}  ${IMAGE_NAME}:amd64-${IMAGE_VERSION} --amend
-	docker manifest annotate ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:arm32v7-${IMAGE_VERSION} --os linux --arch arm
-	docker manifest push ${IMAGE_NAME}:${IMAGE_VERSION}
+	  docker manifest create ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:arm32v7-${IMAGE_VERSION}  ${IMAGE_NAME}:amd64-${IMAGE_VERSION} --amend
+	  docker manifest annotate ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:arm32v7-${IMAGE_VERSION} --os linux --arch arm
+	  docker manifest push ${IMAGE_NAME}:${IMAGE_VERSION}
 }
 
 case ${op} in

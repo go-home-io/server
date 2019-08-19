@@ -17,7 +17,7 @@ import (
 func respondOk(writer http.ResponseWriter) {
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "application/json")
-	io.WriteString(writer, `{ "status": "OK" }`) // nolint: gosec
+	io.WriteString(writer, `{ "status": "OK" }`) // nolint: gosec, errcheck
 }
 
 // Generic API respond.
@@ -30,7 +30,7 @@ func respond(writer http.ResponseWriter, data interface{}) {
 		return
 	}
 
-	writer.Write(d) // nolint: gosec
+	writer.Write(d) // nolint: gosec, errcheck
 }
 
 // Validates whether error is not null and responds different status
@@ -58,7 +58,7 @@ func respondForbidden(writer http.ResponseWriter) {
 func respondError(writer http.ResponseWriter, err string) {
 	writer.WriteHeader(http.StatusInternalServerError)
 	writer.Header().Set("Content-Type", "application/json")
-	io.WriteString(writer, fmt.Sprintf(`{ "status": "ERROR", "problem": "%s"}`, err)) // nolint: gosec
+	io.WriteString(writer, fmt.Sprintf(`{ "status": "ERROR", "problem": "%s"}`, err)) // nolint: gosec, errcheck
 }
 
 // Logger middleware for the API.

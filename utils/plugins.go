@@ -4,7 +4,6 @@ package utils
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -28,6 +27,10 @@ const (
 	PluginInterfaceInitMethodName = "Init"
 	// PluginCDNUrlFormat is format for bintray CDN.
 	PluginCDNUrlFormat = "https://dl.bintray.com/go-home-io/%s/%s"
+	// Logger system.
+	logSystem = "plugins"
+	// Log token
+	logPluginToken = "plugin"
 )
 
 // Arch describes build architecture.
@@ -41,6 +44,7 @@ type ConstructPluginLoader struct {
 	PluginsFolder string
 	PluginsProxy  string
 	Validator     providers.IValidatorProvider
+	Logger        common.ILoggerProvider
 }
 
 // Plugins loader.
@@ -48,7 +52,7 @@ type pluginLoader struct {
 	pluginsFolder string
 	pluginsProxy  string
 	validator     providers.IValidatorProvider
-	logger        *log.Logger
+	logger        common.ILoggerProvider
 
 	loadedPlugins map[string]func() (interface{}, interface{}, error)
 }
@@ -65,10 +69,15 @@ func NewPluginLoader(ctor *ConstructPluginLoader) providers.IPluginLoaderProvide
 		pluginsProxy:  ctor.PluginsProxy,
 		validator:     ctor.Validator,
 		loadedPlugins: make(map[string]func() (interface{}, interface{}, error)),
-		logger:        log.New(os.Stdout, "plugins", log.LstdFlags),
+		logger:        ctor.Logger,
 	}
 
 	return &loader
+}
+
+// UpdateLogger updates internal logger
+func (l *pluginLoader) UpdateLogger(logger common.ILoggerProvider) {
+	l.logger = logger
 }
 
 // LoadPlugin loads requested plugin.
@@ -77,16 +86,17 @@ func NewPluginLoader(ctor *ConstructPluginLoader) providers.IPluginLoaderProvide
 func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interface{}, error) {
 	pKey := getPluginKey(request.SystemType, request.PluginProvider)
 	if method, ok := l.loadedPlugins[pKey]; ok {
-		l.logger.Printf("Loading plugin %s from cache", pKey)
+		l.logger.Info("Loading plugin from cache", common.LogSystemToken, logSystem, logPluginToken, pKey)
 		return l.loadPlugin(request, method)
 	}
 
-	l.logger.Printf("Loading plugin %s", pKey)
+	l.logger.Info("Loading plugin", common.LogSystemToken, logSystem, logPluginToken, pKey)
 	fileName := l.getActualFileName(pKey)
 	defer func() {
 		if recover() != nil {
-			os.Remove(fileName) // nolint: gosec
-			l.logger.Fatal("Error opening plugin, corrupted? Removing the .so")
+			os.Remove(fileName) // nolint: gosec, errcheck
+			l.logger.Fatal("Error opening plugin, corrupted? Removing the .so file",
+				errors.New("panic"), common.LogSystemToken, logSystem, logPluginToken, pKey)
 		}
 	}()
 
@@ -100,7 +110,7 @@ func (l *pluginLoader) LoadPlugin(request *providers.PluginLoadRequest) (interfa
 	p, err := plugin.Open(fileName)
 	if err != nil {
 		// We want to delete failed plugin
-		os.Remove(fileName) // nolint: gosec
+		os.Remove(fileName) // nolint: gosec, errcheck
 		return nil, errors.Wrap(err, "lib open failed")
 	}
 
@@ -231,44 +241,51 @@ func (l *pluginLoader) downloadFile(pluginKey string, actualName string, timeout
 	name := strings.Replace(pluginKey, "/", "_", -1)
 	name = fmt.Sprintf("%s-%s.so.tar.gz", name, Version)
 	if "" != l.pluginsProxy {
-		_, err := l.downloadFileFromRemote(fmt.Sprintf("%s/%s/%s", l.pluginsProxy, Arch, name), timeout)
+		r, err := l.downloadFileFromRemote(fmt.Sprintf("%s/%s/%s", l.pluginsProxy, Arch, name), timeout)
+		if err == nil && r.Body != nil {
+			defer r.Body.Close() // nolint: errcheck
+		}
 		return err
 	}
 
 	archName := fmt.Sprintf("%s.tar.gz", actualName)
 	if _, err := os.Stat(archName); err != nil {
-		l.logger.Println("Downloading " + name)
+		l.logger.Info("Downloading file", common.LogSystemToken, logSystem, logPluginToken, pluginKey)
 		err = os.MkdirAll(filepath.Dir(actualName), os.ModePerm)
 		if err != nil {
-			l.logger.Println("Failed to load " + name + ": " + err.Error())
+			l.logger.Error("Failed to create a folder", err, common.LogSystemToken, logSystem,
+				logPluginToken, pluginKey)
 			return errors.Wrap(err, "mkdir failed")
 		}
 		out, err := os.Create(archName)
 		if err != nil {
-			l.logger.Println("Failed to load " + name + ": " + err.Error())
+			l.logger.Error("Failed to create a file", err, common.LogSystemToken, logSystem,
+				logPluginToken, pluginKey)
 			return errors.Wrap(err, "archive create failed")
 		}
 
-		defer out.Close()
+		defer out.Close() // nolint: errcheck
 		res, err := l.downloadFileFromRemote(fmt.Sprintf(PluginCDNUrlFormat, Arch, name), timeout)
 		if err != nil {
-			os.Remove(archName) // nolint: gosec
+			os.Remove(archName) // nolint: gosec, errcheck
 			return err
 		}
 
-		defer res.Body.Close()
+		defer res.Body.Close() // nolint: errcheck
 		_, err = io.Copy(out, res.Body)
 		if err != nil {
-			l.logger.Println("Failed to save " + name + ": " + err.Error())
-			os.Remove(archName) // nolint: gosec
+			l.logger.Error("Failed to write a file", err, common.LogSystemToken, logSystem,
+				logPluginToken, pluginKey)
+			os.Remove(archName) // nolint: gosec, errcheck
 			return errors.Wrap(err, "copy file failed")
 		}
 	}
 
 	err := archiver.TarGz.Open(archName, filepath.Dir(actualName))
 	if err != nil {
-		l.logger.Println("Failed to un-archive " + name + ": " + err.Error())
-		os.Remove(archName) // nolint: gosec
+		l.logger.Error("Failed to un-tar a file", err, common.LogSystemToken, logSystem,
+			logPluginToken, pluginKey)
+		os.Remove(archName) // nolint: gosec, errcheck
 		return errors.Wrap(err, "un-tar failed")
 	}
 
@@ -284,7 +301,8 @@ func (l *pluginLoader) downloadFileFromRemote(url string, timeout time.Duration)
 	r, err := client.Get(url)
 
 	if err != nil || r.StatusCode != http.StatusOK {
-		l.logger.Printf("Failed to download %s", url)
+		l.logger.Error("Failed to download a file", err, common.LogSystemToken, logSystem,
+			common.LogURLToken, url)
 		return nil, &ErrDownload{}
 	}
 

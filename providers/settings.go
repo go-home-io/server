@@ -27,6 +27,7 @@ type ISettingsProvider interface {
 	Groups() []*RawMasterComponent
 	FanOut() IInternalFanOutProvider
 	Storage() IStorageProvider
+	Timezone() *time.Location
 }
 
 // RawDeviceSelector has data required for understanding
@@ -54,7 +55,6 @@ type MasterSettings struct {
 	UOM          enums.UOM             `yaml:"units" default:"imperial"`
 	Timezone     string                `yaml:"timezone" default:"Local"`
 	Locations    []*RawMasterComponent `yaml:"-"`
-	Tz           *time.Location        `yaml:"-"`
 }
 
 // WorkerSettings has configured data for worker node.
@@ -62,6 +62,7 @@ type WorkerSettings struct {
 	Name       string            `yaml:"name"`
 	Properties map[string]string `yaml:"properties"`
 	MaxDevices int               `yaml:"maxDevices" validate:"gte=0,lte=1000" default:"99"`
+	Timezone   string            `yaml:"timezone" default:"Local"`
 }
 
 // RawMasterComponent has configuration for master component.

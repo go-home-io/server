@@ -88,11 +88,6 @@ func (p *provider) Fatal(msg string, err error, fields ...string) {
 	p.logger.Fatal(msg, p.prepareFields(fields...)...)
 }
 
-// Flush flushes logger buffer if any.
-func (p *provider) Flush() {
-	p.logger.Flush()
-}
-
 // Extending logger fields with current node ID.
 func (p *provider) prepareFields(fields ...string) []string {
 	return append(fields, common.LogNodeToken, p.nodeID)

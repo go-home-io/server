@@ -41,7 +41,6 @@ func TestPluginLogger(t *testing.T) {
 	l.Warn("Warn")
 	l.Error("Error", errors.New(""))
 	l.Fatal("Fatal", errors.New(""))
-	l.Flush()
 
 	assert.True(t, debug, "debug")
 	assert.True(t, info, "info")

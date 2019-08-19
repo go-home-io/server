@@ -80,7 +80,7 @@ func NewStorageProvider(ctor *ConstructStorage) providers.IStorageProvider {
 			log.Warn("Failed to compile include expression")
 			continue
 		}
-		settings.includeExp = append(settings.excludeExp, g)
+		settings.includeExp = append(settings.excludeExp, g) // nolint: gocritic
 	}
 
 	pluginLoadRequest := &providers.PluginLoadRequest{

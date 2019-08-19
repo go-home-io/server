@@ -61,11 +61,6 @@ func (l *pluginLogger) Fatal(msg string, err error, fields ...string) {
 	l.systemLogger.Fatal(msg, err, append(fields, l.pluginFields...)...)
 }
 
-// Flush flushes logger buffer if any.
-func (l *pluginLogger) Flush() {
-	l.systemLogger.Flush()
-}
-
 func (l *pluginLogger) AddFields(fields map[string]string) {
 	for k, v := range fields {
 		l.pluginFields = append(l.pluginFields, k, v)

@@ -77,7 +77,7 @@ func (s *fsSecret) Set(name string, data string) error {
 		return errors.Wrap(err, "file open failed")
 	}
 
-	defer writer.Close()
+	defer writer.Close() // nolint: errcheck
 	_, err = writer.Write(fileData)
 	if err != nil {
 		s.logger.Warn("Failed to write _secrets.yaml file")

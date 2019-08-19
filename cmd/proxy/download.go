@@ -54,7 +54,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc(fmt.Sprintf("/{%s}/{%s}", archName, fileName), p.handle).Methods(http.MethodGet)
 
-	go http.ListenAndServe(fmt.Sprintf(":%d", port), router)
+	go http.ListenAndServe(fmt.Sprintf(":%d", port), router) // nolint: errcheck
 	logger.Printf("Started proxy on port %d. Plugins folder is %s", port, pluginFolder)
 	go p.wait()
 	c := make(chan os.Signal, 1)
@@ -173,21 +173,21 @@ func (p *proxy) download(file string, arch string, callback chan *downloadRespon
 			return
 		}
 
-		defer out.Close()
+		defer out.Close() // nolint: errcheck
 		downloadURL := fmt.Sprintf("https://dl.bintray.com/go-home-io/%s/%s", arch, file)
 		res, err := http.Get(downloadURL) // nolint: gosec
 		if err != nil || res.StatusCode != http.StatusOK {
 			p.logger.Println("Failed to get " + downloadURL)
-			os.Remove(archName) // nolint: gosec
+			os.Remove(archName) // nolint: gosec, errcheck
 			callback <- dr
 			return
 		}
 
-		defer res.Body.Close()
+		defer res.Body.Close() // nolint: errcheck
 		_, err = io.Copy(out, res.Body)
 		if err != nil {
 			p.logger.Println("Failed to save " + file + ": " + err.Error())
-			os.Remove(archName) // nolint: gosec
+			os.Remove(archName) // nolint: gosec, errcheck
 			callback <- dr
 			return
 		}
@@ -197,8 +197,8 @@ func (p *proxy) download(file string, arch string, callback chan *downloadRespon
 	err := archiver.TarGz.Open(archName, filepath.Dir(archName))
 	if err != nil {
 		p.logger.Println("Failed to un-archive " + file + ": " + err.Error())
-		os.Remove(tmpPlugin) // nolint: gosec
-		os.Remove(archName)  // nolint: gosec
+		os.Remove(tmpPlugin) // nolint: gosec, errcheck
+		os.Remove(archName)  // nolint: gosec, errcheck
 		callback <- dr
 		return
 	}
@@ -216,7 +216,7 @@ func (p *proxy) download(file string, arch string, callback chan *downloadRespon
 	err = copyFile(tmpPlugin, tmpPluginName)
 	if err != nil {
 		p.logger.Println("Failed to move " + file + ": " + err.Error())
-		os.Remove(tmpPluginName) // nolint: gosec
+		os.Remove(tmpPluginName) // nolint: gosec, errcheck
 		callback <- dr
 		return
 	}
@@ -225,8 +225,8 @@ func (p *proxy) download(file string, arch string, callback chan *downloadRespon
 	err = os.Rename(tmpPluginName, pluginName)
 	if err != nil {
 		p.logger.Println("Failed to move from temp to final " + file + ": " + err.Error())
-		os.Remove(tmpPluginName) // nolint: gosec
-		os.Remove(pluginName)    // nolint: gosec
+		os.Remove(tmpPluginName) // nolint: gosec, errcheck
+		os.Remove(pluginName)    // nolint: gosec, errcheck
 		callback <- dr
 		return
 	}
@@ -243,7 +243,7 @@ func copyFile(src string, dst string) (err error) {
 		return err
 	}
 
-	defer source.Close()
+	defer source.Close() // nolint: errcheck
 
 	destination, err := os.Create(dst)
 	if err != nil {

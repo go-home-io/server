@@ -49,7 +49,7 @@ func (s *GoHomeServer) processWSConnection(conn *websocket.Conn, usr providers.I
 
 				kd := s.state.GetDevice(msg.ID)
 				if usr.DeviceGet(kd.ID) {
-					conn.WriteJSON(kd) // nolint: gosec
+					conn.WriteJSON(kd) // nolint: gosec, errcheck
 				}
 			}
 		}
@@ -60,7 +60,7 @@ func (s *GoHomeServer) processWSConnection(conn *websocket.Conn, usr providers.I
 //noinspection GoUnhandledErrorResult
 func (s *GoHomeServer) processIncomingWSMessages(conn *websocket.Conn, stop chan bool,
 	usr providers.IAuthenticatedUser) {
-	defer conn.Close()
+	defer conn.Close() // nolint: errcheck
 	for {
 		mt, message, err := conn.ReadMessage()
 		if err != nil {
@@ -71,7 +71,7 @@ func (s *GoHomeServer) processIncomingWSMessages(conn *websocket.Conn, stop chan
 
 		// Ping request comes as a un-wrapped string
 		if 4 == len(message) {
-			conn.WriteMessage(mt, []byte("pong")) // nolint: gosec
+			conn.WriteMessage(mt, []byte("pong")) // nolint: gosec, errcheck
 			continue
 		}
 
@@ -88,6 +88,6 @@ func (s *GoHomeServer) processIncomingWSMessages(conn *websocket.Conn, stop chan
 			continue
 		}
 
-		s.commandInvokeDeviceCommand(usr, cmd.ID, cmd.Cmd, data) // nolint: gosec
+		s.commandInvokeDeviceCommand(usr, cmd.ID, cmd.Cmd, data) // nolint: gosec, errcheck
 	}
 }

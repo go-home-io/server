@@ -1,6 +1,8 @@
 package settings
 
 import (
+	"time"
+
 	"go-home.io/x/server/plugins/common"
 	"go-home.io/x/server/providers"
 )
@@ -92,4 +94,9 @@ func (s *settingsProvider) Groups() []*providers.RawMasterComponent {
 // Storage returns a storage provider.
 func (s *settingsProvider) Storage() providers.IStorageProvider {
 	return s.storage
+}
+
+// Timezone returns configured timezone.
+func (s *settingsProvider) Timezone() *time.Location {
+	return s.timezone
 }

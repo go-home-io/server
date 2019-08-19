@@ -71,6 +71,7 @@ type settingsProvider struct {
 	wSettings *providers.WorkerSettings
 	mSettings *providers.MasterSettings
 	isWorker  bool
+	timezone  *time.Location
 
 	devicesConfig []*providers.RawDevice
 
@@ -86,11 +87,13 @@ type settingsProvider struct {
 
 // Load system configuration.
 func Load(options *StartUpOptions) providers.ISettingsProvider {
+	consoleLogger := logger.NewConsoleLogger()
+
 	settings := settingsProvider{
 		isWorker:      options.IsWorker,
 		devicesConfig: make([]*providers.RawDevice, 0),
-		logger:        logger.NewConsoleLogger(),
-		pluginLogger:  logger.NewConsoleLogger(),
+		logger:        consoleLogger,
+		pluginLogger:  consoleLogger,
 		rawRoles:      make([]*providers.SecRole, 0),
 		triggers:      make([]*providers.RawMasterComponent, 0),
 		extendedAPIs:  make([]*providers.RawMasterComponent, 0),
@@ -104,6 +107,7 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 		PluginsFolder: options.PluginsFolder,
 		PluginsProxy:  options.PluginsProxy,
 		Validator:     settings.validator,
+		Logger:        consoleLogger,
 	}
 	settings.pluginLoader = utils.NewPluginLoader(pluginsCtor)
 
@@ -152,6 +156,8 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 			errors.New("config provider returned nothing"))
 	}
 
+	settings.updateTimezone()
+
 	allProviders = settings.loadLoggerProvider(allProviders)
 
 	for _, v := range allProviders {
@@ -184,13 +190,6 @@ func (s *settingsProvider) validate() {
 	}
 
 	s.cron = utils.NewCron()
-	_, err := s.cron.AddFunc("@every 10s", func() {
-		s.logger.Flush()
-	})
-
-	if err != nil {
-		panic("Failed to register logger flushing")
-	}
 
 	if s.isWorker {
 		s.validateWorkerSettings()
@@ -199,10 +198,34 @@ func (s *settingsProvider) validate() {
 	}
 }
 
+// Converts timezone from string to location.
+func (s *settingsProvider) updateTimezone() {
+	timezone := ""
+	if s.isWorker {
+		timezone = s.wSettings.Timezone
+	} else {
+		timezone = s.mSettings.Timezone
+	}
+
+	if "" == timezone {
+		timezone = "Local"
+	}
+
+	tz, err := time.LoadLocation(timezone)
+	if err != nil {
+		s.logger.Warn("Timezone parse error, going to use Local one", common.LogSystemToken, logSystem)
+		tz = time.Now().Location()
+	}
+
+	s.timezone = tz
+}
+
+// Validates worker settings.
 func (s *settingsProvider) validateWorkerSettings() {
 	if nil == s.wSettings {
 		s.logger.Warn("Worker settings are not defined, using the default ones",
 			common.LogSystemToken, logSystem)
+		s.timezone = time.Now().Location()
 		s.wSettings = &providers.WorkerSettings{
 			MaxDevices: 99,
 		}
@@ -214,19 +237,10 @@ func (s *settingsProvider) validateMasterSettings() {
 	if nil == s.mSettings {
 		s.logger.Warn("Master settings are not defined, using the default ones",
 			common.LogSystemToken, logSystem)
-
+		s.timezone = time.Now().Location()
 		s.mSettings = &providers.MasterSettings{
-			Tz:   time.Now().Location(),
 			Port: 8080,
 		}
-	} else {
-		tz, err := time.LoadLocation(s.mSettings.Timezone)
-		if err != nil {
-			tz = time.Now().Location()
-			s.logger.Warn("Timezone parse error, going to use Local one", common.LogSystemToken, logSystem)
-		}
-
-		s.mSettings.Tz = tz
 	}
 
 	if nil == s.storage {
@@ -473,6 +487,7 @@ func (s *settingsProvider) loadLoggerProvider(provs []*rawProvider) []*rawProvid
 
 		s.validator.SetLogger(logger.NewPluginLogger(validatorLogger))
 		s.secrets.(providers.IInternalSecret).UpdateLogger(s.pluginLogger)
+		s.pluginLoader.UpdateLogger(s.logger)
 	}
 
 	if -1 != index {
@@ -678,7 +693,7 @@ func (s *settingsProvider) loadUIProviders(provider *rawProvider) {
 		return
 	}
 
-	switch provider.Provider {
+	switch provider.Provider { // nolint: gocritic
 	case "location":
 		s.mSettings.Locations = append(s.mSettings.Locations, &providers.RawMasterComponent{
 			Provider:  provider.Provider,
