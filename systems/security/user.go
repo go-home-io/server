@@ -38,6 +38,11 @@ func (u *AuthenticatedUser) Entities() bool {
 	return u.verifyEntity(providers.SecSystemCore, providers.SecVerbGet, "status")
 }
 
+// Logs verifies whether user is allowed to query logs.
+func (u *AuthenticatedUser) Logs() bool {
+	return u.verifyEntity(providers.SecSystemCore, providers.SecVerbGet, "logs")
+}
+
 // Verifies access.
 func (u *AuthenticatedUser) verifyEntity(system providers.SecSystem, verb providers.SecVerb, entityID string) bool {
 	for k, v := range u.Rules {

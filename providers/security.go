@@ -20,6 +20,7 @@ type IAuthenticatedUser interface {
 	DeviceHistory(string) bool
 	Workers() bool
 	Entities() bool
+	Logs() bool
 }
 
 // SecVerb describes allowed rules for the role.

@@ -31,7 +31,8 @@ type IServerStateProvider interface {
 // Worker properties.
 type knownWorker struct {
 	ID               string                  `json:"id"`
-	LastSeen         int64                   `json:"last_seen"`
+	LastSeen         int64                   `json:"-"`
+	LastSeenSec      int64                   `json:"last_seen"`
 	WorkerProperties map[string]string       `json:"worker_properties"`
 	Devices          []*bus.DeviceAssignment `json:"-"`
 	MaxDevices       int                     `json:"max_devices"`

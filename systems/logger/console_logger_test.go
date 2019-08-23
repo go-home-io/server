@@ -53,4 +53,6 @@ func TestLogMethods(t *testing.T) {
 	assert.True(t, called, "fatal")
 	assert.True(t, exitCalled, "fatal exit not called")
 
+	assert.False(t, c.GetSpecs().IsHistorySupported, "shouldn't support history")
+	assert.Equal(t, 0, len(c.Query(nil)), "shouldn't return records")
 }

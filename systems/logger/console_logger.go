@@ -41,6 +41,16 @@ func (p *consoleLogger) Fatal(msg string, err error, fields ...string) {
 	os.Exit(1)
 }
 
+// GetSpec returns plugin specs.
+func (p *consoleLogger) GetSpecs() *common.LogSpecs {
+	return &common.LogSpecs{IsHistorySupported: false}
+}
+
+// Query performs logs search.
+func (p *consoleLogger) Query(*common.LogHistoryRequest) []*common.LogHistoryEntry {
+	return make([]*common.LogHistoryEntry, 0)
+}
+
 // NewConsoleLogger constructs a new console worker.
 func NewConsoleLogger() common.ILoggerProvider {
 	return &consoleLogger{}

@@ -165,6 +165,7 @@ func (s *GoHomeServer) registerAPI(router *mux.Router) {
 	apiRouter.HandleFunc("/state", s.getCurrentState).Methods(http.MethodGet)
 	apiRouter.HandleFunc("/worker", s.getWorkers).Methods(http.MethodGet)
 	apiRouter.HandleFunc("/status", s.getStatus).Methods(http.MethodGet)
+	apiRouter.HandleFunc("/logs", s.getLogs).Methods(http.MethodPost)
 
 	apiRouter.Use(s.logMiddleware)
 	router.Use(s.authMiddleware)

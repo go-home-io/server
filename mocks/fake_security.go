@@ -36,6 +36,10 @@ type fakeAuthenticatedUser struct {
 	allow bool
 }
 
+func (f *fakeAuthenticatedUser) Logs() bool {
+	return f.allow
+}
+
 func (f *fakeAuthenticatedUser) SetAllow(allow bool) {
 	f.allow = allow
 }

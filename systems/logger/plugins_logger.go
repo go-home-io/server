@@ -61,8 +61,19 @@ func (l *pluginLogger) Fatal(msg string, err error, fields ...string) {
 	l.systemLogger.Fatal(msg, err, append(fields, l.pluginFields...)...)
 }
 
+// AddFields adds extra fields to the logger.
 func (l *pluginLogger) AddFields(fields map[string]string) {
 	for k, v := range fields {
 		l.pluginFields = append(l.pluginFields, k, v)
 	}
+}
+
+// GetSpec returns plugin specs.
+func (l *pluginLogger) GetSpecs() *common.LogSpecs {
+	return l.systemLogger.GetSpecs()
+}
+
+// Query performs logs search.
+func (l *pluginLogger) Query(r *common.LogHistoryRequest) []*common.LogHistoryEntry {
+	return l.systemLogger.Query(r)
 }

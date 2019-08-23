@@ -130,3 +130,18 @@ func TestDeepEquals(t *testing.T) {
 		assert.Equal(t, v.gold, PropertyDeepEqual(v.p1, v.p2, v.prop), v.prop.String())
 	}
 }
+
+// Tests debug stringify.
+func TestDebugObjectStringify(t *testing.T) {
+	test := &struct {
+		p1 string
+		p2 int
+	}{
+		p1: "1",
+		p2: 2,
+	}
+
+	res := DebugObjectStringify(test)
+
+	assert.Equal(t, res, "&struct { p1 string; p2 int }{\n  p1: \"1\",\n  p2: 2,\n}")
+}

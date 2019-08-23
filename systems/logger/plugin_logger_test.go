@@ -41,6 +41,8 @@ func TestPluginLogger(t *testing.T) {
 	l.Warn("Warn")
 	l.Error("Error", errors.New(""))
 	l.Fatal("Fatal", errors.New(""))
+	assert.False(t, l.GetSpecs().IsHistorySupported)
+	assert.Nil(t, l.Query(nil))
 
 	assert.True(t, debug, "debug")
 	assert.True(t, info, "info")

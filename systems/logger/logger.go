@@ -3,6 +3,7 @@ package logger
 
 import (
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"go-home.io/x/server/plugins/common"
@@ -88,9 +89,34 @@ func (p *provider) Fatal(msg string, err error, fields ...string) {
 	p.logger.Fatal(msg, p.prepareFields(fields...)...)
 }
 
+// GetSpec returns plugin specs.
+func (p *provider) GetSpecs() *common.LogSpecs {
+	return p.logger.GetSpecs()
+}
+
+// Query performs logs search.
+func (p *provider) Query(r *common.LogHistoryRequest) []*common.LogHistoryEntry {
+	if nil == r {
+		r = &common.LogHistoryRequest{
+			FromUTC:  0,
+			ToUTC:    0,
+			LogLevel: "",
+			System:   "",
+			Provider: "",
+			DeviceID: "",
+		}
+	}
+
+	if 0 == r.ToUTC {
+		r.ToUTC = time.Now().UTC().Unix()
+	}
+
+	return p.logger.Query(r)
+}
+
 // Extending logger fields with current node ID.
 func (p *provider) prepareFields(fields ...string) []string {
-	return append(fields, common.LogNodeToken, p.nodeID)
+	return append(fields, common.LogWorkerToken, p.nodeID)
 }
 
 // Gets log level from config.

@@ -1,9 +1,11 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 	"sort"
 
+	"go-home.io/x/server/plugins/common"
 	"go-home.io/x/server/systems"
 	"go-home.io/x/server/utils"
 )
@@ -25,11 +27,12 @@ func (s *GoHomeServer) getWorkers(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 
+	now := utils.TimeNow()
 	workers := s.state.GetWorkers()
 	workers = append(workers, &knownWorker{
-		ID:         "master",
-		LastSeen:   utils.TimeNow(),
-		MaxDevices: 0,
+		ID:          "master",
+		LastSeenSec: now,
+		MaxDevices:  0,
 	})
 
 	sort.Slice(workers, func(i, j int) bool {
@@ -37,9 +40,9 @@ func (s *GoHomeServer) getWorkers(writer http.ResponseWriter, request *http.Requ
 	})
 
 	// Setting LastSeen property to represent number of seconds from the last event.
-	now := utils.TimeNow()
+
 	for _, v := range workers {
-		v.LastSeen = now - v.LastSeen
+		v.LastSeenSec = now - v.LastSeen
 	}
 
 	respond(writer, workers)
@@ -61,6 +64,28 @@ func (s *GoHomeServer) getStatus(writer http.ResponseWriter, request *http.Reque
 		return entities[i].Name < entities[j].Name
 	})
 	respond(writer, entities)
+}
+
+// Queries logs.
+func (s *GoHomeServer) getLogs(writer http.ResponseWriter, request *http.Request) {
+	user := getContextUser(request)
+	if !user.Logs() || !s.Logger.GetSpecs().IsHistorySupported {
+		respondForbidden(writer)
+		return
+	}
+
+	dec := json.NewDecoder(request.Body)
+	req := &common.LogHistoryRequest{}
+	err := dec.Decode(req)
+
+	if err != nil {
+		s.Logger.Error("Failed to decode Logs Request", err, common.LogSystemToken, logSystem,
+			common.LogUserNameToken, user.Name())
+		respondError(writer, "Wrong request")
+		return
+	}
+
+	respond(writer, s.Logger.Query(req))
 }
 
 // Processes known master components.

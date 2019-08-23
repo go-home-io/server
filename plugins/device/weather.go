@@ -21,6 +21,7 @@ type WeatherState struct {
 	Temperature   float64 `json:"temperature"`
 	Sunrise       string  `json:"sunrise"`
 	Sunset        string  `json:"sunset"`
+	Description   string  `json:"description"`
 }
 
 // TypeWeather is a syntax sugar around IWeather type.

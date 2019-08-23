@@ -8,7 +8,7 @@
 
 #### Development environment 
 
-`go-home` uses go 1.11 with modules support, but to provide compatibility with no-modules environments, all scripts are expecting to have `go-home.io/x` under `${GOPATH}/src` folder.
+`go-home` uses go 1.13 with modules support, but to provide compatibility with no-modules environments, all scripts are expecting to have `go-home.io/x` under `${GOPATH}/src` folder.
 
 For running on MaOS, `gmake` has to be installed since regular make has version `3.8` which does not support `ONESHELL`. You can install it using `brew`:
 

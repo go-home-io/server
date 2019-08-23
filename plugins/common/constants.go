@@ -30,8 +30,6 @@ const (
 )
 
 const (
-	// LogNodeToken describes node log entry.
-	LogNodeToken = "node"
 	// LogErrorToken describes error log entry.
 	LogErrorToken = "error"
 	// LogFileToken describes file log entry.

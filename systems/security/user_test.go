@@ -19,6 +19,7 @@ func checkAllAllowed(t *testing.T, user providers.IAuthenticatedUser) {
 	assert.True(t, user.DeviceHistory("другой_девайс"), "history %s", "history")
 	assert.True(t, user.Workers(), "workers")
 	assert.True(t, user.Entities(), "entities")
+	assert.True(t, user.Entities(), "logs")
 }
 
 // Tests whether baked rules are interpreted correctly to allow operations.
@@ -276,4 +277,24 @@ func TestAllowedAll(t *testing.T) {
 	}
 
 	checkAllAllowed(t, user)
+}
+
+// Tests that logs access if forbidden.
+func TestLogsForbidden(t *testing.T) {
+	user := &AuthenticatedUser{
+		Rules: map[providers.SecSystem][]*providers.BakedRule{
+			providers.SecSystemCore: {
+				{
+					Get:     true,
+					History: true,
+					Command: true,
+					Resources: []glob.Glob{
+						compileRegexp("w"),
+					},
+				},
+			},
+		},
+	}
+
+	assert.False(t, user.Logs())
 }

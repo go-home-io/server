@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"github.com/sanity-io/litter"
 	"strings"
 )
 
@@ -42,4 +43,11 @@ func SliceContainsString(s []string, e string) bool {
 		}
 	}
 	return false
+}
+
+// DebugObjectStringify is a debug function which returns prettified string representation
+// of an object.
+func DebugObjectStringify(i interface{}) string {
+	litter.Config.HidePrivateFields = false
+	return litter.Sdump(i)
 }

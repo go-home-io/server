@@ -2,9 +2,21 @@
 
 package mocks
 
+import (
+	"go-home.io/x/server/plugins/common"
+)
+
 // Fake logger
 type fakeLogger struct {
 	callback func(string)
+}
+
+func (p *fakeLogger) GetSpecs() *common.LogSpecs {
+	return &common.LogSpecs{IsHistorySupported: false}
+}
+
+func (p *fakeLogger) Query(*common.LogHistoryRequest) []*common.LogHistoryEntry {
+	return nil
 }
 
 // Prints debug level message.

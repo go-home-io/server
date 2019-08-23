@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/plugins/common"
 	"go-home.io/x/server/plugins/logger"
 )
 
@@ -15,12 +16,12 @@ type fakePlugin struct {
 	callback func(string)
 }
 
-func (f *fakePlugin) GetSpecs() *logger.LogSpecs {
-	return &logger.LogSpecs{IsHistorySupported: false}
+func (f *fakePlugin) GetSpecs() *common.LogSpecs {
+	return &common.LogSpecs{IsHistorySupported: false}
 }
 
-func (f *fakePlugin) Query(*logger.LogHistoryRequest) []*logger.LogHistoryEntry {
-	panic("implement me")
+func (f *fakePlugin) Query(*common.LogHistoryRequest) []*common.LogHistoryEntry {
+	return nil
 }
 
 func (f *fakePlugin) Init(*logger.InitDataLogger) error {
@@ -108,6 +109,9 @@ func TestLogger(t *testing.T) {
 	assert.True(t, warn, "warn")
 	assert.True(t, err1, "err1")
 	assert.True(t, fatal, "fatal")
+
+	assert.False(t, l.GetSpecs().IsHistorySupported, "shouldn't support history")
+	assert.Equal(t, 0, len(l.Query(nil)), "shouldn't return records")
 }
 
 // Tests loading log level.

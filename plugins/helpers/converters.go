@@ -42,7 +42,7 @@ func GetPropertyType(p enums.Property) PropertyType {
 		return PropStringSlice
 	case enums.PropSensorType, enums.PropVacStatus:
 		return PropEnum
-	case enums.PropPicture, enums.PropUser, enums.PropSunrise, enums.PropSunset:
+	case enums.PropPicture, enums.PropUser, enums.PropSunrise, enums.PropSunset, enums.PropDescription:
 		return PropString
 	case enums.PropOn, enums.PropClick, enums.PropDoubleClick, enums.PropPress:
 		return PropBool

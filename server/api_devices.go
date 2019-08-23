@@ -24,10 +24,12 @@ type knownGroup struct {
 
 // Contains server state required UI to start.
 type currentState struct {
-	Devices   []*knownDevice   `json:"devices"`
-	Groups    []*knownGroup    `json:"groups"`
-	Locations []*knownLocation `json:"locations"`
-	UOM       enums.UOM        `json:"uom"`
+	Devices       []*knownDevice   `json:"devices"`
+	Groups        []*knownGroup    `json:"groups"`
+	Locations     []*knownLocation `json:"locations"`
+	UOM           enums.UOM        `json:"uom"`
+	Timezone      string           `json:"timezone"`
+	LogsAvailable bool             `json:"logs_available"`
 }
 
 // Known devices, received from workers.
@@ -56,10 +58,12 @@ func (s *GoHomeServer) getGroups(writer http.ResponseWriter, request *http.Reque
 func (s *GoHomeServer) getCurrentState(writer http.ResponseWriter, request *http.Request) {
 	usr := getContextUser(request)
 	response := &currentState{
-		Devices:   s.commandGetAllDevices(usr),
-		Groups:    s.commandGetAllGroups(usr),
-		Locations: s.commandGetAllLocations(usr),
-		UOM:       s.Settings.MasterSettings().UOM,
+		Devices:       s.commandGetAllDevices(usr),
+		Groups:        s.commandGetAllGroups(usr),
+		Locations:     s.commandGetAllLocations(usr),
+		UOM:           s.Settings.MasterSettings().UOM,
+		Timezone:      s.Settings.Timezone().String(),
+		LogsAvailable: s.Logger.GetSpecs().IsHistorySupported && usr.Logs(),
 	}
 
 	respond(writer, response)

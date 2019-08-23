@@ -60,6 +60,8 @@ const (
 	PropDistance
 	// PropUser describes user name.
 	PropUser
+	// PropDescription describes generic text description.
+	PropDescription
 )
 
 // AllowedProperties contains set of all possible allowed properties per device type.
@@ -70,7 +72,7 @@ var AllowedProperties = map[DeviceType][]Property{
 	DevSensor: {PropSensorType, PropOn, PropBatteryLevel, PropPower, PropTemperature, PropHumidity, PropPressure,
 		PropClick, PropDoubleClick, PropPress, PropUser},
 	DevWeather: {PropTemperature, PropSunrise, PropSunset, PropHumidity, PropPressure,
-		PropVisibility, PropWindDirection, PropWindSpeed},
+		PropVisibility, PropWindDirection, PropWindSpeed, PropDescription},
 	DevVacuum: {PropVacStatus, PropBatteryLevel, PropArea, PropDuration, PropFanSpeed},
 	DevCamera: {PropPicture, PropDistance},
 }
