@@ -17,6 +17,8 @@ type HubLoadResult struct {
 
 // HubState contains device state data.
 type HubState struct {
+	GenericDeviceState
+
 	NumDevices int `json:"num_devices"`
 }
 

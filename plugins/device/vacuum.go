@@ -22,6 +22,8 @@ type IVacuum interface {
 
 // VacuumState describes vacuum state.
 type VacuumState struct {
+	GenericDeviceState
+
 	VacStatus    enums.VacStatus `json:"vac_status"`
 	Duration     int             `json:"duration"`
 	BatteryLevel uint8           `json:"battery_level"`

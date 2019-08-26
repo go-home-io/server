@@ -14,6 +14,8 @@ type ISwitch interface {
 
 // SwitchState returns information about known switch.
 type SwitchState struct {
+	GenericDeviceState
+
 	On    bool    `json:"on"`
 	Power float64 `json:"power"`
 }

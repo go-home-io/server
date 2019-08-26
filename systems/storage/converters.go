@@ -12,7 +12,7 @@ import (
 // PropertySave converts actual property before storing into the database.
 func PropertySave(property enums.Property, value interface{}) (interface{}, error) {
 	// Something we don't care to store
-	if property == enums.PropScenes || property == enums.PropSensorType {
+	if property == enums.PropScenes || property == enums.PropSensorType || property == enums.PropInput {
 		return nil, nil
 	}
 

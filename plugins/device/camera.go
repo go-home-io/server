@@ -12,6 +12,8 @@ type ICamera interface {
 
 // CameraState contains information about current camera's state.
 type CameraState struct {
+	GenericDeviceState
+
 	Picture  string `json:"picture"`
 	Distance int    `json:"distance"`
 }

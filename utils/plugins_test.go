@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go-home.io/x/server/mocks"
+	"go-home.io/x/server/plugins/common"
 	"go-home.io/x/server/plugins/device"
 	"go-home.io/x/server/providers"
 )
@@ -44,6 +45,10 @@ func (f *fakePlugin) Init(*device.InitDataDevice) error {
 		return errors.New("error")
 	}
 
+	return nil
+}
+
+func (*fakePlugin) Input(common.Input) error {
 	return nil
 }
 

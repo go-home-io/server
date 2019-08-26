@@ -121,6 +121,8 @@ func getExpectedType(deviceType enums.DeviceType) (reflect.Type, error) {
 		return device.TypeVacuum, nil
 	case enums.DevCamera:
 		return device.TypeCamera, nil
+	case enums.DevLock:
+		return device.TypeLock, nil
 	}
 
 	return nil, &ErrUnknownDeviceType{}
@@ -141,6 +143,8 @@ func loadDevice(deviceInterface interface{}, deviceType enums.DeviceType) (inter
 		return deviceInterface.(device.IVacuum).Load()
 	case enums.DevCamera:
 		return deviceInterface.(device.ICamera).Load()
+	case enums.DevLock:
+		return deviceInterface.(device.ILock).Load()
 	}
 
 	return nil, &ErrUnknownDeviceType{}

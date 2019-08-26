@@ -31,11 +31,15 @@ const (
 	PropPercent
 	// PropInt defines integer property.
 	PropInt
+	// PropInput defines user's input property.
+	PropInput
 )
 
 // GetPropertyType converts device property to its type.
 func GetPropertyType(p enums.Property) PropertyType {
 	switch p {
+	case enums.PropInput:
+		return PropInput
 	case enums.PropColor:
 		return PropColor
 	case enums.PropScenes:
@@ -65,6 +69,8 @@ func propertyFix(x interface{}, p enums.Property,
 	switch GetPropertyType(p) {
 	case PropColor:
 		return convertProperty(x, &common.Color{})
+	case PropInput:
+		return convertProperty(x, &common.Input{})
 	case PropStringSlice, PropEnum, PropString:
 		return x, nil
 	case PropBool:
@@ -113,6 +119,9 @@ func PlainProperty(x interface{}, p enums.Property) interface{} {
 	case PropColor:
 		c := x.(common.Color)
 		return fmt.Sprintf("r:%d,g:%d,b:%d", c.R, c.G, c.B)
+	case PropInput:
+		i := x.(common.Input)
+		return i.Title
 	case PropStringSlice, PropEnum, PropString, PropBool:
 		return x
 	case PropPercent:
@@ -150,7 +159,7 @@ func PropertyDeepEqual(x, y interface{}, p enums.Property) bool {
 		// Picture is pre-processed.
 		return false
 	case enums.PropScenes, enums.PropSensorType:
-		// No updates for scenes
+		// No updates for scenes, sensor types.
 		return true
 	default:
 		return cmp.Equal(x, y)
@@ -172,6 +181,8 @@ func CommandPropertyFixYaml(x interface{}, c enums.Command) (interface{}, error)
 		return convertValueProperty(x, &common.Int{})
 	case enums.CmdSetColor:
 		return convertProperty(x, &common.Color{})
+	case enums.CmdInput:
+		return convertProperty(x, &common.Input{})
 	}
 
 	return x, nil

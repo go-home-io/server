@@ -78,8 +78,9 @@ type deviceWrapper struct {
 	children     []IDeviceWrapperProvider
 	stopped      bool
 
-	isPolling bool
-	processor IProcessor
+	isExpectingInput bool
+	isPolling        bool
+	processor        IProcessor
 }
 
 // NewDeviceWrapper constructs a new device wrapper.
@@ -107,8 +108,11 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 	w.logger.AddFields(map[string]string{common.LogIDToken: w.ID()})
 
 	if nil != w.processor {
-		w.Spec.SupportedProperties = append(w.Spec.SupportedProperties, w.processor.GetExtraSupportPropertiesSpec()...)
+		w.Spec.SupportedProperties = append(w.Spec.SupportedProperties,
+			w.processor.GetExtraSupportPropertiesSpec()...)
 	}
+
+	w.isExpectingInput = enums.SliceContainsProperty(w.Spec.SupportedProperties, enums.PropInput)
 
 	if !w.setState(ctor.DeviceState) {
 		w.logger.Warn("Failed to fetch device state")
@@ -292,12 +296,6 @@ func (w *deviceWrapper) setState(deviceState interface{}) bool {
 		return false
 	}
 
-	allowedProps, ok := enums.AllowedProperties[w.Ctor.DeviceType]
-	if !ok {
-		w.logger.Warn("Received property is not allowed for the device")
-		return false
-	}
-
 	rt, rv := reflect.TypeOf(deviceState), reflect.ValueOf(deviceState)
 	if rt.Kind() == reflect.Ptr {
 		rt = rt.Elem()
@@ -306,6 +304,13 @@ func (w *deviceWrapper) setState(deviceState interface{}) bool {
 
 	for ii := 0; ii < rt.NumField(); ii++ {
 		field := rt.Field(ii)
+		if field.Type == device.TypeGenericDeviceState {
+			if w.isExpectingInput {
+				w.setState(rv.Field(ii).Interface())
+			}
+			continue
+		}
+
 		jsonKey := field.Tag.Get("json")
 		if "" == jsonKey {
 			continue
@@ -318,7 +323,7 @@ func (w *deviceWrapper) setState(deviceState interface{}) bool {
 		}
 
 		if !enums.SliceContainsProperty(w.Spec.SupportedProperties, prop) ||
-			!enums.SliceContainsProperty(allowedProps, prop) {
+			!prop.IsPropertyAllowed(w.Ctor.DeviceType) {
 			continue
 		}
 

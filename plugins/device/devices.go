@@ -2,6 +2,7 @@
 package device
 
 import (
+	"reflect"
 	"time"
 
 	"go-home.io/x/server/plugins/common"
@@ -14,7 +15,16 @@ type IDevice interface {
 	Unload()
 	GetName() string
 	GetSpec() *Spec
+	Input(common.Input) error
 }
+
+// GenericDeviceState defines generic device state.
+type GenericDeviceState struct {
+	Input *common.Input `json:"input"`
+}
+
+// TypeGenericDeviceState is a syntax sugar around GenericDeviceState type.
+var TypeGenericDeviceState = reflect.TypeOf((*GenericDeviceState)(nil)).Elem()
 
 // Spec contains information about the device.
 type Spec struct {

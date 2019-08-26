@@ -7,7 +7,7 @@ import (
 // ISecretProvider defines secrets provider which will be passed to every plugin.
 type ISecretProvider interface {
 	Get(string) (string, error)
-	Set(string, string) error
+	Set(name string, data string) error
 }
 
 // ISettings describes interface used by every plugin.

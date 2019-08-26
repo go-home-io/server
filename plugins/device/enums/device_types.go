@@ -24,6 +24,8 @@ const (
 	DevVacuum
 	// DevCamera describes camera device.
 	DevCamera
+	// DevLock describes lock device.
+	DevLock
 )
 
 // SliceContainsDeviceType is a helper Slice.contains.

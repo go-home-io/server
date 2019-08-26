@@ -29,6 +29,8 @@ type wrapper struct {
 	server    providers.IServerProvider
 	timezone  *time.Location
 
+	fanOut providers.IInternalFanOutProvider
+
 	deviceActions []*triggerActionDevice
 
 	triggerChan chan interface{}
@@ -76,6 +78,7 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 		server:    ctor.Server,
 		ID:        getID(ctor.Name),
 		timezone:  ctor.Timezone,
+		fanOut:    ctor.FanOut,
 	}
 	err = w.loadActions(cfg.Actions)
 	if err != nil {
@@ -231,6 +234,8 @@ func (w *wrapper) triggered(msg interface{}) { //nolint:unparam
 		w.logger.Debug("Triggered but outside of active window")
 		return
 	}
+
+	w.fanOut.ChannelInTriggerUpdates() <- w.ID
 
 	for _, v := range w.deviceActions {
 		w.logger.Info("Invoking trigger device action",

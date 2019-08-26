@@ -31,7 +31,7 @@ func (s *GoHomeServer) getWorkers(writer http.ResponseWriter, request *http.Requ
 	workers := s.state.GetWorkers()
 	workers = append(workers, &knownWorker{
 		ID:          "master",
-		LastSeenSec: now,
+		LastSeenSec: 0,
 		MaxDevices:  0,
 	})
 

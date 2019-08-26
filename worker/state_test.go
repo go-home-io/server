@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go-home.io/x/server/mocks"
 	"go-home.io/x/server/plugins/api"
+	"go-home.io/x/server/plugins/common"
 	"go-home.io/x/server/plugins/device"
 	"go-home.io/x/server/plugins/device/enums"
 	"go-home.io/x/server/systems/bus"
@@ -26,6 +27,10 @@ type fakeDevicePlugin struct {
 	getSpecCalled bool
 	loadCalled    bool
 	updateCalled  bool
+}
+
+func (f *fakeDevicePlugin) Input(common.Input) error {
+	return nil
 }
 
 func (f *fakeDevicePlugin) Init(*device.InitDataDevice) error {
@@ -68,6 +73,10 @@ func (f *fakeDevicePlugin) Update() (*device.SensorState, error) {
 type fakeHub struct {
 	unloadCalled bool
 	disc         chan *device.DiscoveredDevices
+}
+
+func (f *fakeHub) Input(common.Input) error {
+	return nil
 }
 
 func (f *fakeHub) FakeInit(data interface{}) {
@@ -124,6 +133,10 @@ type fakeSwitch struct {
 	loadCalled   bool
 	unloadCalled bool
 	onCalled     bool
+}
+
+func (f *fakeSwitch) Input(common.Input) error {
+	return nil
 }
 
 func (f *fakeSwitch) Init(data *device.InitDataDevice) error {

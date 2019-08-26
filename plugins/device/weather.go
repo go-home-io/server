@@ -13,6 +13,8 @@ type IWeather interface {
 
 // WeatherState describes weather device state
 type WeatherState struct {
+	GenericDeviceState
+
 	Humidity      float64 `json:"humidity"`
 	Pressure      float64 `json:"pressure"`
 	Visibility    float64 `json:"visibility"`

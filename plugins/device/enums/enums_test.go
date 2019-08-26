@@ -20,6 +20,16 @@ func TestSliceCommandsNotContains(t *testing.T) {
 	assert.False(t, SliceContainsCommand(cmds, CmdSetTransitionTime))
 }
 
+// Tests that Input command is always allowed.
+func TestInputCommandAllowed(t *testing.T) {
+	AllowedCommands = map[DeviceType][]Command{
+		DevHub: {CmdOn, CmdOff},
+	}
+
+	assert.False(t, CmdInput.IsCommandAllowed(DevLight), "Wrong device")
+	assert.True(t, CmdInput.IsCommandAllowed(DevHub), "Correct device")
+}
+
 // Tests whether allowed commands are calculated properly.
 func TestCommandNotAllowed(t *testing.T) {
 	AllowedCommands = map[DeviceType][]Command{
@@ -128,6 +138,16 @@ func TestIsPropertyAllowed(t *testing.T) {
 	assert.True(t, PropOn.IsPropertyAllowed(DevLight), PropOn.String())
 	assert.True(t, PropBrightness.IsPropertyAllowed(DevLight), PropBrightness.String())
 	assert.False(t, PropBatteryLevel.IsPropertyAllowed(DevLight), PropBatteryLevel.String())
+}
+
+// Tests that Input property is always allowed.
+func TestInputPropertyIsAllowed(t *testing.T) {
+	AllowedProperties = map[DeviceType][]Property{
+		DevLight: {PropOn, PropBrightness},
+	}
+
+	assert.True(t, PropInput.IsPropertyAllowed(DevLight), "Correct devices")
+	assert.False(t, PropInput.IsPropertyAllowed(DevHub), "Wrong device")
 }
 
 // Tests helper SliceContainsDeviceType.

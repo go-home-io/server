@@ -93,6 +93,7 @@ func TestWithinActiveWindowInvokes(t *testing.T) {
 		}).(providers.IServerProvider),
 		deviceActions: []*triggerActionDevice{{}},
 		timezone:      getUTC(),
+		fanOut: mocks.FakeNewFanOut(),
 	}
 
 	data := []string{

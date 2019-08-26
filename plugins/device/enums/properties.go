@@ -6,8 +6,10 @@ package enums
 type Property int
 
 const (
+	// PropInput describes user's input request state.
+	PropInput Property = iota
 	// PropOn describes On/Off status of the device.
-	PropOn Property = iota
+	PropOn
 	// PropColor describes color of the device.
 	PropColor
 	// PropNumDevices describes number of devices per hub.
@@ -75,6 +77,7 @@ var AllowedProperties = map[DeviceType][]Property{
 		PropVisibility, PropWindDirection, PropWindSpeed, PropDescription},
 	DevVacuum: {PropVacStatus, PropBatteryLevel, PropArea, PropDuration, PropFanSpeed},
 	DevCamera: {PropPicture, PropDistance},
+	DevLock:   {PropOn, PropBatteryLevel},
 }
 
 // SliceContainsProperty checks whether slice contains certain property.
@@ -100,6 +103,10 @@ func (i Property) IsPropertyAllowed(deviceType DeviceType) bool {
 	slice, ok := AllowedProperties[deviceType]
 	if !ok {
 		return false
+	}
+
+	if i == PropInput {
+		return true
 	}
 
 	return SliceContainsProperty(slice, i)

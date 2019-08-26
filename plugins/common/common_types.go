@@ -49,3 +49,9 @@ type String struct {
 type Percent struct {
 	Value uint8 `json:"value" validate:"required,percent"`
 }
+
+// Input defines user's input request/response.
+type Input struct {
+	Title  string            `json:"title" yaml:"title"`
+	Params map[string]string `json:"params" yaml:"params"`
+}

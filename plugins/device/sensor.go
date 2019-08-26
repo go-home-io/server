@@ -15,6 +15,8 @@ type ISensor interface {
 
 // SensorState returns information about known sensor.
 type SensorState struct {
+	GenericDeviceState
+
 	SensorType   enums.SensorType `json:"sensor_type"`
 	User         string           `json:"user"`
 	Power        float64          `json:"power"`

@@ -8,9 +8,9 @@ import (
 	"fmt"
 )
 
-const _PropertyName = "oncolornum_devicestransition_timebrightnessscenespowertemperaturebattery_levelsunrisesunsethumiditypressurevisibilitywind_directionwind_speedclickdouble_clickpresssensor_typevac_statusareadurationfan_speedpicturedistanceuserdescription"
+const _PropertyName = "inputoncolornum_devicestransition_timebrightnessscenespowertemperaturebattery_levelsunrisesunsethumiditypressurevisibilitywind_directionwind_speedclickdouble_clickpresssensor_typevac_statusareadurationfan_speedpicturedistanceuserdescription"
 
-var _PropertyIndex = [...]uint8{0, 2, 7, 18, 33, 43, 49, 54, 65, 78, 85, 91, 99, 107, 117, 131, 141, 146, 158, 163, 174, 184, 188, 196, 205, 212, 220, 224, 235}
+var _PropertyIndex = [...]uint8{0, 5, 7, 12, 23, 38, 48, 54, 59, 70, 83, 90, 96, 104, 112, 122, 136, 146, 151, 163, 168, 179, 189, 193, 201, 210, 217, 225, 229, 240}
 
 func (i Property) String() string {
 	if i < 0 || i >= Property(len(_PropertyIndex)-1) {
@@ -19,37 +19,38 @@ func (i Property) String() string {
 	return _PropertyName[_PropertyIndex[i]:_PropertyIndex[i+1]]
 }
 
-var _PropertyValues = []Property{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27}
+var _PropertyValues = []Property{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28}
 
 var _PropertyNameToValueMap = map[string]Property{
-	_PropertyName[0:2]:     0,
-	_PropertyName[2:7]:     1,
-	_PropertyName[7:18]:    2,
-	_PropertyName[18:33]:   3,
-	_PropertyName[33:43]:   4,
-	_PropertyName[43:49]:   5,
-	_PropertyName[49:54]:   6,
-	_PropertyName[54:65]:   7,
-	_PropertyName[65:78]:   8,
-	_PropertyName[78:85]:   9,
-	_PropertyName[85:91]:   10,
-	_PropertyName[91:99]:   11,
-	_PropertyName[99:107]:  12,
-	_PropertyName[107:117]: 13,
-	_PropertyName[117:131]: 14,
-	_PropertyName[131:141]: 15,
-	_PropertyName[141:146]: 16,
-	_PropertyName[146:158]: 17,
-	_PropertyName[158:163]: 18,
-	_PropertyName[163:174]: 19,
-	_PropertyName[174:184]: 20,
-	_PropertyName[184:188]: 21,
-	_PropertyName[188:196]: 22,
-	_PropertyName[196:205]: 23,
-	_PropertyName[205:212]: 24,
-	_PropertyName[212:220]: 25,
-	_PropertyName[220:224]: 26,
-	_PropertyName[224:235]: 27,
+	_PropertyName[0:5]:     0,
+	_PropertyName[5:7]:     1,
+	_PropertyName[7:12]:    2,
+	_PropertyName[12:23]:   3,
+	_PropertyName[23:38]:   4,
+	_PropertyName[38:48]:   5,
+	_PropertyName[48:54]:   6,
+	_PropertyName[54:59]:   7,
+	_PropertyName[59:70]:   8,
+	_PropertyName[70:83]:   9,
+	_PropertyName[83:90]:   10,
+	_PropertyName[90:96]:   11,
+	_PropertyName[96:104]:  12,
+	_PropertyName[104:112]: 13,
+	_PropertyName[112:122]: 14,
+	_PropertyName[122:136]: 15,
+	_PropertyName[136:146]: 16,
+	_PropertyName[146:151]: 17,
+	_PropertyName[151:163]: 18,
+	_PropertyName[163:168]: 19,
+	_PropertyName[168:179]: 20,
+	_PropertyName[179:189]: 21,
+	_PropertyName[189:193]: 22,
+	_PropertyName[193:201]: 23,
+	_PropertyName[201:210]: 24,
+	_PropertyName[210:217]: 25,
+	_PropertyName[217:225]: 26,
+	_PropertyName[225:229]: 27,
+	_PropertyName[229:240]: 28,
 }
 
 // PropertyString retrieves an enum value from the enum constants string name.

@@ -9,8 +9,10 @@ import "strings"
 type Command int
 
 const (
+	// CmdInput describes user's input command.
+	CmdInput Command = iota
 	// CmdOn describes turning on command.
-	CmdOn Command = iota
+	CmdOn
 	// CmdOff describes turning off command.
 	CmdOff
 	// CmdToggle describes toggling on-off status command.
@@ -43,6 +45,7 @@ var AllowedCommands = map[DeviceType][]Command{
 	DevSensor: {},
 	DevVacuum: {CmdOn, CmdOff, CmdPause, CmdDock, CmdFindMe, CmdSetFanSpeed},
 	DevCamera: {CmdTakePicture},
+	DevLock:   {CmdOn, CmdOff, CmdToggle},
 }
 
 // SliceContainsCommand checks whether slice contains certain command.
@@ -60,6 +63,10 @@ func (i Command) IsCommandAllowed(deviceType DeviceType) bool {
 	slice, ok := AllowedCommands[deviceType]
 	if !ok {
 		return false
+	}
+
+	if i == CmdInput {
+		return true
 	}
 
 	return SliceContainsCommand(slice, i)

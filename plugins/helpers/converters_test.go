@@ -48,6 +48,13 @@ func TestProperties(t *testing.T) {
 			input: []string{"s1", "s2"},
 			gold:  []string{"s1", "s2"},
 			prop:  enums.PropScenes,
+			cmd: -1,
+		},
+		{
+			input: map[string]interface{}{"title": "test", "params": map[string]string{"p1": "P"}},
+			gold:  common.Input{Title: "test", Params: map[string]string{"p1": "P"}},
+			prop:  enums.PropInput,
+			cmd:   enums.CmdInput,
 		},
 	}
 
@@ -93,11 +100,16 @@ func TestUnmarshalProperty(t *testing.T) {
 			in:   map[interface{}]interface{}{"value": 88},
 			out:  common.Float{Value: 88},
 		},
+		{
+			prop: enums.PropInput,
+			in:   map[string]interface{}{"title": "test", "params": map[string]string{"p1": "P"}},
+			out:  common.Input{Title: "test", Params: map[string]string{"p1": "P"}},
+		},
 	}
 
 	for _, v := range data {
 		p, err := UnmarshalProperty(v.in, v.prop)
-		assert.NoError(t, err, "umarshal %s", v.prop.String())
+		assert.NoError(t, err, "unmarshal %s", v.prop.String())
 		assert.True(t, PropertyDeepEqual(p, v.out, v.prop), "equal %s", v.prop.String())
 	}
 }
