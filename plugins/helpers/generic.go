@@ -1,15 +1,25 @@
 package helpers
 
 import (
-	"github.com/sanity-io/litter"
 	"strings"
+
+	"github.com/sanity-io/litter"
 )
 
 // GetNameFromID converts entity ID to readable name.
 // Used if name is not overwritten.
 func GetNameFromID(entityID string) string {
 	parts := strings.Split(entityID, ".")
-	return strings.Replace(parts[len(parts)-1], "_", " ", -1)
+	for ii := len(parts) - 1; ii > 0; ii-- {
+		r := strings.Replace(parts[ii], "_", " ", -1)
+		if "" == r {
+			continue
+		}
+
+		return r
+	}
+
+	return "N/A"
 }
 
 // SliceEqualsString checks whether string slices are equal.

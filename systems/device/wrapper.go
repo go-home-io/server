@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/gobwas/glob"
 	"go-home.io/x/server/plugins/common"
 	"go-home.io/x/server/plugins/device"
 	"go-home.io/x/server/plugins/device/enums"
@@ -25,6 +27,7 @@ type IDeviceWrapperProvider interface {
 	Name() string
 	InvokeCommand(enums.Command, map[string]interface{})
 	GetUpdateMessage() *bus.DeviceUpdateMessage
+	AppendChild(IDeviceWrapperProvider)
 }
 
 // UpdateEvent is a type used for updates sent by a device.
@@ -49,7 +52,9 @@ type wrapperConstruct struct {
 	Secret           common.ISecretProvider
 	WorkerID         string
 	LoadData         *device.InitDataDevice
-	IsRootDevice     bool
+	IsHubDevice      bool
+	IsDiscovered     bool
+	DiscoveredName   string
 	Validator        providers.IValidatorProvider
 	UOM              enums.UOM
 	processor        IProcessor
@@ -57,6 +62,8 @@ type wrapperConstruct struct {
 
 	StatusUpdatesChan chan *UpdateEvent
 	DiscoveryChan     chan *NewDeviceDiscoveredEvent
+
+	NameOverrides map[glob.Glob]string
 }
 
 // Device wrapper implementation.
@@ -128,7 +135,7 @@ func NewDeviceWrapper(ctor *wrapperConstruct) IDeviceWrapperProvider {
 
 	w.validateDeviceSpec(ctor)
 
-	if ctor.IsRootDevice {
+	if ctor.IsHubDevice {
 		go w.startHubListeners()
 	} else {
 		go w.startDeviceListeners()
@@ -144,6 +151,8 @@ func (w *deviceWrapper) ID() string {
 		w.internalID = fmt.Sprintf("%s.%s.%s", utils.NormalizeDeviceName(w.Ctor.DeviceConfigName),
 			utils.NormalizeDeviceName(w.Ctor.DeviceType.String()),
 			utils.NormalizeDeviceName(w.Ctor.DeviceInterface.(device.IDevice).GetName()))
+
+		w.internalID = strings.Trim(w.internalID, ".")
 	}
 	return w.internalID
 }
@@ -151,9 +160,12 @@ func (w *deviceWrapper) ID() string {
 // Name returns device name.
 func (w *deviceWrapper) Name() string {
 	if w.name == "" {
-		if w.Ctor.IsRootDevice && "" != w.Ctor.DeviceConfigName {
+		switch {
+		case !w.Ctor.IsDiscovered && "" != w.Ctor.DeviceConfigName:
 			w.name = w.Ctor.DeviceConfigName
-		} else {
+		case w.Ctor.IsDiscovered && "" != w.Ctor.DiscoveredName:
+			w.name = w.Ctor.DiscoveredName
+		default:
 			w.name = helpers.GetNameFromID(w.ID())
 		}
 	}
@@ -177,7 +189,7 @@ func (w *deviceWrapper) Unload() {
 
 	w.Ctor.DeviceInterface.(device.IDevice).Unload()
 	close(w.Ctor.LoadData.DeviceStateUpdateChan)
-	if w.Ctor.IsRootDevice {
+	if w.Ctor.IsHubDevice {
 		close(w.Ctor.LoadData.DeviceDiscoveredChan)
 	}
 
@@ -327,7 +339,7 @@ func (w *deviceWrapper) setState(deviceState interface{}) bool {
 			continue
 		}
 
-		val := w.getFieldValueOrNil(rv.Field(ii))
+		val := getFieldValueOrNil(rv.Field(ii))
 		if val == nil {
 			continue
 		}
@@ -359,23 +371,6 @@ func (w *deviceWrapper) preProcessProperty(jsonKey string, property enums.Proper
 	for k, v := range props {
 		w.State[k.String()] = v
 	}
-}
-
-// Returns actual value or nil.
-func (w *deviceWrapper) getFieldValueOrNil(valField reflect.Value) interface{} {
-	val := valField.Interface()
-	switch valField.Kind() {
-	case reflect.Slice, reflect.Chan, reflect.Map, reflect.Array, reflect.String:
-		if 0 == valField.Len() {
-			return nil
-		}
-	default:
-		if nil == val {
-			return nil
-		}
-	}
-
-	return val
 }
 
 // Calls for updates.
@@ -535,7 +530,8 @@ func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
 	ctor := &wrapperConstruct{
 		DeviceType:        d.Type,
 		DeviceInterface:   d.Interface,
-		IsRootDevice:      false,
+		IsHubDevice:       false,
+		IsDiscovered:      true,
 		DeviceConfigName:  w.Ctor.DeviceConfigName,
 		DeviceProvider:    w.Ctor.DeviceProvider,
 		DeviceState:       d.State,
@@ -554,13 +550,47 @@ func (w *deviceWrapper) processDiscovery(d *device.DiscoveredDevices) {
 
 	wrapper := NewDeviceWrapper(ctor)
 
-	w.Ctor.DiscoveryChan <- &NewDeviceDiscoveredEvent{
-		Provider: wrapper,
+	tmpName := helpers.GetNameFromID(wrapper.ID())
+	for k, v := range w.Ctor.NameOverrides {
+		if k.Match(tmpName) {
+			ctor.DiscoveredName = v
+			break
+		}
 	}
+
+	w.children = append(w.children, wrapper)
 
 	subLoadData.DeviceStateUpdateChan <- &device.StateUpdateData{
 		State: d.State,
 	}
 
-	w.children = append(w.children, wrapper)
+	w.Ctor.DiscoveryChan <- &NewDeviceDiscoveredEvent{
+		Provider: wrapper,
+	}
+}
+
+// AppendChild appends a found child device during the hub load.
+func (w *deviceWrapper) AppendChild(p IDeviceWrapperProvider) {
+	if !w.Ctor.IsHubDevice {
+		return
+	}
+
+	w.children = append(w.children, p)
+}
+
+// Returns actual field value or nil.
+func getFieldValueOrNil(valField reflect.Value) interface{} {
+	val := valField.Interface()
+	switch valField.Kind() {
+	case reflect.Slice, reflect.Chan, reflect.Map, reflect.Array, reflect.String:
+		if 0 == valField.Len() {
+			return nil
+		}
+	default:
+		if nil == val {
+			return nil
+		}
+	}
+
+	return val
 }

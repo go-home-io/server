@@ -1,5 +1,5 @@
-bou.ke/monkey v1.0.1 h1:zEMLInw9xvNakzUUPjfS4Ds6jYPqCFx3m7bRmG5NH2U=
-bou.ke/monkey v1.0.1/go.mod h1:FgHuK96Rv2Nlf+0u1OOVDpCMdsWyOFmeeketDHE7LIg=
+bou.ke/monkey v1.0.2-0.20190527161844-ca6af776195d h1:rg12IbonaWioxV8stFEuF5x2gdVnNHBeMOdyviDkXv8=
+bou.ke/monkey v1.0.2-0.20190527161844-ca6af776195d/go.mod h1:FgHuK96Rv2Nlf+0u1OOVDpCMdsWyOFmeeketDHE7LIg=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible h1:1G1pk05UrOh0NlF1oeaaix1x8XzrfjIDK47TY0Zehcw=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/corona10/goimagehash v0.2.0 h1:klxzJe/rlnA8DffjEqOEL93/pVMl9J2Glf/qvGbMR7Y=

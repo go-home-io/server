@@ -2,19 +2,33 @@
 package device
 
 import (
+	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 	"go-home.io/x/server/plugins/common"
 	"go-home.io/x/server/plugins/device"
 	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/plugins/helpers"
 	"go-home.io/x/server/providers"
 	"go-home.io/x/server/systems"
 	"go-home.io/x/server/systems/logger"
+	"gopkg.in/yaml.v2"
 )
+
+// Hub-specific settings.
+type hubSettings struct {
+	NameOverrides map[string]string `yaml:"nameOverrides"`
+}
 
 // Loads hub device.
 // Hub is different from other devices, since it can operate multiple different devices.
 // nolint: dupl
 func loadHub(ctor *ConstructDevice, pluginLogger common.IPluginLoggerProvider) ([]IDeviceWrapperProvider, error) {
+	s := &hubSettings{}
+	err := yaml.Unmarshal([]byte(ctor.RawConfig), s)
+	if err != nil {
+		s = &hubSettings{NameOverrides: map[string]string{}}
+	}
+
 	wrappers := make([]IDeviceWrapperProvider, 0)
 
 	loadData := &device.InitDataDevice{
@@ -49,7 +63,7 @@ func loadHub(ctor *ConstructDevice, pluginLogger common.IPluginLoggerProvider) (
 	hubCtor := &wrapperConstruct{
 		DeviceType:        enums.DevHub,
 		DeviceInterface:   hub,
-		IsRootDevice:      true,
+		IsHubDevice:       true,
 		DeviceConfigName:  ctor.ConfigName,
 		DeviceProvider:    ctor.DeviceName,
 		DeviceState:       hubResults.State,
@@ -64,6 +78,16 @@ func loadHub(ctor *ConstructDevice, pluginLogger common.IPluginLoggerProvider) (
 		UOM:               ctor.UOM,
 		processor:         nil,
 		RawConfig:         ctor.RawConfig,
+		NameOverrides:     make(map[glob.Glob]string),
+	}
+
+	for k, v := range s.NameOverrides {
+		g, err := glob.Compile(k)
+		if err != nil {
+			continue
+		}
+
+		hubCtor.NameOverrides[g] = v
 	}
 
 	hubWrapper := NewDeviceWrapper(hubCtor)
@@ -105,7 +129,8 @@ func loadHub(ctor *ConstructDevice, pluginLogger common.IPluginLoggerProvider) (
 		spawnedCtor := &wrapperConstruct{
 			DeviceType:        v.Type,
 			DeviceInterface:   v.Interface,
-			IsRootDevice:      false,
+			IsHubDevice:       false,
+			IsDiscovered:      true,
 			DeviceConfigName:  ctor.ConfigName,
 			DeviceProvider:    ctor.DeviceName,
 			DeviceState:       v.State,
@@ -126,6 +151,17 @@ func loadHub(ctor *ConstructDevice, pluginLogger common.IPluginLoggerProvider) (
 		if nil == w {
 			continue
 		}
+
+		tmpName := helpers.GetNameFromID(w.ID())
+
+		for k, v := range hubCtor.NameOverrides {
+			if k.Match(tmpName) {
+				spawnedCtor.DiscoveredName = v
+				break
+			}
+		}
+
+		hubWrapper.AppendChild(w)
 		wrappers = append(wrappers, w)
 	}
 

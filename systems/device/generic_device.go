@@ -84,7 +84,7 @@ func LoadDevice(ctor *ConstructDevice) ([]IDeviceWrapperProvider, error) {
 	deviceCtor := &wrapperConstruct{
 		DeviceType:        ctor.DeviceType,
 		DeviceInterface:   i,
-		IsRootDevice:      true,
+		IsHubDevice:       true,
 		DeviceConfigName:  ctor.ConfigName,
 		DeviceProvider:    ctor.DeviceName,
 		DeviceState:       deviceState,

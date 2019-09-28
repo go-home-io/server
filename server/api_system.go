@@ -30,9 +30,9 @@ func (s *GoHomeServer) getWorkers(writer http.ResponseWriter, request *http.Requ
 	now := utils.TimeNow()
 	workers := s.state.GetWorkers()
 	workers = append(workers, &knownWorker{
-		ID:          "master",
-		LastSeenSec: 0,
-		MaxDevices:  0,
+		ID:         "master",
+		LastSeen:   now,
+		MaxDevices: 0,
 	})
 
 	sort.Slice(workers, func(i, j int) bool {

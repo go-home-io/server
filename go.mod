@@ -1,7 +1,7 @@
 module go-home.io/x/server
 
 require (
-	bou.ke/monkey v1.0.1
+	bou.ke/monkey v1.0.2-0.20190527161844-ca6af776195d
 	github.com/corona10/goimagehash v0.2.0
 	github.com/creasty/defaults v1.2.1
 	github.com/disintegration/imaging v1.5.0

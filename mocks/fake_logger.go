@@ -8,11 +8,24 @@ import (
 
 // Fake logger
 type fakeLogger struct {
-	callback func(string)
+	callback         func(string)
+	historySupported bool
+}
+
+func (p *fakeLogger) HistorySupported(v bool) {
+	p.historySupported = v
+}
+
+// IFakeLogger defines mock logger.
+type IFakeLogger interface {
+	HistorySupported(bool)
+}
+
+func (p *fakeLogger) AddFields(map[string]string) {
 }
 
 func (p *fakeLogger) GetSpecs() *common.LogSpecs {
-	return &common.LogSpecs{IsHistorySupported: false}
+	return &common.LogSpecs{IsHistorySupported: p.historySupported}
 }
 
 func (p *fakeLogger) Query(*common.LogHistoryRequest) []*common.LogHistoryEntry {

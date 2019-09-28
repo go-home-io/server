@@ -25,6 +25,14 @@ func TestGetNameFromID(t *testing.T) {
 			in:  "другой.девайс_в_кухне",
 			out: "девайс в кухне",
 		},
+		{
+			in:  "test._device.",
+			out: " device",
+		},
+		{
+			in: "...",
+			out: "N/A",
+		},
 	}
 
 	for _, v := range data {

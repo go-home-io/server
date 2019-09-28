@@ -79,5 +79,11 @@ Which includes:
 GO111MODULE=off go get github.com/vkorn/go-miio
 ```
 
+[`monkey patching`](https://github.com/bouk/monkey) from an IDE must be executed with an extra params: 
+
+```bash
+-gcflags=-l
+```
+
 ## License
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgo-home-io%2Fserver.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgo-home-io%2Fserver?ref=badge_large)
