@@ -1,3 +1,4 @@
+// Package secret contains implementation of a secrets wrapper.
 package secret
 
 import (

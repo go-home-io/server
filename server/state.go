@@ -118,13 +118,11 @@ func (s *serverState) Discovery(msg *bus.DiscoveryMessage) {
 				s.Settings.MasterSettings().UOM))
 			syncProperties = false
 			reBalanceNeeded = false
-
 		} else {
 			s.Logger.Info("Received discovery from a known worker with changes in properties, re-balance needed",
 				common.LogWorkerToken, msg.NodeID, common.LogSystemToken, logSystem)
 			reBalanceNeeded = true
 		}
-
 	} else {
 		s.Logger.Info("Received discovery from a new worker",
 			common.LogWorkerToken, msg.NodeID, common.LogSystemToken, logSystem)

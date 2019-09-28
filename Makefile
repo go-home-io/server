@@ -19,7 +19,7 @@ PLUGINS_BINS=$(BIN_FOLDER)/plugins
 
 LINTER=$(GO_BIN_FOLDER)/golangci-lint -c ${CURDIR}/.golangci.yml run
 
-.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test vendor-cleanup run-only-server dep-shared-update generate-local
+.PHONY: utilities-build utilities-ci utilities build-server build-plugins build run-server run-worker test-local test vendor-cleanup run-only-server dep-shared-update generate-local todo
 
 define build_plugins_task =
 	set -e
@@ -138,6 +138,31 @@ define lint_all =
 					echo "======================================="
 					cd $${plugin}
 					$(LINTER) --disable=unused --disable=unparam
+					cd $(PLUGINS_LOCATION)
+				fi;
+			done;
+		fi;
+    done;
+endef
+
+define extract_comments =
+	set -e
+	echo "======================================="
+	echo "Checking server"
+	echo "======================================="
+
+	$(GO_BIN_FOLDER)/golangci-lint run --no-config --disable-all -E godox
+
+	cd $(PLUGINS_LOCATION)
+	for plugin_type in *; do
+		if [ -d "$${plugin_type}" ]; then
+			for plugin in $${plugin_type}/*; do
+				if [ -d "$${plugin}" ]; then
+					echo "======================================="
+					echo "Checking $${plugin}"
+					echo "======================================="
+					cd $${plugin}
+					$(GO_BIN_FOLDER)/golangci-lint run --no-config --disable-all -E godox
 					cd $(PLUGINS_LOCATION)
 				fi;
 			done;
@@ -268,6 +293,12 @@ dep-shared-update:
 SHELL = /bin/sh
 generate:
 	$(go_generate)
+
+.ONESHELL:
+SHELL = /bin/sh
+todo:
+	$(extract_comments)
+
 
 generate-local: dep generate vendor-cleanup
 

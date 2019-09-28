@@ -352,7 +352,6 @@ func (s *settingsProvider) loadGoHomeDefinition(provider *rawProvider) {
 
 		s.wSettings = set
 		s.nodeID = s.wSettings.Name
-
 	} else if !s.isWorker && provider.Provider == configGoHomeMaster {
 		set := &providers.MasterSettings{
 			Locations: make([]*providers.RawMasterComponent, 0),

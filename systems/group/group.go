@@ -59,7 +59,6 @@ type ConstructGroup struct {
 
 // NewGroupProvider creates a new group provider.
 func NewGroupProvider(ctor *ConstructGroup) (providers.IGroupProvider, error) {
-
 	settings := &settings{}
 	err := yaml.Unmarshal(ctor.RawConfig, settings)
 	if err != nil {

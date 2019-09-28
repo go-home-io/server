@@ -1,3 +1,4 @@
+// Package security contains implementation of an API security validators.
 package security
 
 import (

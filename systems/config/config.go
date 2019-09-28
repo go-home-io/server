@@ -1,3 +1,4 @@
+// Package config contains implementation of a configuration reader wrapper.
 package config
 
 import (

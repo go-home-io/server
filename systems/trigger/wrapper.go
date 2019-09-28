@@ -209,7 +209,6 @@ func (w *wrapper) loadDeviceAction(data map[string]interface{}) {
 			w.logger.Error("Failed to parse device action: un-marshal error", err)
 			return
 		}
-
 	}
 
 	w.deviceActions = append(w.deviceActions, action)

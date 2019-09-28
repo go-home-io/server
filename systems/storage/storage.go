@@ -1,3 +1,4 @@
+// Package storage contains implementation of a data-storage plugin wrapper.
 package storage
 
 import (

@@ -1,3 +1,5 @@
+// Package api contains implementation of a api plugin wrapper.
+// This package handles messages sync between master and workers.
 package api
 
 import (

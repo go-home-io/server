@@ -24,7 +24,6 @@ func main() {
 		}
 
 		wkr.Start()
-
 	} else {
 		srv, err := server.NewServer(s)
 		if err != nil {

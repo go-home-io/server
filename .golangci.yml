@@ -24,6 +24,8 @@ linters:
     - gochecknoglobals
     - typecheck
     - prealloc
+    - funlen
+    - godox
 
 linters-settings:
   gocyclo:
@@ -31,3 +33,5 @@ linters-settings:
 
 issues:
   exclude-use-default: false
+  exclude:
+    - ST1017
