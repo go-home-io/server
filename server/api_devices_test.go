@@ -16,7 +16,20 @@ import (
 	"go-home.io/x/server/plugins/device/enums"
 	"go-home.io/x/server/providers"
 	"go-home.io/x/server/systems/security"
+	"go-home.io/x/server/utils"
 )
+
+type fakeTriggerWrapper struct {
+	id string
+}
+
+func (f *fakeTriggerWrapper) GetID() string {
+	return f.id
+}
+
+func (f *fakeTriggerWrapper) GetLastTriggeredTime() int64 {
+	return utils.TimeNow()
+}
 
 func getFakeRootUser(_ *http.Request) providers.IAuthenticatedUser {
 	return &security.AuthenticatedUser{
@@ -40,6 +53,14 @@ func getFakeRootUser(_ *http.Request) providers.IAuthenticatedUser {
 					},
 				},
 			},
+			providers.SecSystemTrigger: {
+				{
+					Get:     true,
+					History: true,
+					Resources: []glob.Glob{
+						compileRegexp("trigger1t*.trigger")},
+				},
+			},
 		},
 	}
 }
@@ -59,6 +80,22 @@ func getServer() *GoHomeServer {
 		Settings: s,
 		groups: map[string]providers.IGroupProvider{
 			"g1": mocks.FakeNewGroupProvider("g1", []string{"dev1"}, func() {}),
+		},
+		triggers: []*knownMasterComponent{
+			{
+				Loaded: true,
+				Name:   "trigger1",
+				Interface: &fakeTriggerWrapper{
+					id: "trigger1test.trigger",
+				},
+			},
+			{
+				Loaded: true,
+				Name:   "0trigger",
+				Interface: &fakeTriggerWrapper{
+					id: "trigger123.trigger",
+				},
+			},
 		},
 	}
 }
@@ -120,6 +157,8 @@ func TestGetCurrentStateAPI(t *testing.T) {
 	assert.NoError(t, err, "wrong response")
 	assert.Equal(t, 3, len(data.Devices), "incorrect devices num")
 	assert.Equal(t, 1, len(data.Groups), "incorrect groups num")
+	assert.Equal(t, 1, len(data.Triggers), "incorrect triggers num")
+	assert.Equal(t, "trigger1test.trigger", data.Triggers[0].ID, "incorrect trigger")
 }
 
 // Tests device command.
@@ -150,7 +189,7 @@ func TestDeviceCommandAPI(t *testing.T) {
 }
 
 // Test getting the history.
-func TestGetStateHistoryAPI(t *testing.T) {
+func TestGetDeviceStateHistoryAPI(t *testing.T) {
 	input := map[string]int{
 		"dev1": http.StatusOK,
 		"dev2": http.StatusInternalServerError,
@@ -168,7 +207,30 @@ func TestGetStateHistoryAPI(t *testing.T) {
 		req = mux.SetURLVars(req, map[string]string{string(urlDeviceID): k})
 
 		r := httptest.NewRecorder()
-		http.HandlerFunc(srv.getStateHistory).ServeHTTP(r, req)
+		http.HandlerFunc(srv.getDeviceStateHistory).ServeHTTP(r, req)
+		assert.Equal(t, v, r.Code, "response code %s", k)
+	}
+}
+
+// Test getting trigger history.
+func TestGetTriggerStateHistoryAPI(t *testing.T) {
+	input := map[string]int{
+		"trigger1test.trigger": http.StatusOK,
+		"trigger123.trigger": http.StatusForbidden,
+		"dev2": http.StatusInternalServerError,
+	}
+
+	monkey.Patch(getContextUser, getFakeRootUser)
+	defer monkey.UnpatchAll()
+
+	srv := getServer()
+	for k, v := range input {
+		req, err := http.NewRequest("GET", "/test", nil)
+		require.NoError(t, err, "setup failed %s", k)
+		req = mux.SetURLVars(req, map[string]string{string(urlTriggerID): k})
+
+		r := httptest.NewRecorder()
+		http.HandlerFunc(srv.getTriggerStateHistory).ServeHTTP(r, req)
 		assert.Equal(t, v, r.Code, "response code %s", k)
 	}
 }
@@ -208,7 +270,7 @@ func TestGetStateHistoryForbidden(t *testing.T) {
 		req = mux.SetURLVars(req, map[string]string{string(urlDeviceID): k})
 
 		r := httptest.NewRecorder()
-		http.HandlerFunc(srv.getStateHistory).ServeHTTP(r, req)
+		http.HandlerFunc(srv.getDeviceStateHistory).ServeHTTP(r, req)
 		assert.Equal(t, v, r.Code, "response code %s", k)
 	}
 }

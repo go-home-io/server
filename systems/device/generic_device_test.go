@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	excludedDevices = []enums.DeviceType{enums.DevUnknown, enums.DevHub, enums.DevGroup}
+	excludedDevices = []enums.DeviceType{enums.DevUnknown, enums.DevHub, enums.DevGroup, enums.DevTrigger}
 )
 
 // Tests that all device types are known.

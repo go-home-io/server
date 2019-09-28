@@ -13,6 +13,16 @@ func (u *AuthenticatedUser) Name() string {
 	return u.Username
 }
 
+// TriggerGet get verifies whether user is allowed to get a trigger.
+func (u *AuthenticatedUser) TriggerGet(triggerID string) bool {
+	return u.verifyEntity(providers.SecSystemTrigger, providers.SecVerbGet, triggerID)
+}
+
+// TriggerHistory verifies whether user is allowed to query a device history.
+func (u *AuthenticatedUser) TriggerHistory(triggerID string) bool {
+	return u.verifyEntity(providers.SecSystemTrigger, providers.SecVerbHistory, triggerID)
+}
+
 // DeviceGet verifies whether user is allowed to get a device.
 func (u *AuthenticatedUser) DeviceGet(deviceID string) bool {
 	return u.verifyEntity(providers.SecSystemDevice, providers.SecVerbGet, deviceID)

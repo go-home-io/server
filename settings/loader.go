@@ -50,6 +50,7 @@ type StartUpOptions struct {
 
 // Defines loaded provider record.
 type rawProvider struct {
+	Name     string
 	System   string
 	Provider string
 	Config   []byte
@@ -277,6 +278,7 @@ func (s *settingsProvider) loadFile(fileData []byte, templateProvider ITemplateP
 
 		componentType := ""
 		componentProvider := ""
+		componentName := ""
 
 		if cs, ok := value["system"].(string); ok {
 			componentType = strings.ToLower(cs)
@@ -284,6 +286,10 @@ func (s *settingsProvider) loadFile(fileData []byte, templateProvider ITemplateP
 
 		if ct, ok := value["provider"].(string); ok {
 			componentProvider = strings.ToLower(ct)
+		}
+
+		if cn, ok := value["name"].(string); ok {
+			componentName = cn
 		}
 
 		if componentType == "" || componentProvider == "" {
@@ -303,6 +309,7 @@ func (s *settingsProvider) loadFile(fileData []byte, templateProvider ITemplateP
 			Provider: strings.ToLower(componentProvider),
 			System:   strings.ToLower(componentType),
 			Config:   byteData,
+			Name:     strings.ToLower(componentName),
 		})
 	}
 
@@ -529,11 +536,7 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 	case systems.SysSecurity:
 		s.processSecurity(provider)
 	case systems.SysTrigger:
-		cmp := s.getMasterComponents(provider)
-		if nil == cmp {
-			return
-		}
-		s.triggers = append(s.triggers, cmp)
+		s.loadTrigger(provider)
 	case systems.SysAPI:
 		s.loadAPI(provider)
 	case systems.SysUI:
@@ -652,6 +655,11 @@ func (s *settingsProvider) loadAPI(provider *rawProvider) {
 	s.extendedAPIs = append(s.extendedAPIs, cmp)
 }
 
+// Loads trigger component.
+func (s *settingsProvider) loadTrigger(provider *rawProvider) {
+	s.triggers = s.loadMasterComponent(s.triggers, provider)
+}
+
 // Loads master component.
 func (s *settingsProvider) getMasterComponents(provider *rawProvider) *providers.RawMasterComponent {
 	if s.isWorker {
@@ -661,6 +669,7 @@ func (s *settingsProvider) getMasterComponents(provider *rawProvider) *providers
 	cmp := &providers.RawMasterComponent{
 		RawConfig: provider.Config,
 		Provider:  provider.Provider,
+		Name:      provider.Name,
 	}
 
 	if "" == cmp.Name {
@@ -700,4 +709,32 @@ func (s *settingsProvider) loadUIProviders(provider *rawProvider) {
 			RawConfig: provider.Config,
 		})
 	}
+}
+
+// Performs master component load.
+func (s *settingsProvider) loadMasterComponent(existingProviders []*providers.RawMasterComponent,
+	provider *rawProvider) []*providers.RawMasterComponent {
+	masterCmp := s.getMasterComponents(provider)
+	if nil == masterCmp {
+		return existingProviders
+	}
+
+	if "" == masterCmp.Name {
+		s.logger.Warn("Generating random name since it's not configured. "+
+			"History will not be preserver between master restarts", common.LogDeviceTypeToken, provider.Provider,
+			common.LogSystemToken, provider.System)
+
+		masterCmp.Name = utils.GetRandomName()
+	}
+
+	for _, v := range existingProviders {
+		if v.Name == masterCmp.Name {
+			s.logger.Warn("Duplicated component name name, ignoring",
+				common.LogDeviceTypeToken, provider.Provider,
+				common.LogSystemToken, provider.System, common.LogNameToken, masterCmp.Name)
+			return existingProviders
+		}
+	}
+
+	return append(existingProviders, masterCmp)
 }

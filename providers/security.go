@@ -18,6 +18,8 @@ type IAuthenticatedUser interface {
 	DeviceGet(string) bool
 	DeviceCommand(string) bool
 	DeviceHistory(string) bool
+	TriggerGet(string) bool
+	TriggerHistory(string) bool
 	Workers() bool
 	Entities() bool
 	Logs() bool
@@ -47,6 +49,8 @@ const (
 	SecSystemDevice
 	// SecSystemCore describes core components.
 	SecSystemCore
+	// SecSystemTrigger describes triggers' system.
+	SecSystemTrigger
 )
 
 // SecRoleRule has data, describing single security rule.

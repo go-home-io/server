@@ -44,6 +44,16 @@ func TestAllowed(t *testing.T) {
 					},
 				},
 			},
+			providers.SecSystemTrigger: {
+				{
+					Get:     true,
+					History: true,
+					Resources: []glob.Glob{
+						compileRegexp("static device"),
+						compileRegexp("dev*"),
+					},
+				},
+			},
 			providers.SecSystemAll: {
 				{
 					Get:     true,
@@ -58,9 +68,11 @@ func TestAllowed(t *testing.T) {
 	}
 
 	for _, v := range devices {
-		assert.True(t, user.DeviceGet(v), "get %s", v)
-		assert.True(t, user.DeviceCommand(v), "command %s", v)
-		assert.True(t, user.DeviceHistory(v), "history %s", v)
+		assert.True(t, user.DeviceGet(v), "device get %s", v)
+		assert.True(t, user.TriggerGet(v), "trigger get %s", v)
+		assert.True(t, user.DeviceCommand(v), "device command %s", v)
+		assert.True(t, user.DeviceHistory(v), "device history %s", v)
+		assert.True(t, user.TriggerHistory(v), "trigger history %s", v)
 	}
 }
 
@@ -87,6 +99,17 @@ func TestForbidden(t *testing.T) {
 					},
 				},
 			},
+			providers.SecSystemTrigger: {
+				{
+					Get:     true,
+					History: false,
+					Command: true,
+					Resources: []glob.Glob{
+						compileRegexp("static[! ]*"),
+						compileRegexp("dev?"),
+					},
+				},
+			},
 			providers.SecSystemAll: {
 				{
 					Get:     false,
@@ -101,9 +124,11 @@ func TestForbidden(t *testing.T) {
 	}
 
 	for _, v := range devices {
-		assert.False(t, user.DeviceGet(v), "get %s", v)
-		assert.False(t, user.DeviceCommand(v), "command %s", v)
-		assert.False(t, user.DeviceHistory(v), "history %s", v)
+		assert.False(t, user.DeviceGet(v), "device get %s", v)
+		assert.False(t, user.TriggerGet(v), "trigger get %s", v)
+		assert.False(t, user.DeviceCommand(v), "device command %s", v)
+		assert.False(t, user.DeviceHistory(v), "device history %s", v)
+		assert.False(t, user.TriggerHistory(v), "trigger history %s", v)
 	}
 }
 

@@ -157,8 +157,10 @@ func (s *GoHomeServer) registerAPI(router *mux.Router) {
 	apiRouter := router.PathPrefix(routeAPI).Subrouter()
 	apiRouter.HandleFunc("/ws", s.handleWS)
 	apiRouter.HandleFunc("/device", s.getDevices).Methods(http.MethodGet)
-	apiRouter.HandleFunc(fmt.Sprintf("/state/{%s}", urlDeviceID),
-		s.getStateHistory).Methods(http.MethodGet)
+	apiRouter.HandleFunc(fmt.Sprintf("/state/device/{%s}", urlDeviceID),
+		s.getDeviceStateHistory).Methods(http.MethodGet)
+	apiRouter.HandleFunc(fmt.Sprintf("/state/trigger/{%s}", urlTriggerID),
+		s.getTriggerStateHistory).Methods(http.MethodGet)
 	apiRouter.HandleFunc(fmt.Sprintf("/device/{%s}/{%s}", urlDeviceID, urlCommandName),
 		s.deviceCommand).Methods(http.MethodPost)
 	apiRouter.HandleFunc("/group", s.getGroups).Methods(http.MethodGet)
@@ -221,6 +223,7 @@ func (s *GoHomeServer) startTriggers() {
 			FanOut:    s.Settings.FanOut(),
 			Secret:    s.Settings.Secrets(),
 			Validator: s.Settings.Validator(),
+			Storage:   s.Settings.Storage(),
 			Server:    s,
 			Timezone:  s.Settings.Timezone(),
 		}

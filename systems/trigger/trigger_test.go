@@ -93,7 +93,8 @@ func TestWithinActiveWindowInvokes(t *testing.T) {
 		}).(providers.IServerProvider),
 		deviceActions: []*triggerActionDevice{{}},
 		timezone:      getUTC(),
-		fanOut: mocks.FakeNewFanOut(),
+		fanOut:        mocks.FakeNewFanOut(),
+		storage:       mocks.FakeNewStorage(),
 	}
 
 	data := []string{
@@ -263,6 +264,7 @@ func TestInvoke(t *testing.T) {
 		Loader:    mocks.FakeNewPluginLoader(fakePlugin),
 		Secret:    mocks.FakeNewSecretStore(nil, false),
 		FanOut:    mocks.FakeNewFanOut(),
+		Storage:   mocks.FakeNewStorage(),
 		Provider:  "test",
 		Server: mocks.FakeNewServer(func() {
 			invoked = true
@@ -278,11 +280,13 @@ actions:
       args:
          r: 5`))
 
-	_, err := NewTrigger(ctr)
+	tr, err := NewTrigger(ctr)
 	require.NoError(t, err)
 	fakePlugin.testInvoke()
 	time.Sleep(1 * time.Second)
 	assert.True(t, invoked)
+
+	assert.True(t, tr.GetLastTriggeredTime() - utils.TimeNow() < 10, "trigger time was not updated")
 }
 
 // Tests incorrect data.

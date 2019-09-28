@@ -36,6 +36,14 @@ type fakeAuthenticatedUser struct {
 	allow bool
 }
 
+func (f *fakeAuthenticatedUser) TriggerGet(string) bool {
+	return f.allow
+}
+
+func (f *fakeAuthenticatedUser) TriggerHistory(string) bool {
+	return f.allow
+}
+
 func (f *fakeAuthenticatedUser) Logs() bool {
 	return f.allow
 }

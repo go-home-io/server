@@ -157,6 +157,25 @@ func (s *GoHomeServer) commandGetAllDevices(user providers.IAuthenticatedUser) [
 	return allowedDevices
 }
 
+// Returns all allowed triggers.
+func (s *GoHomeServer) commandGetAllTriggers(user providers.IAuthenticatedUser) []*knownTrigger {
+	allowedTriggers := make([]*knownTrigger, 0)
+	for _, v := range s.triggers {
+		id := v.Interface.(providers.ITriggerProvider).GetID()
+		if user.TriggerGet(id) {
+			t := &knownTrigger{
+				ID:            id,
+				Name:          v.Name,
+				LastTriggered: v.Interface.(providers.ITriggerProvider).GetLastTriggeredTime(),
+			}
+
+			allowedTriggers = append(allowedTriggers, t)
+		}
+	}
+
+	return allowedTriggers
+}
+
 // Returns all allowed for the user groups.
 func (s *GoHomeServer) commandGetAllGroups(user providers.IAuthenticatedUser) []*knownGroup {
 	devices := s.commandGetAllDevices(user)

@@ -66,6 +66,14 @@ func (w *wsSuite) SetupTest() {
 					},
 				},
 			},
+			providers.SecSystemTrigger: {
+				{
+					Get: true,
+					Resources: []glob.Glob{
+						compileRegexp("trigger1*"),
+					},
+				},
+			},
 		},
 	}
 
@@ -183,8 +191,32 @@ func (w *wsSuite) TestUpdate() {
 	assert.Equal(w.T(), "test", d.State["test"].(string), "wrong state")
 }
 
+// Tests correct trigger update.
+//noinspection GoUnhandledErrorResult
+func (w *wsSuite) TestTriggerUpdate() {
+	w.s.FanOut().ChannelInTriggerUpdates() <- "trigger1"
+
+	w.ws.SetReadDeadline(time.Now().Add(1 * time.Second))
+	wt, msg, err := w.ws.ReadMessage()
+	require.NoError(w.T(), err, "error")
+	require.Equal(w.T(), websocket.TextMessage, wt, "type")
+	d := &knownDevice{}
+	err = json.Unmarshal(msg, d)
+	require.NoError(w.T(), err, "json")
+	assert.Equal(w.T(), "trigger1", d.ID, "wrong device")
+}
+
+// Tests correct trigger update.
+//noinspection GoUnhandledErrorResult
+func (w *wsSuite) TestWrongTriggerUpdate() {
+	w.s.FanOut().ChannelInTriggerUpdates() <- "trigger2"
+
+	w.ws.SetReadDeadline(time.Now().Add(1 * time.Second))
+	_, _, err := w.ws.ReadMessage()
+	assert.Error(w.T(), err)
+}
+
 // Tests WS connection.
 func TestWs(t *testing.T) {
 	suite.Run(t, new(wsSuite))
-
 }

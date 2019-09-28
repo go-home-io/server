@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"go-home.io/x/server/plugins/common"
+	"go-home.io/x/server/plugins/device/enums"
 	"go-home.io/x/server/providers"
 )
 
@@ -32,8 +33,11 @@ func (s *GoHomeServer) handleWS(writer http.ResponseWriter, request *http.Reques
 func (s *GoHomeServer) processWSConnection(conn *websocket.Conn, usr providers.IAuthenticatedUser) {
 	stop := make(chan bool, 1)
 	go s.processIncomingWSMessages(conn, stop, usr)
-	subID, upd := s.Settings.FanOut().SubscribeDeviceUpdates()
-	defer s.Settings.FanOut().UnSubscribeDeviceUpdates(subID)
+	deviceSubID, deviceUpd := s.Settings.FanOut().SubscribeDeviceUpdates()
+	defer s.Settings.FanOut().UnSubscribeDeviceUpdates(deviceSubID)
+
+	triggerSubID, triggerUpd := s.Settings.FanOut().SubscribeTriggerUpdates()
+	defer s.Settings.FanOut().UnSubscribeTriggerUpdates(triggerSubID)
 
 	for {
 		select {
@@ -41,7 +45,7 @@ func (s *GoHomeServer) processWSConnection(conn *websocket.Conn, usr providers.I
 			if msg {
 				return
 			}
-		case msg, ok := <-upd:
+		case msg, ok := <-deviceUpd:
 			{
 				if !ok {
 					return
@@ -50,6 +54,19 @@ func (s *GoHomeServer) processWSConnection(conn *websocket.Conn, usr providers.I
 				kd := s.state.GetDevice(msg.ID)
 				if usr.DeviceGet(kd.ID) {
 					conn.WriteJSON(kd) // nolint: gosec, errcheck
+				}
+			}
+		case msg, ok := <-triggerUpd:
+			{
+				if !ok {
+					return
+				}
+
+				if usr.TriggerGet(msg) {
+					conn.WriteJSON(&knownDevice{ // nolint: gosec, errcheck
+						ID:   msg,
+						Type: enums.DevTrigger,
+					})
 				}
 			}
 		}

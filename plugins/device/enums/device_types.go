@@ -26,6 +26,8 @@ const (
 	DevCamera
 	// DevLock describes lock device.
 	DevLock
+	// DevTrigger describes a fake device for a trigger status updates.
+	DevTrigger
 )
 
 // SliceContainsDeviceType is a helper Slice.contains.

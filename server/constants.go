@@ -8,6 +8,8 @@ type muxKeys string
 const (
 	// urlDeviceID describes device ID URL param.
 	urlDeviceID muxKeys = "deviceID"
+	//urlTriggerID describes trigger ID URL param.
+	urlTriggerID muxKeys = "triggerID"
 	// urlCommandName describes device command name URL param.
 	urlCommandName muxKeys = "commandName"
 	// ctxtUserName describes user in the context.

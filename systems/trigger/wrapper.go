@@ -21,13 +21,15 @@ import (
 
 // Describes trigger wrapper object.
 type wrapper struct {
-	trigger   pluginTrigger.ITrigger
-	logger    common.ILoggerProvider
-	validator providers.IValidatorProvider
-	ID        string
-	name      string
-	server    providers.IServerProvider
-	timezone  *time.Location
+	trigger     pluginTrigger.ITrigger
+	logger      common.ILoggerProvider
+	validator   providers.IValidatorProvider
+	ID          string
+	name        string
+	server      providers.IServerProvider
+	timezone    *time.Location
+	triggeredAt int64
+	storage     providers.IStorageProvider
 
 	fanOut providers.IInternalFanOutProvider
 
@@ -51,6 +53,7 @@ type ConstructTrigger struct {
 	RawConfig []byte
 	FanOut    providers.IInternalFanOutProvider
 	Server    providers.IServerProvider
+	Storage   providers.IStorageProvider
 	Timezone  *time.Location
 }
 
@@ -79,6 +82,7 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 		ID:        getID(ctor.Name),
 		timezone:  ctor.Timezone,
 		fanOut:    ctor.FanOut,
+		storage:   ctor.Storage,
 	}
 	err = w.loadActions(cfg.Actions)
 	if err != nil {
@@ -124,6 +128,11 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 // Format is name.trigger.
 func (w *wrapper) GetID() string {
 	return w.ID
+}
+
+// GetLastTriggeredTime returns UTC timestamp of a last trigger.
+func (w *wrapper) GetLastTriggeredTime() int64 {
+	return w.triggeredAt
 }
 
 // Loads all trigger actions.
@@ -234,6 +243,15 @@ func (w *wrapper) triggered(msg interface{}) { //nolint:unparam
 		return
 	}
 
+	w.storage.State(&common.MsgDeviceUpdate{
+		ID:        w.ID,
+		Name:      w.name,
+		State:     map[enums.Property]interface{}{enums.PropOn: true},
+		FirstSeen: false,
+		Type:      enums.DevTrigger,
+	})
+
+	w.triggeredAt = utils.TimeNow()
 	w.fanOut.ChannelInTriggerUpdates() <- w.ID
 
 	for _, v := range w.deviceActions {

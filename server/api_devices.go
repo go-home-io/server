@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"go-home.io/x/server/plugins/device/enums"
+	"go-home.io/x/server/providers"
 )
 
 // Contains data about known locations.
@@ -27,6 +28,7 @@ type currentState struct {
 	Devices       []*knownDevice   `json:"devices"`
 	Groups        []*knownGroup    `json:"groups"`
 	Locations     []*knownLocation `json:"locations"`
+	Triggers      []*knownTrigger  `json:"triggers"`
 	UOM           enums.UOM        `json:"uom"`
 	Timezone      string           `json:"timezone"`
 	LogsAvailable bool             `json:"logs_available"`
@@ -44,6 +46,13 @@ type knownDevice struct {
 	IsReadOnly bool                   `json:"read_only"`
 }
 
+// Known active trigger.
+type knownTrigger struct {
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	LastTriggered int64  `json:"last_triggered"`
+}
+
 // Returns all devices available for the user.
 func (s *GoHomeServer) getDevices(writer http.ResponseWriter, request *http.Request) {
 	respond(writer, s.commandGetAllDevices(getContextUser(request)))
@@ -59,6 +68,7 @@ func (s *GoHomeServer) getCurrentState(writer http.ResponseWriter, request *http
 	usr := getContextUser(request)
 	response := &currentState{
 		Devices:       s.commandGetAllDevices(usr),
+		Triggers:      s.commandGetAllTriggers(usr),
 		Groups:        s.commandGetAllGroups(usr),
 		Locations:     s.commandGetAllLocations(usr),
 		UOM:           s.Settings.MasterSettings().UOM,
@@ -82,7 +92,7 @@ func (s *GoHomeServer) deviceCommand(writer http.ResponseWriter, request *http.R
 }
 
 // Gets device state history.
-func (s *GoHomeServer) getStateHistory(writer http.ResponseWriter, request *http.Request) {
+func (s *GoHomeServer) getDeviceStateHistory(writer http.ResponseWriter, request *http.Request) {
 	user := getContextUser(request)
 	vars := mux.Vars(request)
 	kd := s.state.GetDevice(vars[string(urlDeviceID)])
@@ -98,4 +108,31 @@ func (s *GoHomeServer) getStateHistory(writer http.ResponseWriter, request *http
 	}
 
 	respond(writer, s.Settings.Storage().History(kd.ID))
+}
+
+// Gets trigger state history.
+func (s *GoHomeServer) getTriggerStateHistory(writer http.ResponseWriter, request *http.Request) {
+	user := getContextUser(request)
+	vars := mux.Vars(request)
+
+	triggerID := vars[string(urlTriggerID)]
+	var kt *knownMasterComponent
+
+	for _, v := range s.triggers {
+		if v.Interface.(providers.ITriggerProvider).GetID() == triggerID {
+			kt = v
+			break
+		}
+	}
+
+	if nil == kt {
+		respondError(writer, "Unknown trigger")
+		return
+	}
+
+	if !user.TriggerHistory(triggerID) {
+		respondForbidden(writer)
+	}
+
+	respond(writer, s.Settings.Storage().History(triggerID))
 }
