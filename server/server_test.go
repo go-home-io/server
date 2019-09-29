@@ -10,6 +10,7 @@ import (
 	"go-home.io/x/server/mocks"
 	"go-home.io/x/server/plugins/api"
 	"go-home.io/x/server/plugins/bus"
+	"go-home.io/x/server/plugins/notification"
 	"go-home.io/x/server/plugins/trigger"
 	"go-home.io/x/server/providers"
 	"go-home.io/x/server/utils"
@@ -42,7 +43,7 @@ func TestSuccessGroupsAPILoad(t *testing.T) {
 	s.(mocks.IFakeSettings).AddMasterComponents(
 		[]*providers.RawMasterComponent{{Name: "1", RawConfig: []byte("")}},
 		[]*providers.RawMasterComponent{{Name: "1"}, {Name: "2"}},
-		nil)
+		nil, nil)
 	s.(mocks.IFakeSettings).AddLoader(&fakeAPI{})
 	s.(mocks.IFakeSettings).AddMasterSettings(&providers.MasterSettings{
 		Locations: []*providers.RawMasterComponent{{Name: "1", RawConfig: []byte("")},
@@ -68,14 +69,71 @@ func TestSuccessGroupsAPILoad(t *testing.T) {
 	assert.Equal(t, "test", group.Commands[0], "group state was not updated")
 }
 
+type fakeNotPlugin struct {
+	called func()
+}
+
+func (f *fakeNotPlugin) Init(*notification.InitDataNotification) error {
+	return nil
+}
+
+func (f fakeNotPlugin) Message(string) error {
+	f.called()
+	return nil
+}
+
+// Test notifications loading.
+func TestNotificationsLoad(t *testing.T) {
+	s := getFakeSettings(func(_ string, _ ...interface{}) {}, nil, nil)
+	s.(mocks.IFakeSettings).AddMasterComponents(nil, nil, nil,
+		[]*providers.RawMasterComponent{{Name: "1"}, {Name: "2"}})
+
+	called := 0
+	f1 := &fakeNotPlugin{called: func() {
+		called++
+	}}
+	s.(mocks.IFakeSettings).AddLoader(f1)
+
+	srv, _ := NewServer(s)
+	go srv.Start()
+
+	time.Sleep(1 * time.Second)
+
+	assert.Equal(t, 0, len(srv.(*GoHomeServer).groups), "wrong group count")
+	assert.Equal(t, 0, len(srv.(*GoHomeServer).extendedAPIs), "wrong extended api count")
+	assert.Equal(t, 0, len(srv.(*GoHomeServer).triggers), "wrong trigger api count")
+	require.Equal(t, 2, len(srv.(*GoHomeServer).notifications), "wrong notification count")
+	assert.True(t, srv.(*GoHomeServer).notifications[0].Loaded, "first is not loaded")
+	assert.True(t, srv.(*GoHomeServer).notifications[1].Loaded, "second is not loaded")
+
+	srv.SendNotificationCommand(compileRegexp("2*"), "test")
+	srv.SendNotificationCommand(compileRegexp("3*"), "test")
+	assert.Equal(t, 1, called, "plugin was not invoked")
+}
+
+// Tests failed notifications.
+func TestNotificationsLoadFail(t *testing.T){
+	s := getFakeSettings(func(_ string, _ ...interface{}) {}, nil, nil)
+	s.(mocks.IFakeSettings).AddMasterComponents(nil, nil, nil,
+		[]*providers.RawMasterComponent{{Name: "1"}})
+
+	s.(mocks.IFakeSettings).AddLoader(nil)
+
+	srv, _ := NewServer(s)
+	go srv.Start()
+
+	time.Sleep(1 * time.Second)
+
+	assert.False(t, srv.(*GoHomeServer).notifications[0].Loaded)
+}
+
 // Tests failed components.
 func TestFailedGroupAPILoad(t *testing.T) {
 	s := getFakeSettings(func(_ string, _ ...interface{}) {}, nil, nil)
 	s.(mocks.IFakeSettings).AddMasterComponents(
 		[]*providers.RawMasterComponent{{Name: "1", RawConfig: []byte(":wrong yaml")}},
 		[]*providers.RawMasterComponent{{Name: "1"}, {Name: "2"}},
-		nil,
-	)
+		nil, nil)
 	s.(mocks.IFakeSettings).AddLoader(nil)
 
 	srv, _ := NewServer(s)
@@ -83,6 +141,7 @@ func TestFailedGroupAPILoad(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 	assert.Equal(t, 0, len(srv.(*GoHomeServer).groups), "wrong group count")
+	assert.Equal(t, 0, len(srv.(*GoHomeServer).triggers), "wrong trigger count")
 	require.Equal(t, 2, len(srv.(*GoHomeServer).extendedAPIs), "wrong extended api count")
 	assert.False(t, srv.(*GoHomeServer).extendedAPIs[0].Loaded, "api loaded")
 	assert.False(t, srv.(*GoHomeServer).extendedAPIs[1].Loaded, "api loaded")
@@ -102,7 +161,7 @@ actions:
 name: 2
 actions:
   - system: device
-`)}})
+`)}}, nil)
 	s.(mocks.IFakeSettings).AddLoader(&fakeTrigger{})
 
 	srv, _ := NewServer(s)

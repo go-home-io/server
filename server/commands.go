@@ -18,6 +18,17 @@ const (
 	defaultLocationName = "Default"
 )
 
+// SendNotificationCommand invokes notification system and sending a message.
+func (s *GoHomeServer) SendNotificationCommand(notificationRegexp glob.Glob, msg string) {
+	for _, v := range s.notifications {
+		if !v.Loaded || !notificationRegexp.Match(v.Interface.(providers.INotificationProvider).GetID()) {
+			continue
+		}
+
+		v.Interface.(providers.INotificationProvider).Message(msg)
+	}
+}
+
 // InternalCommandInvokeDeviceCommand invokes devices operations.
 // This command is used strictly internally.
 func (s *GoHomeServer) InternalCommandInvokeDeviceCommand(

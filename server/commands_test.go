@@ -448,3 +448,50 @@ func TestGetLocations(t *testing.T) {
 
 	assert.True(t, found, "group")
 }
+
+type fakeNotificationProvider struct {
+	called int
+	name   string
+}
+
+func (f *fakeNotificationProvider) GetID() string {
+	return f.name
+}
+
+func (f *fakeNotificationProvider) Message(string) {
+	f.called++
+}
+
+// Tests notifications.
+func TestNotificationsCommand(t *testing.T) {
+	numCalled := 0
+	s := getFakeSettings(func(name string, msg ...interface{}) {
+		numCalled++
+	}, nil, nil)
+	state := newServerState(s)
+
+	f1 := &fakeNotificationProvider{name: "not1"}
+	f2 := &fakeNotificationProvider{name: "annot"}
+
+	srv := &GoHomeServer{
+		state:    state,
+		Logger:   mocks.FakeNewLogger(nil),
+		Settings: s,
+		notifications: []*knownMasterComponent{
+			{
+				Loaded:    true,
+				Name:      "",
+				Interface: f1,
+			},
+			{
+				Loaded:    true,
+				Name:      "",
+				Interface: f2,
+			},
+		},
+	}
+
+	srv.SendNotificationCommand(compileRegexp("not*"), "test")
+	assert.Equal(t, 1, f1.called, "correct provider was not invoked")
+	assert.Equal(t, 0, f2.called, "incorrect provider was invoked")
+}

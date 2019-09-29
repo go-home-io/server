@@ -33,7 +33,8 @@ type wrapper struct {
 
 	fanOut providers.IInternalFanOutProvider
 
-	deviceActions []*triggerActionDevice
+	deviceActions       []*triggerActionDevice
+	notificationActions []*triggerActionNotification
 
 	triggerChan chan interface{}
 
@@ -59,11 +60,13 @@ type ConstructTrigger struct {
 
 // NewTrigger creates a new trigger.
 func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
+	triggerID := fmt.Sprintf("%s.%s", utils.NormalizeDeviceName(ctor.Name), systems.SysTrigger.String())
+
 	logCtor := &logger.ConstructPluginLogger{
 		SystemLogger: ctor.Logger,
 		Provider:     ctor.Provider,
 		System:       systems.SysAPI.String(),
-		ExtraFields:  map[string]string{common.LogNameToken: ctor.Name, common.LogIDToken: getID(ctor.Name)},
+		ExtraFields:  map[string]string{common.LogNameToken: ctor.Name, common.LogIDToken: triggerID},
 	}
 	log := logger.NewPluginLogger(logCtor)
 
@@ -79,7 +82,7 @@ func NewTrigger(ctor *ConstructTrigger) (providers.ITriggerProvider, error) {
 		name:      ctor.Name,
 		validator: ctor.Validator,
 		server:    ctor.Server,
-		ID:        getID(ctor.Name),
+		ID:        triggerID,
 		timezone:  ctor.Timezone,
 		fanOut:    ctor.FanOut,
 		storage:   ctor.Storage,
@@ -138,6 +141,7 @@ func (w *wrapper) GetLastTriggeredTime() int64 {
 // Loads all trigger actions.
 func (w *wrapper) loadActions(data []map[string]interface{}) error {
 	w.deviceActions = make([]*triggerActionDevice, 0)
+	w.notificationActions = make([]*triggerActionNotification, 0)
 
 	for _, v := range data {
 		s, ok := v[system]
@@ -156,10 +160,12 @@ func (w *wrapper) loadActions(data []map[string]interface{}) error {
 			w.loadDeviceAction(v)
 		case triggerScript:
 			w.loadScriptAction(v)
+		case triggerNotification:
+			w.loadNotificationAction(v)
 		}
 	}
 
-	if 0 == len(w.deviceActions) {
+	if 0 == len(w.deviceActions) && 0 == len(w.notificationActions) {
 		return &ErrNoActions{}
 	}
 
@@ -168,28 +174,16 @@ func (w *wrapper) loadActions(data []map[string]interface{}) error {
 
 // Loads single device action.
 func (w *wrapper) loadDeviceAction(data map[string]interface{}) {
-	tmp, err := yaml.Marshal(data)
-	if err != nil {
-		w.logger.Error("Failed to parse device action: marshal error", err)
-		return
-	}
-
 	action := &triggerActionDevice{}
-	err = yaml.Unmarshal(tmp, action)
+	err := w.loadAction(data, action)
 	if err != nil {
-		w.logger.Error("Failed to parse device action: un-marshal error", err)
-		return
-	}
-
-	if !w.validator.Validate(action) {
-		err := &ErrInvalidActionConfig{}
-		w.logger.Error("Failed to validate action", err)
 		return
 	}
 
 	action.prepEntity, err = glob.Compile(action.Entity)
 	if err != nil {
 		w.logger.Error("Failed to compile regexp", err)
+		return
 	}
 
 	action.cmd, err = enums.CommandString(action.Command)
@@ -207,7 +201,7 @@ func (w *wrapper) loadDeviceAction(data map[string]interface{}) {
 
 	action.prepArgs = make(map[string]interface{})
 	if nil != action.Args {
-		tmp, err = yaml.Marshal(action.Args)
+		tmp, err := yaml.Marshal(action.Args)
 		if err != nil {
 			w.logger.Error("Failed to parse device action: marshal error", err)
 			return
@@ -221,6 +215,50 @@ func (w *wrapper) loadDeviceAction(data map[string]interface{}) {
 	}
 
 	w.deviceActions = append(w.deviceActions, action)
+}
+
+// Loads notification action.
+func (w *wrapper) loadNotificationAction(data map[string]interface{}) {
+	action := &triggerActionNotification{}
+	err := w.loadAction(data, action)
+	if err != nil {
+		return
+	}
+
+	action.prepEntity, err = glob.Compile(action.Entity)
+	if err != nil {
+		w.logger.Error("Failed to compile regexp", err)
+		return
+	}
+
+	if "" == action.Message {
+		action.Message = fmt.Sprintf("go-home trigger %s[%s] went on", w.name, w.ID)
+	}
+
+	w.notificationActions = append(w.notificationActions, action)
+}
+
+// Loads generic action.
+func (w *wrapper) loadAction(data map[string]interface{}, target interface{}) error {
+	tmp, err := yaml.Marshal(data)
+	if err != nil {
+		w.logger.Error("Failed to parse device action: marshal error", err)
+		return err
+	}
+
+	err = yaml.Unmarshal(tmp, target)
+	if err != nil {
+		w.logger.Error("Failed to parse device action: un-marshal error", err)
+		return err
+	}
+
+	if !w.validator.Validate(target) {
+		err := &ErrInvalidActionConfig{}
+		w.logger.Error("Failed to validate action", err)
+		return err
+	}
+
+	return nil
 }
 
 // Loads single script action.
@@ -258,6 +296,11 @@ func (w *wrapper) triggered(msg interface{}) { //nolint:unparam
 		w.logger.Info("Invoking trigger device action",
 			"target_id", v.Entity, common.LogDeviceCommandToken, v.Command)
 		w.server.InternalCommandInvokeDeviceCommand(v.prepEntity, v.cmd, v.prepArgs)
+	}
+
+	for _, v := range w.notificationActions {
+		w.logger.Info("Sending notification action", "target_id", v.Entity)
+		w.server.SendNotificationCommand(v.prepEntity, v.Message)
 	}
 }
 
@@ -302,9 +345,4 @@ func (w *wrapper) loadActiveWindow(window string) {
 		w.to = to.Hour()*60 + to.Minute()
 		w.activeWindow = true
 	}
-}
-
-// Returns trigger ID.
-func getID(name string) string {
-	return fmt.Sprintf("%s.%s", utils.NormalizeDeviceName(name), systems.SysTrigger.String())
 }

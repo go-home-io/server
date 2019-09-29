@@ -33,7 +33,6 @@ func (f *fakePlugin) FakeInit(i interface{}) {
 }
 
 func (f *fakePlugin) Init(i *pluginTrigger.InitDataTrigger) error {
-
 	return nil
 }
 
@@ -155,6 +154,7 @@ type wdSuite struct {
 	foundRegexpError   bool
 }
 
+// Sets tests.
 func (w *wdSuite) SetupTest() {
 	w.ctr = &ConstructTrigger{
 		Logger: mocks.FakeNewLogger(func(s string) {
@@ -195,6 +195,8 @@ func (w *wdSuite) TestNoAction() {
 name: test
 actions:
   - system: device
+  - system: notification
+  - system: wrong
 `
 	w.newTrigger(data)
 	assert.True(w.T(), w.foundErrorActions)
@@ -220,6 +222,16 @@ actions:
   - system: device
     entity: "[!]"
     command: on
+`
+	w.newTrigger(data)
+	assert.True(w.T(), w.foundRegexpError)
+}
+
+func (w *wdSuite) TestRegexpNotification() {
+	data := `
+actions:
+  - system: notification
+    entity: "[!]"
 `
 	w.newTrigger(data)
 	assert.True(w.T(), w.foundRegexpError)
@@ -286,7 +298,39 @@ actions:
 	time.Sleep(1 * time.Second)
 	assert.True(t, invoked)
 
-	assert.True(t, tr.GetLastTriggeredTime() - utils.TimeNow() < 10, "trigger time was not updated")
+	assert.True(t, tr.GetLastTriggeredTime()-utils.TimeNow() < 10, "trigger time was not updated")
+}
+
+// Tests notifications calls.
+func TestInvokeNotification(t *testing.T) {
+	invoked := false
+	fakePlugin := &fakePlugin{}
+	ctr := &ConstructTrigger{
+		Logger:    mocks.FakeNewLogger(nil),
+		Validator: utils.NewValidator(mocks.FakeNewLogger(nil)),
+		Loader:    mocks.FakeNewPluginLoader(fakePlugin),
+		Secret:    mocks.FakeNewSecretStore(nil, false),
+		FanOut:    mocks.FakeNewFanOut(),
+		Storage:   mocks.FakeNewStorage(),
+		Provider:  "test",
+		Server: mocks.FakeNewServer(func() {
+			invoked = true
+		}).(providers.IServerProvider),
+		Timezone: getUTC(),
+	}
+
+	ctr.RawConfig = []byte(fmt.Sprintf(`
+actions:
+    - system: notification
+      entity: hub`))
+
+	tr, err := NewTrigger(ctr)
+	require.NoError(t, err)
+	fakePlugin.testInvoke()
+	time.Sleep(1 * time.Second)
+	assert.True(t, invoked)
+
+	assert.True(t, tr.GetLastTriggeredTime()-utils.TimeNow() < 10, "trigger time was not updated")
 }
 
 // Tests incorrect data.

@@ -59,6 +59,7 @@ func (s *GoHomeServer) getStatus(writer http.ResponseWriter, request *http.Reque
 	entities := s.state.GetEntities()
 	entities = append(entities, addMasterComponents(s.triggers, systems.SysTrigger)...)
 	entities = append(entities, addMasterComponents(s.extendedAPIs, systems.SysAPI)...)
+	entities = append(entities, addMasterComponents(s.notifications, systems.SysNotification)...)
 
 	sort.Slice(entities, func(i, j int) bool {
 		return entities[i].Name < entities[j].Name

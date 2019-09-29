@@ -18,6 +18,12 @@ type fakeServer struct {
 	device   *providers.KnownDevice
 }
 
+func (f *fakeServer) SendNotificationCommand(glob.Glob, string) {
+	if nil != f.callback {
+		f.callback()
+	}
+}
+
 func (f *fakeServer) GetDevice(string) *providers.KnownDevice {
 	return f.device
 }

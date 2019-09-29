@@ -22,6 +22,7 @@ import (
 	"go-home.io/x/server/systems/api"
 	"go-home.io/x/server/systems/bus"
 	"go-home.io/x/server/systems/group"
+	"go-home.io/x/server/systems/notification"
 	"go-home.io/x/server/systems/trigger"
 	"go-home.io/x/server/systems/ui"
 )
@@ -46,10 +47,11 @@ type GoHomeServer struct {
 
 	state IServerStateProvider
 
-	triggers     []*knownMasterComponent
-	extendedAPIs []*knownMasterComponent
-	groups       map[string]providers.IGroupProvider
-	locations    []providers.ILocationProvider
+	triggers      []*knownMasterComponent
+	extendedAPIs  []*knownMasterComponent
+	notifications []*knownMasterComponent
+	groups        map[string]providers.IGroupProvider
+	locations     []providers.ILocationProvider
 
 	wsSettings websocket.Upgrader
 }
@@ -77,6 +79,7 @@ func (s *GoHomeServer) Start() {
 	s.startTriggers()
 	s.startGroups()
 	s.startLocations()
+	s.startNotifications()
 
 	s.wsSettings = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool {
 		return true
@@ -314,5 +317,34 @@ func (s *GoHomeServer) startLocations() {
 		}
 
 		s.locations = append(s.locations, l)
+	}
+}
+
+// Starts notification systems.
+func (s *GoHomeServer) startNotifications() {
+	s.notifications = make([]*knownMasterComponent, 0)
+
+	for _, v := range s.Settings.Notifications() {
+		ctor := &notification.ConstructNotification{
+			Name:      v.Name,
+			Provider:  v.Provider,
+			Loader:    s.Settings.PluginLoader(),
+			RawConfig: v.RawConfig,
+			Logger:    s.Settings.SystemLogger(),
+			Secret:    s.Settings.Secrets(),
+		}
+
+		n, err := notification.NewNotificationProvider(ctor)
+		comp := &knownMasterComponent{
+			Loaded:    true,
+			Name:      v.Name,
+			Interface: n,
+		}
+
+		if err != nil {
+			comp.Loaded = false
+		}
+
+		s.notifications = append(s.notifications, comp)
 	}
 }

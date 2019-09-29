@@ -13,7 +13,7 @@ import (
 type IFakeSettings interface {
 	AddLoader(returnOj interface{})
 	AddSBCallback(func(...interface{}))
-	AddMasterComponents(groups, externalAPI, triggers []*providers.RawMasterComponent)
+	AddMasterComponents(groups, externalAPI, triggers, notifications []*providers.RawMasterComponent)
 	AddMasterSettings(*providers.MasterSettings)
 }
 
@@ -30,7 +30,12 @@ type fakeSettings struct {
 	groups         []*providers.RawMasterComponent
 	externalAPI    []*providers.RawMasterComponent
 	triggers       []*providers.RawMasterComponent
+	notifications  []*providers.RawMasterComponent
 	masterSettings *providers.MasterSettings
+}
+
+func (f *fakeSettings) Notifications() []*providers.RawMasterComponent {
+	return f.notifications
 }
 
 func (f *fakeSettings) Storage() providers.IStorageProvider {
@@ -131,10 +136,11 @@ func (f *fakeSettings) AddSBCallback(cb func(...interface{})) {
 	f.bus.(*fakeServiceBus).publishCallback = cb
 }
 
-func (f *fakeSettings) AddMasterComponents(groups, externalAPI, triggers []*providers.RawMasterComponent) {
+func (f *fakeSettings) AddMasterComponents(groups, externalAPI, triggers, notifications []*providers.RawMasterComponent) {
 	f.groups = groups
 	f.externalAPI = externalAPI
 	f.triggers = triggers
+	f.notifications = notifications
 }
 
 func (f *fakeSettings) AddMasterSettings(m *providers.MasterSettings) {

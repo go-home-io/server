@@ -24,6 +24,7 @@ type ISettingsProvider interface {
 	Security() ISecurityProvider
 	Triggers() []*RawMasterComponent
 	ExtendedAPIs() []*RawMasterComponent
+	Notifications() []*RawMasterComponent
 	Groups() []*RawMasterComponent
 	FanOut() IInternalFanOutProvider
 	Storage() IStorageProvider

@@ -80,10 +80,11 @@ type settingsProvider struct {
 	rawUsersProvider *rawProvider
 	securityProvider providers.ISecurityProvider
 
-	fanOut       providers.IInternalFanOutProvider
-	triggers     []*providers.RawMasterComponent
-	extendedAPIs []*providers.RawMasterComponent
-	groups       []*providers.RawMasterComponent
+	fanOut        providers.IInternalFanOutProvider
+	triggers      []*providers.RawMasterComponent
+	extendedAPIs  []*providers.RawMasterComponent
+	groups        []*providers.RawMasterComponent
+	notifications []*providers.RawMasterComponent
 }
 
 // Load system configuration.
@@ -100,6 +101,7 @@ func Load(options *StartUpOptions) providers.ISettingsProvider {
 		extendedAPIs:  make([]*providers.RawMasterComponent, 0),
 		fanOut:        fanout.NewFanOut(),
 		groups:        make([]*providers.RawMasterComponent, 0),
+		notifications: make([]*providers.RawMasterComponent, 0),
 	}
 
 	settings.validator = utils.NewValidator(settings.logger)
@@ -543,6 +545,8 @@ func (s *settingsProvider) parseProvider(provider *rawProvider) {
 		s.loadUIProviders(provider)
 	case systems.SysStorage:
 		s.processStorage(provider)
+	case systems.SysNotification:
+		s.loadNotification(provider)
 	}
 
 	if err != nil {
@@ -658,6 +662,11 @@ func (s *settingsProvider) loadAPI(provider *rawProvider) {
 // Loads trigger component.
 func (s *settingsProvider) loadTrigger(provider *rawProvider) {
 	s.triggers = s.loadMasterComponent(s.triggers, provider)
+}
+
+// Loads notification component.
+func (s *settingsProvider) loadNotification(provider *rawProvider) {
+	s.notifications = s.loadMasterComponent(s.notifications, provider)
 }
 
 // Loads master component.

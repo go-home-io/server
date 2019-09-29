@@ -8,9 +8,9 @@ import (
 	"fmt"
 )
 
-const _triggerSystemName = "devicescript"
+const _triggerSystemName = "devicescriptnotification"
 
-var _triggerSystemIndex = [...]uint8{0, 6, 12}
+var _triggerSystemIndex = [...]uint8{0, 6, 12, 24}
 
 func (i triggerSystem) String() string {
 	if i < 0 || i >= triggerSystem(len(_triggerSystemIndex)-1) {
@@ -19,11 +19,12 @@ func (i triggerSystem) String() string {
 	return _triggerSystemName[_triggerSystemIndex[i]:_triggerSystemIndex[i+1]]
 }
 
-var _triggerSystemValues = []triggerSystem{0, 1}
+var _triggerSystemValues = []triggerSystem{0, 1, 2}
 
 var _triggerSystemNameToValueMap = map[string]triggerSystem{
-	_triggerSystemName[0:6]:  0,
-	_triggerSystemName[6:12]: 1,
+	_triggerSystemName[0:6]:   0,
+	_triggerSystemName[6:12]:  1,
+	_triggerSystemName[12:24]: 2,
 }
 
 // triggerSystemString retrieves an enum value from the enum constants string name.

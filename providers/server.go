@@ -9,7 +9,8 @@ import (
 // some other internal systems.
 type IServerProvider interface {
 	Start()
-	InternalCommandInvokeDeviceCommand(deviceRegexp glob.Glob, cmd enums.Command, data map[string]interface{})
+	InternalCommandInvokeDeviceCommand(glob.Glob, enums.Command, map[string]interface{})
+	SendNotificationCommand(glob.Glob, string)
 	GetDevice(string) *KnownDevice
 	PushMasterDeviceUpdate(*MasterDeviceUpdate)
 }

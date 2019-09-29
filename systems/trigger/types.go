@@ -15,6 +15,8 @@ const (
 	triggerDevice triggerSystem = iota
 	// triggerScript describes script invoke action.
 	triggerScript
+	// triggerNotification describes notification system action.
+	triggerNotification
 )
 
 const (
@@ -31,6 +33,14 @@ type triggerActionDevice struct {
 	prepArgs   map[string]interface{}
 	prepEntity glob.Glob
 	cmd        enums.Command
+}
+
+// Notification action.
+type triggerActionNotification struct {
+	Entity  string `yaml:"entity" validate:"required"`
+	Message string `yaml:"message"`
+
+	prepEntity glob.Glob
 }
 
 // Trigger config.

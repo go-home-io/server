@@ -28,4 +28,6 @@ const (
 	SysUI
 	// SysStorage describes state storage system.
 	SysStorage
+	// SysNotification describes push-type notifications system.
+	SysNotification
 )

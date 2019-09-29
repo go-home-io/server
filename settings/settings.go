@@ -100,3 +100,8 @@ func (s *settingsProvider) Storage() providers.IStorageProvider {
 func (s *settingsProvider) Timezone() *time.Location {
 	return s.timezone
 }
+
+// Notifications returns a lost of known notification systems.
+func (s *settingsProvider) Notifications() []*providers.RawMasterComponent {
+	return s.notifications
+}
