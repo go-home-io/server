@@ -1,5 +1,5 @@
 ARG RUN_IMAGE
-FROM golang:1.13beta1 as build
+FROM golang:1.13.1 as build
 
 ENV PROVIDERS=https://github.com/go-home-io/providers.git \
     HOME_DIR=${GOPATH}/src/go-home.io/x/server \
